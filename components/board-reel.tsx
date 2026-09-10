@@ -26,8 +26,9 @@ const boards = [
   },
 ];
 
-export function BoardReel() {
+export function BoardReel({ only }: { only?: string[] } = {}) {
   const videos = useRef<(HTMLVideoElement | null)[]>([]);
+  const shown = only ? boards.filter((board) => only.includes(board.id)) : boards;
 
   useEffect(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -56,7 +57,7 @@ export function BoardReel() {
 
   return (
     <div className="reel">
-      {boards.map((board, i) => (
+      {shown.map((board, i) => (
         <figure className="reel-item" key={board.id}>
           <div className="reel-screen">
             <video

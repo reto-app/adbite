@@ -19,10 +19,12 @@ import { SkyShapes } from '@/components/sky-shapes';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 
+/* The businesses that buy a counter screen are the ones close enough to walk
+   to. Every example on the site is one of those, and says so. */
 const ads = [
-  { label: 'Now playing · Bottom banner', brand: 'Taco Tuesday', detail: 'Two tacos + agua fresca · $9', color: 'coral' },
-  { label: 'Now playing · Full screen', brand: 'Neighbor Dental', detail: 'New patient checkups this week', color: 'sun' },
-  { label: 'Now playing · Short video', brand: 'Mia’s Flower Bar', detail: 'Bright stems for your table', color: 'blue' },
+  { label: 'Now playing · Bottom banner', brand: 'Rosewood Barbers', detail: 'Walk-ins till seven · next door', color: 'coral' },
+  { label: 'Now playing · Full screen', brand: 'North Park Dental', detail: 'New patient checkups this week', color: 'sun' },
+  { label: 'Now playing · Short video', brand: 'Mia’s Flower Bar', detail: 'Bright stems · corner of 700 North', color: 'blue' },
 ];
 const steps = [
   ['01', 'Connect your screen', 'We help set up your existing TV or menu board.'],
@@ -69,12 +71,11 @@ export default function Home() {
       <section className="hero wrap">
         <div className="hero-copy">
           <h1>Your TV already runs your menu.<br/><em>Let it pay you, too.<Bite className="bite"/></em></h1>
-          <p className="hero-lede">AdBite turns a small, owner-approved slice of your screen into local ad space, so your shop can earn around <strong>$480 a month</strong>.</p>
+          <p className="hero-lede">AdBite turns a small, owner-approved slice of your screen into ad space for the businesses on your block, so the TV you already run starts paying for itself.</p>
           <div className="hero-actions">
             <a className="button primary" href="#join">Get your shop on AdBite <ArrowRight size={17}/></a>
             <a className="text-link" href="#how">See how it works</a>
           </div>
-          <p className="pilot"><BadgeCheck size={16}/> Piloting in one metro, with independent shops only.</p>
         </div>
         <ShopScene ads={ads} activeAd={activeAd} onSelectAd={setActiveAd} />
       </section>
@@ -84,9 +85,9 @@ export default function Home() {
 
     <section id="how" className="section wrap"><div className="section-head"><h2>You stay in charge. Always.</h2><p>No surprise ads. No handing over your TV. Just a clear, optional revenue stream that fits around the content your customers need.</p></div><div className="steps">{steps.map(([number, title, text]) => <article className="step" key={number}><span>{number}</span><h3>{title}</h3><p>{text}</p></article>)}</div></section>
 
-    <section className="approval wrap"><div className="approval-art"><div className="approval-card"><div className="mini-ad"><span>HONEY &amp; STEM</span><b>fresh flowers<br/>for just because</b></div><div className="approval-actions"><button><X size={16}/> Reject</button><button><Check size={16}/> Approve</button></div></div><div className="approval-badge"><BadgeCheck size={20}/><span><b>Your call</b>Every ad gets your okay</span></div></div><div className="approval-copy"><h2>Nothing runs without your approval.</h2><p>Every creative arrives in a quick review queue. If it doesn’t match your shop, your customers, or your values, reject it. No explanation needed.</p><ul><li><Check size={17}/> See the ad before it’s scheduled</li><li><Check size={17}/> Approve or reject in one tap</li><li><Check size={17}/> Choose the ad share that feels right</li></ul></div></section>
+    <section className="approval wrap"><div className="approval-art"><div className="approval-card"><div className="mini-ad"><span>ROSEWOOD BARBERS</span><b>walk-ins till seven<br/>next door to you</b></div><div className="approval-actions"><button><X size={16}/> Reject</button><button><Check size={16}/> Approve</button></div></div><div className="approval-badge"><BadgeCheck size={20}/><span><b>Your call</b>Every ad gets your okay</span></div></div><div className="approval-copy"><h2>Nothing runs without your approval.</h2><p>Every creative arrives in a quick review queue. If it doesn’t match your shop, your customers, or your values, reject it. No explanation needed.</p><ul><li><Check size={17}/> See the ad before it’s scheduled</li><li><Check size={17}/> Approve or reject in one tap</li><li><Check size={17}/> Choose the ad share that feels right</li></ul></div></section>
 
-    <section className="formats"><div className="wrap"><div className="section-head format-head"><h2>Three ways an ad can show up.</h2><p>Every format leaves your own content in place, and every format is subject to your approval.</p></div><div className="format-grid"><article><div className="format-preview full"><span>LOCAL FAVORITE</span><b>Spring tune-up<br/>at Moss Auto</b></div><h3>Full-screen spot</h3><p>A bold moment between your own content.</p></article><article><div className="format-preview video"><span>▶ 0:15</span><b>Move with<br/>Northside Yoga</b></div><h3>Short video</h3><p>A quick local story, kept brief and clear.</p></article><article><div className="format-preview banner"><div className="mini-menu">Brunch all day<br/><small>breakfast · lunch · coffee</small></div><b>River City Bikes · free tune-up</b></div><h3>Bottom banner</h3><p>Your menu stays visible—the ad sits below it.</p></article></div></div></section>
+    <section className="formats"><div className="wrap"><div className="section-head format-head"><h2>Three ways an ad can show up.</h2><p>Every format leaves your own content in place, and every format is subject to your approval.</p></div><div className="format-grid"><article><div className="format-preview full"><span>TWO BLOCKS NORTH</span><b>Free tune-up<br/>at Freedom Cycles</b></div><h3>Full-screen spot</h3><p>The whole board for one turn, then your menu is back.</p></article><article><div className="format-preview video"><span>▶ 0:15</span><b>First class free<br/>at Iron Rose Gym</b></div><h3>Short video</h3><p>Fifteen muted seconds. No sound to talk over.</p></article><article><div className="format-preview banner"><div className="mini-menu">Brunch all day<br/><small>breakfast · lunch · coffee</small></div><b>Ninth Street Books · 10% off with your receipt</b></div><h3>Bottom banner</h3><p>Your menu stays where it is. The ad takes the strip below.</p></article></div></div></section>
 
     <section className="boards-section"><div className="wrap"><div className="section-head"><h2>Boards already running this.</h2><p>Four real AdBite boards. Watch where the ad sits, and how much of the screen stays the shop&rsquo;s.</p></div><BoardReel/></div></section>
 

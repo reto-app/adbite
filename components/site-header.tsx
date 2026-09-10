@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { AccountButton } from './account-button';
 import { Wordmark } from './brand';
 
 type NavItem = { href: string; label: string };
@@ -8,7 +9,7 @@ export function SiteHeader({
   aside,
 }: {
   nav: NavItem[];
-  aside: { href: string; label: string };
+  aside?: { href: string; label: string };
 }) {
   return (
     <header className="site-header">
@@ -23,9 +24,14 @@ export function SiteHeader({
             </Link>
           ))}
         </nav>
-        <Link className="audience-link" href={aside.href}>
-          {aside.label}
-        </Link>
+        <div className="header-actions">
+          {aside && (
+            <Link className="audience-link" href={aside.href}>
+              {aside.label}
+            </Link>
+          )}
+          <AccountButton />
+        </div>
       </div>
     </header>
   );
