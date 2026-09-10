@@ -50,7 +50,9 @@ export default defineConfig(async () => {
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,
     plugins: [
-      vinext(),
+      // This is a marketing site with no server-side data dependency, so every
+      // route can be emitted as HTML for both the Sites worker and Vercel.
+      vinext({ prerender: { routes: '*' } }),
       sites(),
       cloudflare({
         viteEnvironment: { name: 'rsc', childEnvironments: ['ssr'] },
