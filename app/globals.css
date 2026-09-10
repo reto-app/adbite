@@ -787,7 +787,7 @@ h3 {
 
 .calc-total strong {
   font-family: var(--font-display), sans-serif;
-  color: var(--price);
+  color: var(--sky);
   font-size: 34px;
   letter-spacing: -0.05em;
 }
