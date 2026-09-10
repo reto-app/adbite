@@ -1,20 +1,48 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist, Outfit } from 'next/font/google';
 import './globals.css';
 
 const geistSans = Geist({
-  variable: '--font-geist-sans',
+  variable: '--font-sans',
   subsets: ['latin'],
 });
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const outfit = Outfit({
+  variable: '--font-display',
   subsets: ['latin'],
+  weight: ['500', '600', '700', '800'],
 });
 
 export const metadata: Metadata = {
-  title: 'AdBite — Local ads on shop screens',
-  description: 'AdBite helps independent shops earn from TVs they already use.',
+  metadataBase: new URL('https://adbite.co'),
+  title: {
+    default: 'AdBite — Local ads on shop screens',
+    template: '%s — AdBite',
+  },
+  description:
+    'AdBite turns a small, owner-approved slice of a shop’s screen into local ad space, so independent restaurants, barbers, salons, and cafés earn from the TVs they already run.',
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/brand/adbite-icon-512.png', type: 'image/png', sizes: '512x512' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
+  openGraph: {
+    type: 'website',
+    siteName: 'AdBite',
+    title: 'AdBite — Local ads on shop screens',
+    description:
+      'Your TV already runs your menu. Let it pay you, too. AdBite is a local screen network for independent shops.',
+    images: [{ url: '/brand/adbite-og.png', width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'AdBite — Local ads on shop screens',
+    description:
+      'Your TV already runs your menu. Let it pay you, too.',
+    images: ['/brand/adbite-og.png'],
+  },
 };
 
 export default function RootLayout({
@@ -24,9 +52,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${outfit.variable} antialiased`}>
         {children}
       </body>
     </html>
