@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ArrowRight, Check, Monitor, Play, Store } from 'lucide-react';
-import Link from 'next/link';
+import { Link } from '@/components/nav';
 import { Bite } from '@/components/brand';
 import { AdvertiserFlow } from '@/components/advertiser-flow';
 import { NORTH_PARK_NOODLE, ShopScene } from '@/components/shop-scene';

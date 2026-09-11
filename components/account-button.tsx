@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { Link, useNav, usePath } from '@/components/nav';
 import { LayoutDashboard, LogOut, User } from 'lucide-react';
 import { signOut, useSession } from '@/lib/auth';
 
@@ -12,8 +11,8 @@ export function AccountButton() {
   const { ready, session } = useSession();
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
-  const router = useRouter();
-  const pathname = usePathname();
+  const router = useNav();
+  const pathname = usePath();
 
   useEffect(() => {
     if (!open) return;

@@ -1,16 +1,15 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { Link, useNav, useQuery } from '@/components/nav';
 import { ArrowRight, Lock, User } from 'lucide-react';
 import { Wordmark } from '@/components/brand';
 import { SkyShapes } from '@/components/sky-shapes';
 import { signIn, useSession } from '@/lib/auth';
 
 function SignInForm() {
-  const router = useRouter();
-  const params = useSearchParams();
+  const router = useNav();
+  const params = useQuery();
   const { ready, session } = useSession();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');

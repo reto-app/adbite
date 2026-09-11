@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/components/nav';
 import { Bite, Wordmark } from './brand';
 
 type FooterLink = { href: string; label: string };

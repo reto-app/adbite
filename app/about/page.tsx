@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import { Link } from '@/components/nav';
 import { ArrowRight, Heart, MapPin, Store } from 'lucide-react';
 import { Bite } from '@/components/brand';
 import { SiteHeader } from '@/components/site-header';

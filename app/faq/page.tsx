@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { Link } from '@/components/nav';
 import { ArrowRight, ChevronDown } from 'lucide-react';
 import { Bite } from '@/components/brand';
 import { SiteHeader } from '@/components/site-header';

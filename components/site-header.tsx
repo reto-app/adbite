@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from '@/components/nav';
 import { AccountButton } from './account-button';
 import { Wordmark } from './brand';
 
