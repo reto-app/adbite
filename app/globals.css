@@ -42,6 +42,17 @@ html {
   scroll-behavior: smooth;
 }
 
+/* The header is sticky, so an anchor jump would otherwise park the target's
+   first 68px underneath it. Every in-page target clears the header plus a
+   little air. */
+:root {
+  --header-h: 68px;
+}
+
+[id] {
+  scroll-margin-top: calc(var(--header-h) + 20px);
+}
+
 body {
   margin: 0;
   background: var(--paper);
@@ -4658,6 +4669,7 @@ h3 {
 @media (max-width: 900px) {
   :root {
     --gutter: 18px;
+    --header-h: 88px;
   }
 
   /* the nav drops to its own row rather than being squeezed or hidden */
