@@ -63,7 +63,6 @@ export default function AdvertisersPage() {
       <SkyShapes />
       <section className="ad-hero wrap">
         <div>
-          <span className="eyebrow"><span className="pulse"/> For local advertisers</span>
           <h1>Show up where your neighbors <em>already look.<Bite className="bite"/></em></h1>
           <p className="hero-lede">Buy a slice of the menu board at the shop down the street. Your ad plays while someone is already standing still, deciding, twenty feet from your front door.</p>
           <div className="hero-actions">

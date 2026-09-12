@@ -1050,80 +1050,237 @@ h3 {
   padding: 13px 13px 20px;
 }
 
+/* Each preview runs its own format rather than describing it: the board
+   blanks for a full-screen spot, the video cuts between frames, and the
+   banner strip rotates. Base state is the still each one settles on, so the
+   reduced-motion override lands somewhere sensible. */
+
 .format-preview {
-  height: 176px;
+  position: relative;
+  height: 196px;
   border-radius: 9px;
   margin-bottom: 18px;
   overflow: hidden;
+  background: #16211e;
 }
 
-.format-preview.full,
-.format-preview.video {
+/* the shop's own menu */
+.fp-board {
+  position: absolute;
+  inset: 0;
+  padding: 15px 17px;
+  color: #f2ebdd;
+}
+
+.fp-board > b {
+  display: block;
+  margin-bottom: 10px;
+  font-family: var(--font-display), sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.09em;
+  color: var(--sky);
+}
+
+.fp-board p {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 7px;
+  font-size: 11.5px;
+}
+
+.fp-board i {
+  font-style: normal;
+  opacity: 0.7;
+}
+
+/* ---- full screen: the board blanks for the ad ------------------------- */
+
+.fp-takeover {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 18px;
-  color: white;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 18px;
+  background: linear-gradient(140deg, #e8783a, #cf5330);
+  color: #fff6ee;
+  opacity: 0;
+  animation: fpTakeover 9s linear infinite;
 }
 
-.format-preview.full {
-  background: linear-gradient(135deg, #264842, #1e2725);
+/* a board cuts to the ad, it does not dissolve into it */
+@keyframes fpTakeover {
+  0%, 45% { opacity: 0; }
+  47%, 91% { opacity: 1; }
+  93%, 100% { opacity: 0; }
 }
 
-.format-preview.video {
-  background: linear-gradient(135deg, #e76c58, #eab453);
-}
-
-.format-preview span {
+.fp-takeover span {
   font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.11em;
+  opacity: 0.9;
 }
 
-.format-preview b {
+.fp-takeover b {
   font-family: var(--font-display), sans-serif;
-  font-size: 26px;
-  line-height: 0.98;
-  letter-spacing: -0.05em;
-}
-
-.format-preview.banner {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  background: #e8efe8;
-  color: #1c2825;
-}
-
-.mini-menu {
-  padding: 18px;
-  font-family: var(--font-display), sans-serif;
-  font-size: 22px;
-  line-height: 1.05;
+  font-size: 25px;
+  line-height: 1.03;
   letter-spacing: -0.04em;
 }
 
-.mini-menu small {
-  font-family: var(--font-sans), sans-serif;
-  font-size: 10px;
-  letter-spacing: 0;
-  color: #67736d;
+.fp-takeover small {
+  font-size: 10.5px;
+  opacity: 0.85;
 }
 
-.format-preview.banner > b {
-  font-size: 14px;
-  letter-spacing: -0.02em;
-  background: #f47460;
-  color: #fff;
-  padding: 13px 17px;
+/* ---- short video: frames of a fifteen second spot --------------------- */
+
+.format-preview.video {
+  background: linear-gradient(150deg, #c4452b, #e8783a 55%, #efa04b);
 }
 
-.format-grid h3 {
+.fp-frame {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 20px;
+  color: #fff6ee;
+  opacity: 0;
+  animation: fpFrame 9s ease-in-out infinite;
+}
+
+.fp-frame b {
+  font-family: var(--font-display), sans-serif;
+  font-size: 27px;
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+}
+
+.fp-frame small {
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+/* the still it rests on when motion is off */
+.fp-frame.one {
+  opacity: 1;
+}
+
+.fp-frame.two {
+  animation-delay: 3s;
+}
+
+.fp-frame.three {
+  animation-delay: 6s;
+}
+
+@keyframes fpFrame {
+  0% { opacity: 0; transform: translateY(7px); }
+  6%, 28% { opacity: 1; transform: none; }
+  34%, 100% { opacity: 0; transform: translateY(-7px); }
+}
+
+.fp-timer {
+  position: absolute;
+  top: 13px;
+  left: 15px;
+  z-index: 1;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.fp-timer::before {
+  content: '\25B6';
+  margin-right: 6px;
+}
+
+.fp-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.fp-bar::after {
+  content: '';
+  display: block;
+  height: 100%;
+  background: #fff;
+  transform-origin: left;
+  animation: fpBar 9s linear infinite;
+}
+
+@keyframes fpBar {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* ---- bottom banner: the menu stays, the strip rotates ----------------- */
+
+.format-preview.banner .fp-board {
+  bottom: 48px;
+}
+
+.fp-strip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 48px;
+  background: #e8783a;
+}
+
+.fp-strip b {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 15px;
+  font-family: var(--font-display), sans-serif;
+  font-size: 12.5px;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  color: #fff6ee;
+  opacity: 0;
+  animation: fpStrip 10.5s ease-in-out infinite;
+}
+
+.fp-strip b.one {
+  opacity: 1;
+}
+
+.fp-strip b.two {
+  animation-delay: 3.5s;
+}
+
+.fp-strip b.three {
+  animation-delay: 7s;
+}
+
+@keyframes fpStrip {
+  0% { opacity: 0; }
+  4%, 28% { opacity: 1; }
+  33%, 100% { opacity: 0; }
+}
+
+.format-grid > article > h3 {
   font-size: 19px;
   margin: 0 4px 6px;
 }
 
-.format-grid p {
+/* scoped to the caption: a bare `.format-grid p` also dims the menu rows
+   inside the previews */
+.format-grid > article > p {
   margin: 0 4px;
   color: var(--ash);
   font-size: 14px;
@@ -1489,7 +1646,7 @@ h3 {
 }
 
 .ad-hero h1 {
-  margin: 14px 0 22px;
+  margin: 0 0 22px;
 }
 
 /* scoped to the lede: a bare `.ad-hero p` also repaints the menu boards
@@ -1499,10 +1656,6 @@ h3 {
   color: #1d3243;
   max-width: 50ch;
   margin-bottom: 30px;
-}
-
-.ad-hero .eyebrow {
-  color: #1d3243;
 }
 
 .packages {

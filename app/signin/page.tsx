@@ -58,7 +58,7 @@ function SignInForm() {
             required
             type="password"
             autoComplete="current-password"
-            placeholder="••••"
+            placeholder="••••••••••"
             value={password}
             onChange={(event) => {
               setPassword(event.target.value);
