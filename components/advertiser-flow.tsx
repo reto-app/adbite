@@ -12,7 +12,11 @@ import {
 } from 'lucide-react';
 import { Bite } from '@/components/brand';
 import { FORMATS, boardById, type FormatId } from '@/lib/boards';
-import { PILOT_CITY, VENUES, totalScreens } from '@/lib/network';
+/* The marketing flow prices and draws only the boards that are actually
+   playing ads. The campaign builder shows the whole pipeline, prospects
+   included, because that is where you book ahead; a page that says "live in
+   one shop" must not quietly map seventeen. */
+import { LIVE_VENUES, PILOT_CITY, totalScreens } from '@/lib/network';
 import { VenueMap } from '@/components/venue-map';
 import {
   DAYPARTS,
@@ -90,10 +94,10 @@ export function AdvertiserFlow() {
   const [verdict, setVerdict] = useState<Verdict>('pending');
 
   const chosen = dayparts.length ? dayparts : ALL_DAYPARTS;
-  const ceiling = maxSpend(VENUES, chosen, format);
+  const ceiling = maxSpend(LIVE_VENUES, chosen, format);
   const capped = Math.min(spend, ceiling);
-  const minutes = minutesFor(capped, VENUES, chosen, format);
-  const rate = blendedRate(VENUES, chosen, format);
+  const minutes = minutesFor(capped, LIVE_VENUES, chosen, format);
+  const rate = blendedRate(LIVE_VENUES, chosen, format);
   const byPlay = unitOf(format) === 'play';
   const fill = (capped - 25) / Math.max(1, ceiling - 25);
 
@@ -199,7 +203,7 @@ export function AdvertiserFlow() {
             {node === 'where' && (
               <div className="flow-body">
                 <div className="flow-venue">
-                  {VENUES.map((venue) => (
+                  {LIVE_VENUES.map((venue) => (
                     <div key={venue.id}>
                       <b>{venue.name}</b>
                       <span>{venue.kind}</span>
@@ -211,7 +215,7 @@ export function AdvertiserFlow() {
                   ))}
                 </div>
                 <div className="map-frame">
-                  <VenueMap venues={VENUES} zoom={15} />
+                  <VenueMap venues={LIVE_VENUES} zoom={15} />
                 </div>
                 <div className="flow-chips">
                   {DAYPARTS.map((part) => {
@@ -355,7 +359,7 @@ export function AdvertiserFlow() {
                 <div className="flow-bill">
                   <div className="flow-bill-head">
                     <Receipt size={18} />
-                    <span>Week of Sep 8 · {VENUES.length} shop</span>
+                    <span>Week of Sep 8 · {LIVE_VENUES.length} shop</span>
                   </div>
                   <dl>
                     <div>
@@ -397,7 +401,7 @@ export function AdvertiserFlow() {
                 Build yours, no account needed <ArrowRight size={16} />
               </Link>
               <span>
-                <MonitorPlay size={15} /> {VENUES.length} shop · {totalScreens()} screen in{' '}
+                <MonitorPlay size={15} /> {LIVE_VENUES.length} shop · {totalScreens(LIVE_VENUES)} screen in{' '}
                 {PILOT_CITY}
               </span>
             </div>

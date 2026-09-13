@@ -1,15 +1,26 @@
 'use client';
 
-/* Campaigns the signed-in advertiser has booked in this browser.
+/* Campaigns the advertiser has booked in this browser.
  *
- * There is no server in the pilot, so this is the whole store. Nothing is
- * seeded: the dashboard starts empty and only ever shows bookings the person
- * actually made. */
+ * There is no server in the pilot, so this is the whole store. Two kinds of
+ * row live here and they are never mixed up:
+ *
+ *   real    what the person actually built and sent. It starts `in review`,
+ *           because that is true: a shop owner has to approve the creative
+ *           before a board will play it.
+ *
+ *   sample  three worked examples, loaded on demand from the empty state and
+ *           removable in one click. They carry `sample: true`, are drawn with
+ *           a Sample badge everywhere they appear, and exist so the analytics
+ *           can be read before you have a week of your own to read.
+ *
+ * Nothing is seeded automatically. An empty dashboard stays empty until
+ * somebody asks for the examples. */
 
 import { useEffect, useState } from 'react';
 import type { FormatId } from '@/lib/boards';
 import type { AgeBand } from '@/lib/network';
-import { VENUES } from '@/lib/network';
+import { LIVE_VENUES, VENUES } from '@/lib/network';
 import { blendedRate, minutesFor as minutesForSpend, type Daypart } from '@/lib/pricing';
 
 const KEY = 'adbite.campaigns';
@@ -28,12 +39,24 @@ export type Campaign = {
   creativeSrc: string | null;
   /** Where to send the booking confirmation. */
   email: string | null;
+  /** Set once the shop approves and the board starts playing it. */
+  startedAt?: number | null;
+  /** A worked example rather than a booking somebody made. */
+  sample?: boolean;
+  /** Free text the advertiser gave the campaign at build time. */
+  note?: string | null;
 };
+
+export type CampaignStatus = 'review' | 'live';
+
+export function statusOf(campaign: Pick<Campaign, 'startedAt'>): CampaignStatus {
+  return campaign.startedAt ? 'live' : 'review';
+}
 
 /** The venues a campaign actually booked, for pricing it. */
 function venuesOf(campaign: Pick<Campaign, 'venues'>) {
   const chosen = VENUES.filter((venue) => campaign.venues.includes(venue.id));
-  return chosen.length ? chosen : VENUES;
+  return chosen.length ? chosen : LIVE_VENUES;
 }
 
 /* Minutes depend on when the ad runs now that peak costs more than the dead
@@ -119,4 +142,81 @@ export function useCampaigns(): { ready: boolean; campaigns: Campaign[] } {
   }, []);
 
   return state;
+}
+
+/* ---- the worked examples ------------------------------------------------ */
+
+const DAY = 24 * 60 * 60 * 1000;
+
+/* Three bookings that have been running long enough to have a shape: a wide
+   multi-shop buy, one neighbourhood, and a single board. Loaded only when
+   somebody asks for them, and every panel that draws one says Sample. */
+const SAMPLES: Omit<Campaign, 'id' | 'createdAt'>[] = [
+  {
+    name: 'Rosewood Barbers · autumn walk-ins',
+    weeklySpend: 180,
+    format: 'full',
+    venues: [
+      'baopaowow',
+      'centerst-pizza',
+      'startup-coffee',
+      'mural-bakery',
+      'cougar-wings',
+      'north-gate-poke',
+    ],
+    ages: ['18-24', '25-34'],
+    dayparts: ['lunch', 'evening'],
+    creativeName: 'rosewood-autumn.png',
+    creativeSrc: null,
+    email: 'hello@rosewoodbarbers.com',
+    startedAt: Date.now() - 23 * DAY,
+    sample: true,
+    note: 'Downtown and campus, peak hours only. Walk-ins, no appointment.',
+  },
+  {
+    name: 'North Park Dental · new patients',
+    weeklySpend: 95,
+    format: 'banner',
+    venues: ['baopaowow', 'summit-strength', 'campus-cuts', 'cougar-wings'],
+    ages: ['25-34', '35-49'],
+    dayparts: ['lunch', 'afternoon', 'evening'],
+    creativeName: 'northpark-checkup.jpg',
+    creativeSrc: null,
+    email: 'front@northparkdental.com',
+    startedAt: Date.now() - 11 * DAY,
+    sample: true,
+    note: 'A strip under the menu, every open hour, around the campus gate.',
+  },
+  {
+    name: 'Mia’s Flower Bar · weekend stems',
+    weeklySpend: 45,
+    format: 'video',
+    venues: ['baopaowow'],
+    ages: [],
+    dayparts: ['evening'],
+    creativeName: 'mias-stems-15s.mp4',
+    creativeSrc: null,
+    email: 'mia@miasflowerbar.com',
+    startedAt: Date.now() - 5 * DAY,
+    sample: true,
+    note: 'One board, dinner only, fifteen seconds of motion.',
+  },
+];
+
+export function loadSamples() {
+  const existing = read().filter((campaign) => !campaign.sample);
+  const seeded = SAMPLES.map((sample, index) => ({
+    ...sample,
+    id: `sample-${index}`,
+    createdAt: (sample.startedAt ?? Date.now()) - 2 * DAY,
+  }));
+  write([...seeded, ...existing]);
+}
+
+export function clearSamples() {
+  write(read().filter((campaign) => !campaign.sample));
+}
+
+export function hasSamples(campaigns: Campaign[]) {
+  return campaigns.some((campaign) => campaign.sample);
 }

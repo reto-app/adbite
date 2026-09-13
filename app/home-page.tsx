@@ -181,6 +181,14 @@ export function HomePage() {
       </section>
     </div>
 
+    <section id="how" className="section wrap"><div className="section-head"><h2>Five steps, then it runs itself.</h2><p>From the TV you already own to money in the account. Nothing here asks you to sell an ad, sign a contract, or hand over your screen.</p></div><div className="steps">{steps.map(([number, title, text]) => <article className="step" key={number}><span>{number}</span><h3>{title}</h3><p>{text}</p></article>)}</div></section>
+
+    <section className="formats"><div className="wrap"><div className="section-head format-head"><h2>Four ways an ad can show up.</h2><p>Every format leaves your own content in place, and every format is subject to your approval.</p></div><FormatGrid/></div></section>
+
+    <section className="boards-section"><div className="wrap"><div className="section-head"><h2>What it will look like.</h2><p>Four AdBite boards. Watch where the ad sits, and how much of the screen stays the shop&rsquo;s.</p></div><BoardReel/></div></section>
+
+    <section className="approval wrap"><div className="approval-art"><div className="approval-card"><div className="review-head"><span className="review-tag">In review</span><span>Queued today</span></div><div className="mini-ad"><div className="mini-brand"><i>RB</i><span>Rosewood Barbers<em>4th &amp; Pine · next door</em></span></div><b>Walk-ins till seven</b><p>Fades, beard trims, hot-towel finish. No appointment, no wait list.</p><span className="mini-offer">$5 off your first cut</span></div><dl className="review-details"><dt>Format</dt><dd>Full-screen spot</dd><dt>Length</dt><dd>15 seconds</dd><dt>Rotation</dt><dd>6 turns an hour</dd><dt>Runs</dt><dd>Mon 15 Sep &ndash; Sun 21 Sep</dd></dl><div className="approval-actions"><button type="button"><X size={16}/> Reject</button><button type="button"><Check size={16}/> Approve</button></div></div><div className="approval-badge"><BadgeCheck size={20}/><span><b>Your call</b>Every ad gets your okay</span></div></div><div className="approval-copy"><h2>Nothing runs without your approval.</h2><p>Every creative arrives in a quick review queue. If it doesn’t match your shop, your customers, or your values, reject it. No explanation needed.</p><ul><li><Check size={17}/> See the ad before it’s scheduled</li><li><Check size={17}/> Approve or reject in one tap</li><li><Check size={17}/> Choose the ad share that feels right</li></ul></div></section>
+
     <section id="earnings" className="numbers-band"><div className="wrap numbers-inner">
       <div>
         <h2>A little screen time.<br/>A meaningful extra.</h2>
@@ -201,13 +209,7 @@ export function HomePage() {
       </div>
     </div></section>
 
-    <section id="how" className="section wrap"><div className="section-head"><h2>You stay in charge. Always.</h2><p>No surprise ads. No handing over your TV. Just a clear, optional revenue stream that fits around the content your customers need.</p></div><div className="steps">{steps.map(([number, title, text]) => <article className="step" key={number}><span>{number}</span><h3>{title}</h3><p>{text}</p></article>)}</div></section>
-
-    <section className="approval wrap"><div className="approval-art"><div className="approval-card"><div className="review-head"><span className="review-tag">In review</span><span>Queued today</span></div><div className="mini-ad"><div className="mini-brand"><i>RB</i><span>Rosewood Barbers<em>4th &amp; Pine · next door</em></span></div><b>Walk-ins till seven</b><p>Fades, beard trims, hot-towel finish. No appointment, no wait list.</p><span className="mini-offer">$5 off your first cut</span></div><dl className="review-details"><dt>Format</dt><dd>Full-screen spot</dd><dt>Length</dt><dd>15 seconds</dd><dt>Rotation</dt><dd>6 turns an hour</dd><dt>Runs</dt><dd>Mon 15 Sep &ndash; Sun 21 Sep</dd></dl><div className="approval-actions"><button type="button"><X size={16}/> Reject</button><button type="button"><Check size={16}/> Approve</button></div></div><div className="approval-badge"><BadgeCheck size={20}/><span><b>Your call</b>Every ad gets your okay</span></div></div><div className="approval-copy"><h2>Nothing runs without your approval.</h2><p>Every creative arrives in a quick review queue. If it doesn’t match your shop, your customers, or your values, reject it. No explanation needed.</p><ul><li><Check size={17}/> See the ad before it’s scheduled</li><li><Check size={17}/> Approve or reject in one tap</li><li><Check size={17}/> Choose the ad share that feels right</li></ul></div></section>
-
-    <section className="formats"><div className="wrap"><div className="section-head format-head"><h2>Four ways an ad can show up.</h2><p>Every format leaves your own content in place, and every format is subject to your approval.</p></div><FormatGrid/></div></section>
-
-    <section className="boards-section"><div className="wrap"><div className="section-head"><h2>What it will look like.</h2><p>Four AdBite boards. Watch where the ad sits, and how much of the screen stays the shop&rsquo;s.</p></div><BoardReel/></div></section>
+    <section id="features" className="features"><div className="wrap"><div className="section-head"><h2>And the controls that keep it yours.</h2><p>AdBite is the board software and the ad side together, so the tools that pay you are the same ones you use to run your menu. These are the levers on the paying half.</p></div><div className="feature-grid">{features.map(([icon, title, text]) => <article className="feature" key={title as string}><span>{icon}</span><h3>{title}</h3><p>{text}</p></article>)}</div></div></section>
 
     <section id="tools" className="levelup">
       <div className="wrap">
@@ -235,8 +237,6 @@ export function HomePage() {
         </aside>
       </div>
     </section>
-
-    <section id="features" className="features"><div className="wrap"><div className="section-head"><h2>And the controls that keep it yours.</h2><p>AdBite is the board software and the ad side together, so the tools that pay you are the same ones you use to run your menu. These are the levers on the paying half.</p></div><div className="feature-grid">{features.map(([icon, title, text]) => <article className="feature" key={title as string}><span>{icon}</span><h3>{title}</h3><p>{text}</p></article>)}</div></div></section>
 
     <section className="venues wrap"><div className="section-head"><h2>For the places people return to.</h2></div><div className="venue-copy"><article><VenueScene kind="restaurant"/><h3>Restaurants</h3><p>Make your menu board work a little harder between orders.</p></article><article><VenueScene kind="barber"/><h3>Barbers</h3><p>Turn waiting-room watching into a local opportunity.</p></article><article><VenueScene kind="salon"/><h3>Salons &amp; cosmetics</h3><p>Keep your look and feel while earning from your screen.</p></article><article><VenueScene kind="cafe"/><h3>Caf&eacute;s &amp; more</h3><p>Any independent shop with a TV is welcome.</p></article></div></section>
 

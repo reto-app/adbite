@@ -2,7 +2,8 @@
 
 import { Clock, Cloud, MonitorPlay, Repeat2, Sun } from 'lucide-react';
 import { Bite } from '@/components/brand';
-import { VENUES } from '@/lib/network';
+import { LIVE_VENUES, type Venue } from '@/lib/network';
+import { openOn } from '@/lib/delivery';
 import { FORMATS, type FormatId } from '@/lib/boards';
 import {
   DAYPARTS,
@@ -24,9 +25,8 @@ import {
 
 export const MIN_SPEND = 25;
 
-/* Presets are daypart shapes, not geography. With one shop on the network
-   "a few neighborhoods" was selling something that did not exist; when to run
-   is the choice an advertiser actually has. */
+/* Presets are daypart shapes, not geography: where the ad runs is chosen in
+   step 01 now, and when it runs is the lever that moves the price. */
 const PRESETS: { label: string; note: string; dayparts: Daypart[] }[] = [
   { label: 'Afternoons', note: 'Cheapest minutes', dayparts: ['afternoon'] },
   { label: 'Lunch rush', note: 'Peak, 11am-2pm', dayparts: ['lunch'] },
@@ -36,17 +36,11 @@ const PRESETS: { label: string; note: string; dayparts: Daypart[] }[] = [
 
 const ALL: Daypart[] = DAYPARTS.map((part) => part.id);
 
-/* The shop is shut on Sunday, and nothing here measures footfall, so the week
-   splits evenly across the days it is actually open. */
-const WEEK = [
-  { day: 'M', open: true },
-  { day: 'T', open: true },
-  { day: 'W', open: true },
-  { day: 'T', open: true },
-  { day: 'F', open: true },
-  { day: 'S', open: true },
-  { day: 'S', open: false },
-];
+/* Nothing here measures footfall, so a week splits evenly across the days the
+   booked shops are actually open. The row starts on Monday; JS weekdays start
+   on Sunday, hence the wrap. */
+const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const jsWeekday = (index: number) => (index === 6 ? 0 : index + 1);
 
 export function SpendStep({
   spend,
@@ -55,6 +49,7 @@ export function SpendStep({
   onDayparts,
   format,
   onFormat,
+  venues,
 }: {
   spend: number;
   onChange: (spend: number) => void;
@@ -62,18 +57,26 @@ export function SpendStep({
   onDayparts: (dayparts: Daypart[]) => void;
   format: FormatId;
   onFormat: (format: FormatId) => void;
+  /** The shops picked in step 01. Everything on this screen is priced on them. */
+  venues: Venue[];
 }) {
+  const stock = venues.length ? venues : LIVE_VENUES;
   const chosen = dayparts.length ? dayparts : ALL;
-  const ceiling = Math.max(MIN_SPEND + 5, maxSpend(VENUES, chosen, format));
+  const ceiling = Math.max(MIN_SPEND + 5, maxSpend(stock, chosen, format));
   const capped = Math.min(spend, ceiling);
-  const minutes = minutesFor(capped, VENUES, chosen, format);
-  const plays = playsFor(capped, VENUES, chosen, format);
-  const rate = blendedRate(VENUES, chosen, format);
+  const minutes = minutesFor(capped, stock, chosen, format);
+  const plays = playsFor(capped, stock, chosen, format);
+  const rate = blendedRate(stock, chosen, format);
   const fill = (capped - MIN_SPEND) / Math.max(1, ceiling - MIN_SPEND);
-  const openDays = WEEK.filter((entry) => entry.open).length;
-  const sold = inventory(VENUES, chosen, format);
+  const sold = inventory(stock, chosen, format);
   const full = capped >= ceiling;
   const byPlay = unitOf(format) === 'play';
+
+  /* A shop that shuts on Sunday should not appear to bill for it, so a day
+     counts only if some booked shop is open on it. */
+  const openDay = (index: number) =>
+    stock.some((venue) => openOn(venue, jsWeekday(index)));
+  const openDays = WEEKDAYS.filter((_, index) => openDay(index)).length || 1;
 
   const toggle = (id: Daypart) => {
     const next = chosen.includes(id) ? chosen.filter((item) => item !== id) : [...chosen, id];
@@ -83,7 +86,7 @@ export function SpendStep({
   /* Both levers move the price, so changing either has to pull the spend back
      under whatever is still buyable. */
   const reprice = (nextDayparts: Daypart[], nextFormat: FormatId) => {
-    onChange(Math.min(spend, maxSpend(VENUES, nextDayparts, nextFormat)));
+    onChange(Math.min(spend, maxSpend(stock, nextDayparts, nextFormat)));
   };
 
   return (
@@ -101,19 +104,26 @@ export function SpendStep({
           <i style={{ width: `${Math.max(2, fill * 100)}%` }} />
         </div>
 
-        {/* Nothing here measures footfall, so the week lands evenly on the days
-            the shop opens. An even split makes a bar chart a picture of
-            nothing, so this is a row of days rather than a fake distribution. */}
+        <div className="spend-money">
+          <b>{money.format(capped)}</b>
+          <span>
+            per week · {cents.format(byPlay ? rate / 4 : rate)} a {byPlay ? 'play' : 'minute'} on
+            this mix
+          </span>
+        </div>
+
+        {/* An even split makes a bar chart a picture of nothing, so this is a
+            row of days rather than a fake distribution. */}
         <div className="week-strip">
           <span className="week-strip-label">
             {byPlay ? 'Plays' : 'Minutes'} a day, across the week
           </span>
           <div className="week-row">
-            {WEEK.map((entry, index) => (
-              <span key={index} className={entry.open ? 'day' : 'day shut'}>
-                <b>{entry.day}</b>
+            {WEEKDAYS.map((letter, index) => (
+              <span key={index} className={openDay(index) ? 'day' : 'day shut'}>
+                <b>{letter}</b>
                 <i>
-                  {entry.open
+                  {openDay(index)
                     ? count.format(Math.round((byPlay ? plays : minutes) / openDays))
                     : 'shut'}
                 </i>
@@ -122,70 +132,87 @@ export function SpendStep({
           </div>
         </div>
 
-        <div className="spend-money">
-          <b>{money.format(capped)}</b>
-          <span>
-            per week · {cents.format(byPlay ? rate / 4 : rate)} a {byPlay ? 'play' : 'minute'} on
-            this mix
-          </span>
+        <div className="spend-stats">
+          <article>
+            <Repeat2 size={16} />
+            <strong>{count.format(plays)}</strong>
+            <span>plays of a 0:15 spot</span>
+          </article>
+          <article>
+            <Clock size={16} />
+            <strong>{hoursLabel(minutes)}</strong>
+            <span>of screen time a week</span>
+          </article>
+          <article>
+            <MonitorPlay size={16} />
+            <strong className="money">{money.format(capped * (52 / 12))}</strong>
+            <span>a month at this pace</span>
+          </article>
         </div>
+
+        <p className="spend-note">
+          You only pay for {byPlay ? 'plays that actually ran' : 'minutes actually shown'}. Your{' '}
+          {stock.length} shop{stock.length === 1 ? '' : 's'} hold{stock.length === 1 ? 's' : ''}{' '}
+          {count.format(byPlay ? sold.plays : sold.minutes)} {byPlay ? 'plays' : 'minutes'} in this
+          mix, worth {money.format(sold.value)} a week in total.
+        </p>
       </div>
 
-      <div className="spend-controls">
-        <section className="rate-card">
-          <div className="prefs-head">
-            <h3>What shape is your ad</h3>
-            <span className="prefs-hint">The more of the board it takes, the more it costs.</span>
-          </div>
-          <div className="rate-rows">
-            {FORMATS.map((item) => {
-              const on = format === item.id;
-              const perPlay = unitOf(item.id) === 'play';
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`rate-row${on ? ' on' : ''}`}
-                  aria-pressed={on}
-                  onClick={() => {
-                    onFormat(item.id);
-                    reprice(chosen, item.id);
-                  }}
-                >
-                  <span className="rate-when">
-                    <span
-                      className="format-chip"
-                      aria-hidden="true"
-                      style={
-                        {
-                          '--l': item.diagram.left,
-                          '--t': item.diagram.top,
-                          '--w': item.diagram.width,
-                          '--h': item.diagram.height,
-                        } as React.CSSProperties
-                      }
-                    />
-                    <b>{item.name}</b>
-                  </span>
-                  <span className="rate-price money">
-                    {cents.format(rateFor(item.id, 'lunch'))}
-                    <small>/ {perPlay ? 'play' : 'min'}</small>
-                  </span>
-                  <span className="rate-stock">
-                    {item.blurb}
-                    {perPlay && ' Billed on plays, not minutes.'}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <p className="rate-foot">
-            Prices shown are peak. Off-peak is about half. A short video is billed by the play
-            because that is what you are buying: a count of fifteen-second runs, not a stretch of
-            time.
-          </p>
-        </section>
+      <section className="rate-card">
+        <div className="prefs-head">
+          <h3>What shape is your ad</h3>
+          <span className="prefs-hint">The more of the board it takes, the more it costs.</span>
+        </div>
+        <div className="rate-rows">
+          {FORMATS.map((item) => {
+            const on = format === item.id;
+            const perPlay = unitOf(item.id) === 'play';
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={`rate-row${on ? ' on' : ''}`}
+                aria-pressed={on}
+                onClick={() => {
+                  onFormat(item.id);
+                  reprice(chosen, item.id);
+                }}
+              >
+                <span className="rate-when">
+                  <span
+                    className="format-chip"
+                    aria-hidden="true"
+                    style={
+                      {
+                        '--l': item.diagram.left,
+                        '--t': item.diagram.top,
+                        '--w': item.diagram.width,
+                        '--h': item.diagram.height,
+                      } as React.CSSProperties
+                    }
+                  />
+                  <b>{item.name}</b>
+                </span>
+                <span className="rate-price money">
+                  {cents.format(rateFor(item.id, 'lunch'))}
+                  <small>/ {perPlay ? 'play' : 'min'}</small>
+                </span>
+                <span className="rate-stock">
+                  {item.blurb}
+                  {perPlay && ' Billed on plays, not minutes.'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="rate-foot">
+          Prices shown are peak; off-peak is about half. A short video is billed by the play
+          because that is what you are buying: a count of fifteen-second runs, not a stretch of
+          time.
+        </p>
+      </section>
 
+      <div className="spend-controls">
         <section className="rate-card">
           <div className="prefs-head">
             <h3>When it runs</h3>
@@ -223,9 +250,12 @@ export function SpendStep({
                   </span>
                   <span className="rate-stock">
                     {count.format(
-                      byPlay
-                        ? Math.round(weeklyMinutes(VENUES[0], part.id) * 4)
-                        : weeklyMinutes(VENUES[0], part.id),
+                      stock.reduce(
+                        (total, venue) =>
+                          total +
+                          Math.round(weeklyMinutes(venue, part.id) * (byPlay ? 4 : 1)),
+                        0,
+                      ),
                     )}{' '}
                     {byPlay ? 'plays' : 'min'} free
                   </span>
@@ -261,7 +291,7 @@ export function SpendStep({
 
         {full && (
           <p className="spend-full">
-            That is the whole of this shop&rsquo;s ad time for the week in this format. There is
+            That is the whole of these shops&rsquo; ad time for the week in this format. There is
             nothing more to sell until another screen joins.
           </p>
         )}
@@ -287,31 +317,6 @@ export function SpendStep({
             );
           })}
         </div>
-
-        <div className="spend-stats">
-          <article>
-            <Repeat2 size={18} />
-            <strong>{count.format(plays)}</strong>
-            <span>plays of a 15-second spot</span>
-          </article>
-          <article>
-            <Clock size={18} />
-            <strong>{hoursLabel(minutes)}</strong>
-            <span>of screen time, every week</span>
-          </article>
-          <article>
-            <MonitorPlay size={18} />
-            <strong className="money">{money.format(capped * (52 / 12))}</strong>
-            <span>a month at this pace</span>
-          </article>
-        </div>
-
-        <p className="spend-note">
-          You only pay for {byPlay ? 'plays that actually ran' : 'minutes actually shown'}. Nothing
-          runs until the shop owner approves your creative, and anything unspent rolls into the next
-          week. This mix holds {count.format(byPlay ? sold.plays : sold.minutes)}{' '}
-          {byPlay ? 'plays' : 'minutes'}, worth {money.format(sold.value)} a week in total.
-        </p>
       </div>
     </div>
   );

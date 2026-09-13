@@ -70,6 +70,74 @@ Bao Pao Wow, 11am-9pm Mon-Sat, a third of the board sold as ads
   all full    ->  paid about $222 / wk
 ```
 
+## The screen network
+
+`lib/network.ts` holds every shop. Bao Pao Wow is real and carries
+`status: 'live'`. The other sixteen are stand-ins carrying `status: 'prospect'`
+so the campaign builder can be exercised the way it will work once the network
+fills in: multi-select, whole neighbourhoods, a radius drawn round your own
+door. They are badged **Installing** / **Waitlist** wherever they appear.
+
+When a shop signs, flip its `status` to `'live'`. `LIVE_VENUES` is what the
+public marketing pages price and map; `VENUES` is what the builder offers.
+Keep it that way, or a page that says "live in one shop" will quietly map
+seventeen.
+
+Shops group two ways, and both are one-press selections in the builder:
+
+| Grouping | Constant | Used for |
+| --- | --- | --- |
+| Neighbourhood | `NEIGHBORHOODS` (`area`) | Chips that take a part of town and fly the map there |
+| Kind of shop | `GROUPS` (`group`) | Chips that take every barber, every café, and so on |
+
+Shift-clicking either chip filters the list instead of taking the shops.
+
+The map carries three tools: **Pick** (click a pin), **Radius** (press and drag
+out from a point) and **Draw area** (click corners, double-click to close).
+`distanceKm`, `venuesWithin` and `pointInPolygon` in `lib/network.ts` resolve a
+shape to the shops inside it; `components/selection-map.tsx` is the Leaflet
+wiring.
+
+## Reporting
+
+`lib/delivery.ts` answers where a campaign played, for how long, and at what
+cost. **Nothing in it is measured.** There is no ad server in the pilot, so
+every figure is arithmetic on the booking: the week is spread across the shops
+bought in proportion to what each has to sell, then priced on the same rate
+card the advertiser saw. The one non-arithmetic part is a ±12% day-to-day
+wobble seeded off the campaign id, so a chart is stable across reloads; it is
+texture, it is centred, and it never moves a total.
+
+Every panel that renders it says so, and a campaign that has not started is
+labelled as showing the week it booked rather than a week that ran.
+
+When a real ad server lands, this file is the seam: keep the shapes, swap the
+source.
+
+The dashboard's empty state can load three worked examples. They carry
+`sample: true`, are badged **Sample** everywhere, and clear in one click. The
+dashboard is never seeded automatically.
+
+## Vertical rhythm
+
+Sections used to be padded 96-104px top and bottom, which on the 1280x800
+laptop most people read this on handed a quarter of the screen to air. Two
+variables in `:root` now carry the whole rhythm:
+
+```
+--band        clamp(44px, 7vh, 104px)   full section
+--band-tight  clamp(34px, 5.5vh, 74px)  bands and hero
+```
+
+Headings answer to height as well as width (`min(4.9vw, 8.2vh)`), for the same
+reason: a 68px headline is 68px whether the window is 900px tall or 680px.
+Change the two variables and every band on the site moves together.
+
+The advertiser dashboard and the campaign builder are a fixed-height app
+shell: `100dvh`, nothing scrolls but the named panes inside it (the campaign
+list, the report body, the shop list, the board previews). Below 1040px the
+lock comes off and the page scrolls the way a page does.
+
 ## Domain
 
 `lib/site.ts` holds the canonical origin and the contact address. They used to
