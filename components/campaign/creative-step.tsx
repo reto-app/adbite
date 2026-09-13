@@ -8,12 +8,10 @@ const MAX_BYTES = 6 * 1024 * 1024;
 
 export function CreativeStep({
   format,
-  onFormat,
   creative,
   onCreative,
 }: {
   format: FormatId;
-  onFormat: (format: FormatId) => void;
   creative: { name: string; src: string } | null;
   onCreative: (creative: { name: string; src: string } | null) => void;
 }) {
@@ -41,37 +39,16 @@ export function CreativeStep({
   };
 
   const playable = BOARDS.filter((board) => board.slots[format]);
+  const chosenFormat = FORMATS.find((item) => item.id === format) ?? FORMATS[0];
 
   return (
     <div className="creative-step">
-      <section className="format-picker">
+      <section className="format-recap">
         <div className="prefs-head">
-          <h3>Pick a format</h3>
-          <span className="prefs-hint">Four ways an ad shows up on a shop’s board.</span>
+          <h3>{chosenFormat.name}</h3>
+          <span className="prefs-hint">{chosenFormat.spec}</span>
         </div>
-        <div className="format-cards">
-          {FORMATS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`format-card${format === item.id ? ' on' : ''}`}
-              aria-pressed={format === item.id}
-              onClick={() => onFormat(item.id)}
-            >
-              <span className="format-mock" aria-hidden="true">
-                <i className="mock-line" />
-                <i className="mock-line" />
-                <i className="mock-line short" />
-                <span className="mock-slot" style={item.diagram}>
-                  {item.id === 'video' && <em>▶</em>}
-                </span>
-              </span>
-              <b>{item.name}</b>
-              <span className="format-blurb">{item.blurb}</span>
-              <small>{item.spec}</small>
-            </button>
-          ))}
-        </div>
+        <p>{chosenFormat.blurb} Change the shape, or what it costs, back in step 01.</p>
       </section>
 
       <section className="upload">

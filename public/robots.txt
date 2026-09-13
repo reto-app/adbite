@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /signin
+Disallow: /dashboard
+
+Sitemap: https://adbite.site/sitemap.xml

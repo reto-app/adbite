@@ -1,16 +1,10 @@
 'use client';
 
 import { Check, Clock, ExternalLink, MapPin, Phone } from 'lucide-react';
-import {
-  AGE_BANDS,
-  DAYPARTS,
-  PILOT_CITY,
-  VENUES,
-  type AgeBand,
-  type Daypart,
-  type Venue,
-} from '@/lib/network';
+import { AGE_BANDS, PILOT_CITY, VENUES, type AgeBand, type Venue } from '@/lib/network';
+import { count, inventory } from '@/lib/pricing';
 import { VenueMap } from '@/components/venue-map';
+import { type Daypart } from '@/lib/pricing';
 
 export type Placement = {
   venues: string[];
@@ -76,7 +70,7 @@ export function PlaceStep({
                   <Phone size={13} /> {venue.phone}
                 </span>
                 <span className="venue-screens">
-                  {venue.screens} screen · {venue.board}
+                  {venue.screens} screen · {venue.board} · live since {venue.since}
                 </span>
               </button>
             );
@@ -84,25 +78,9 @@ export function PlaceStep({
 
           <p className="prefs-note">
             One shop is in the pilot today. Every campaign you book here runs on their board and
-            nowhere else, and they approve the creative before it plays.
+            nowhere else, and they approve the creative before it plays. Their week holds{' '}
+            {count.format(inventory(VENUES).minutes)} minutes of ad time in total.
           </p>
-
-          <fieldset>
-            <legend>Ask for a time of day</legend>
-            <div className="chip-row">
-              {DAYPARTS.map((part) => (
-                <button
-                  key={part.id}
-                  type="button"
-                  className={`chip${placement.dayparts.includes(part.id) ? ' on' : ''}`}
-                  aria-pressed={placement.dayparts.includes(part.id)}
-                  onClick={() => set({ dayparts: toggle(placement.dayparts, part.id) })}
-                >
-                  {part.label} <i>{part.window}</i>
-                </button>
-              ))}
-            </div>
-          </fieldset>
 
           <fieldset>
             <legend>Who you are hoping to reach</legend>
@@ -122,9 +100,9 @@ export function PlaceStep({
           </fieldset>
 
           <p className="prefs-note">
-            Both of these travel with the booking as a request, not a targeting guarantee. The shop
-            runs one rotation for everyone in the room, so we will not pretend to split it finer
-            than that.
+            This travels with the booking as a request, not a targeting guarantee. The shop runs one
+            rotation for everyone in the room, so we will not pretend to split it finer than that.
+            When your ad runs, which is the part that changes the price, you chose in step 01.
           </p>
         </div>
       </div>
@@ -146,8 +124,8 @@ export function PlaceStep({
             <b>{chosen.reduce((total, venue) => total + venue.screens, 0)}</b>
           </div>
           <div>
-            <small>City</small>
-            <b className="map-city">Provo</b>
+            <small>Minutes a week</small>
+            <b>{count.format(inventory(chosen).minutes)}</b>
           </div>
         </div>
         {VENUES[0] && (

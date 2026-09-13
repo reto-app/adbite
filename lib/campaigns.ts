@@ -8,11 +8,11 @@
 
 import { useEffect, useState } from 'react';
 import type { FormatId } from '@/lib/boards';
-import type { AgeBand, Daypart } from '@/lib/network';
+import type { AgeBand } from '@/lib/network';
+import { VENUES } from '@/lib/network';
+import { blendedRate, minutesFor as minutesForSpend, type Daypart } from '@/lib/pricing';
 
 const KEY = 'adbite.campaigns';
-
-export const RATE_PER_MINUTE = 0.03;
 
 export type Campaign = {
   id: string;
@@ -26,10 +26,33 @@ export type Campaign = {
   creativeName: string | null;
   /** Dropped first if the artwork will not fit in storage. */
   creativeSrc: string | null;
+  /** Where to send the booking confirmation. */
+  email: string | null;
 };
 
-export function minutesFor(weeklySpend: number) {
-  return Math.round(weeklySpend / RATE_PER_MINUTE);
+/** The venues a campaign actually booked, for pricing it. */
+function venuesOf(campaign: Pick<Campaign, 'venues'>) {
+  const chosen = VENUES.filter((venue) => campaign.venues.includes(venue.id));
+  return chosen.length ? chosen : VENUES;
+}
+
+/* Minutes depend on when the ad runs now that peak costs more than the dead
+   middle of the afternoon, so a campaign has to be priced against its own
+   daypart mix rather than one flat rate. */
+export function campaignMinutes(
+  campaign: Pick<Campaign, 'venues' | 'dayparts' | 'weeklySpend' | 'format'>,
+) {
+  return minutesForSpend(
+    campaign.weeklySpend,
+    venuesOf(campaign),
+    campaign.dayparts,
+    campaign.format,
+  );
+}
+
+/** Always per minute. Divide by four for the per-play price of a video. */
+export function campaignRate(campaign: Pick<Campaign, 'venues' | 'dayparts' | 'format'>) {
+  return blendedRate(venuesOf(campaign), campaign.dayparts, campaign.format);
 }
 
 const listeners = new Set<() => void>();

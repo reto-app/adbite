@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 import { Geist, Outfit } from 'next/font/google';
+import { Analytics } from '@/components/analytics';
+import { IdleMotion } from '@/components/idle-motion';
+import { ORIGIN } from '@/lib/site';
 import './globals.css';
 
 const geistSans = Geist({
@@ -14,7 +17,7 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://adbite.co'),
+  metadataBase: new URL(ORIGIN),
   title: {
     default: 'AdBite — Local ads on shop screens',
     template: '%s — AdBite',
@@ -54,6 +57,8 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${outfit.variable} antialiased`}>
         {children}
+        <Analytics />
+        <IdleMotion />
       </body>
     </html>
   );

@@ -12,21 +12,27 @@ import {
 } from 'lucide-react';
 import { Bite } from '@/components/brand';
 import { FORMATS, boardById, type FormatId } from '@/lib/boards';
-import { DAYPARTS, PILOT_CITY, VENUES, totalScreens, type Daypart } from '@/lib/network';
+import { PILOT_CITY, VENUES, totalScreens } from '@/lib/network';
 import { VenueMap } from '@/components/venue-map';
-import { useSession } from '@/lib/auth';
-
-const RATE = 0.03;
-const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
-const cents = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 });
-const count = new Intl.NumberFormat('en-US');
+import {
+  DAYPARTS,
+  blendedRate,
+  cents,
+  count,
+  maxSpend,
+  minutesFor,
+  money,
+  rateFor,
+  unitOf,
+  type Daypart,
+} from '@/lib/pricing';
 
 type NodeId = 'spend' | 'where' | 'creative' | 'review' | 'live' | 'bill';
 type Verdict = 'pending' | 'approved' | 'rejected';
 
 const NODES: { id: NodeId; marker: string; title: string; note: string; kind?: 'decision' }[] = [
   { id: 'spend', marker: '01', title: 'Set your spend', note: 'Minutes, not impressions' },
-  { id: 'where', marker: '02', title: 'Choose where', note: 'Shop, time of day' },
+  { id: 'where', marker: '02', title: 'Choose when', note: 'Peak costs more' },
   { id: 'creative', marker: '03', title: 'Build your ad', note: 'Format and artwork' },
   { id: 'review', marker: '?', title: 'The shop owner reviews it', note: 'Their screen, their call', kind: 'decision' },
   { id: 'live', marker: '→', title: 'Your ad joins the rotation', note: 'In front of the whole room' },
@@ -74,20 +80,26 @@ function BoardShot({ format, dim }: { format: FormatId; dim?: boolean }) {
   );
 }
 
+const ALL_DAYPARTS: Daypart[] = DAYPARTS.map((part) => part.id);
+
 export function AdvertiserFlow() {
-  const { session } = useSession();
   const [node, setNode] = useState<NodeId>('spend');
-  const [spend, setSpend] = useState(150);
-  const [dayparts, setDayparts] = useState<Daypart[]>([]);
+  const [spend, setSpend] = useState(60);
+  const [dayparts, setDayparts] = useState<Daypart[]>(ALL_DAYPARTS);
   const [format, setFormat] = useState<FormatId>('banner');
   const [verdict, setVerdict] = useState<Verdict>('pending');
 
-  const minutes = Math.round(spend / RATE);
-  const fill = (spend - 25) / (600 - 25);
+  const chosen = dayparts.length ? dayparts : ALL_DAYPARTS;
+  const ceiling = maxSpend(VENUES, chosen, format);
+  const capped = Math.min(spend, ceiling);
+  const minutes = minutesFor(capped, VENUES, chosen, format);
+  const rate = blendedRate(VENUES, chosen, format);
+  const byPlay = unitOf(format) === 'play';
+  const fill = (capped - 25) / Math.max(1, ceiling - 25);
 
   // A week rarely fills to the last minute, and the remainder carries over.
   const shown = Math.round(minutes * 0.996);
-  const billed = shown * RATE;
+  const billed = shown * rate;
 
   const index = NODES.findIndex((item) => item.id === node);
 
@@ -143,36 +155,43 @@ export function AdvertiserFlow() {
               <div className="flow-body">
                 <div className="flow-figure">
                   <Bite className="bite" />
-                  <small>Minutes on screen each week</small>
+                  <small>
+                    {byPlay ? 'Times it plays each week' : 'Minutes on screen each week'}
+                  </small>
                   <strong>
-                    {count.format(minutes)}
-                    <span>min</span>
+                    {count.format(byPlay ? minutes * 4 : minutes)}
+                    <span>{byPlay ? 'plays' : 'min'}</span>
                   </strong>
                   <div className="spend-meter" aria-hidden="true">
                     <i style={{ width: `${Math.max(3, fill * 100)}%` }} />
                   </div>
                   <p>
-                    <b>{money.format(spend)}</b> a week · {cents.format(RATE)} a minute
+                    <b className="money">{money.format(capped)}</b> a week ·{' '}
+                    {cents.format(byPlay ? rate / 4 : rate)} a {byPlay ? 'play' : 'minute'} on this
+                    mix
                   </p>
                 </div>
                 <label className="flow-slider">
                   <span>Drag to set a weekly spend</span>
                   <input
+                    id="flow-spend"
                     className="range-input"
                     type="range"
                     min={25}
-                    max={600}
-                    step={5}
-                    value={spend}
+                    max={ceiling}
+                    step={1}
+                    value={capped}
                     onChange={(event) => setSpend(Number(event.target.value))}
                     style={{ '--fill': `${fill * 100}%` } as React.CSSProperties}
                     aria-label="Weekly spend"
-                    aria-valuetext={`${money.format(spend)} a week, ${count.format(minutes)} minutes on screen`}
+                    aria-valuetext={`${money.format(capped)} a week, ${count.format(minutes)} minutes on screen`}
                   />
                 </label>
                 <p className="flow-note">
-                  You buy screen time by the minute. No auctions, no bidding against national
-                  brands for the shop down the street.
+                  Two things set the price: how much of the board your ad takes, and when it runs.
+                  A strip under the menu starts at {cents.format(rateFor('banner', 'afternoon'))} a
+                  minute; blanking the whole board at peak is {cents.format(rateFor('full', 'lunch'))}.
+                  No auctions, no bidding against national brands for the shop down the street.
                 </p>
               </div>
             )}
@@ -195,28 +214,34 @@ export function AdvertiserFlow() {
                   <VenueMap venues={VENUES} zoom={15} />
                 </div>
                 <div className="flow-chips">
-                  {DAYPARTS.map((part) => (
-                    <button
-                      key={part.id}
-                      type="button"
-                      className={`chip${dayparts.includes(part.id) ? ' on' : ''}`}
-                      aria-pressed={dayparts.includes(part.id)}
-                      onClick={() =>
-                        setDayparts(
-                          dayparts.includes(part.id)
-                            ? dayparts.filter((item) => item !== part.id)
-                            : [...dayparts, part.id],
-                        )
-                      }
-                    >
-                      {part.label} <i>{part.window}</i>
-                    </button>
-                  ))}
+                  {DAYPARTS.map((part) => {
+                    const on = chosen.includes(part.id);
+                    return (
+                      <button
+                        key={part.id}
+                        type="button"
+                        className={`chip price${on ? ' on' : ''}`}
+                        aria-pressed={on}
+                        onClick={() => {
+                          const next = on
+                            ? chosen.filter((item) => item !== part.id)
+                            : [...chosen, part.id];
+                          setDayparts(next.length ? next : ALL_DAYPARTS);
+                        }}
+                      >
+                        {part.label} <i>{part.window}</i>
+                        <em className="money">
+                          {cents.format(rateFor(format, part.id))}
+                        </em>
+                      </button>
+                    );
+                  })}
                 </div>
                 <p className="flow-note">
                   AdBite is live in one shop in {PILOT_CITY} today, so &ldquo;where&rdquo; is a
-                  short list. Ask for a time of day and it travels with the booking. As shops join,
-                  this map and the builder fill in together.
+                  short list and &ldquo;when&rdquo; is the real choice. Lunch and dinner are peak
+                  because there is a queue in front of the board; the afternoon is about half the
+                  price. As shops join, this map and the builder fill in together.
                 </p>
               </div>
             )}
@@ -228,7 +253,7 @@ export function AdvertiserFlow() {
                     <button
                       key={item.id}
                       type="button"
-                      className={`chip${format === item.id ? ' on' : ''}`}
+                      className={`chip price${format === item.id ? ' on' : ''}`}
                       aria-pressed={format === item.id}
                       onClick={() => {
                         setFormat(item.id);
@@ -236,13 +261,17 @@ export function AdvertiserFlow() {
                       }}
                     >
                       {item.name}
+                      <em className="money">{cents.format(rateFor(item.id, 'lunch'))}</em>
                     </button>
                   ))}
                 </div>
                 <BoardShot format={format} />
                 <p className="flow-note">
-                  {FORMATS.find((item) => item.id === format)?.blurb} Upload your own artwork in the
-                  builder and it lands in this exact slot, on every board that carries the format.
+                  {FORMATS.find((item) => item.id === format)?.blurb}{' '}
+                  {byPlay
+                    ? 'Billed per play rather than per minute, because a count of runs is what you are buying.'
+                    : `${cents.format(rateFor(format, 'lunch'))} a minute at peak, ${cents.format(rateFor(format, 'afternoon'))} off-peak.`}{' '}
+                  Upload your own artwork in the builder and it lands in this exact slot.
                 </p>
               </div>
             )}
@@ -330,20 +359,25 @@ export function AdvertiserFlow() {
                   </div>
                   <dl>
                     <div>
-                      <dt>Minutes booked</dt>
-                      <dd>{count.format(minutes)}</dd>
+                      <dt>{byPlay ? 'Plays booked' : 'Minutes booked'}</dt>
+                      <dd>{count.format(byPlay ? minutes * 4 : minutes)}</dd>
                     </div>
                     <div>
-                      <dt>Minutes actually shown</dt>
-                      <dd>{count.format(shown)}</dd>
+                      <dt>{byPlay ? 'Plays that ran' : 'Minutes actually shown'}</dt>
+                      <dd>{count.format(byPlay ? shown * 4 : shown)}</dd>
                     </div>
                     <div>
                       <dt>Rate</dt>
-                      <dd>{cents.format(RATE)} / min</dd>
+                      <dd>
+                        {cents.format(byPlay ? rate / 4 : rate)} / {byPlay ? 'play' : 'min'}
+                      </dd>
                     </div>
                     <div className="rolled">
-                      <dt>Unshown, rolled into next week</dt>
-                      <dd>{count.format(minutes - shown)} min</dd>
+                      <dt>Unrun, rolled into next week</dt>
+                      <dd>
+                        {count.format(byPlay ? (minutes - shown) * 4 : minutes - shown)}{' '}
+                        {byPlay ? 'plays' : 'min'}
+                      </dd>
                     </div>
                   </dl>
                   <div className="flow-bill-total">
@@ -352,22 +386,16 @@ export function AdvertiserFlow() {
                   </div>
                 </div>
                 <p className="flow-note">
-                  A play that never happened is never charged. That is the whole billing model:
-                  minutes on a screen, counted by the player, reported back every week.
+                  A play that never happened is never charged. Time on a screen, or runs of a
+                  video, counted by the player itself and reported back every week.
                 </p>
               </div>
             )}
 
             <div className="flow-cta">
-              {session ? (
-                <Link className="button primary" href="/dashboard">
-                  Open your dashboard <ArrowRight size={16} />
-                </Link>
-              ) : (
-                <Link className="button primary" href="/signin?next=%2Fdashboard">
-                  Sign in and build yours <ArrowRight size={16} />
-                </Link>
-              )}
+              <Link className="button primary" href="/dashboard" data-track="flow-build">
+                Build yours, no account needed <ArrowRight size={16} />
+              </Link>
               <span>
                 <MonitorPlay size={15} /> {VENUES.length} shop · {totalScreens()} screen in{' '}
                 {PILOT_CITY}
