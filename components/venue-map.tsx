@@ -25,6 +25,7 @@ export function VenueMap({
     if (!node) return;
     let map: import('leaflet').Map | undefined;
     let cancelled = false;
+    let settle: number | undefined;
 
     void (async () => {
       const L = await import('leaflet');
@@ -66,15 +67,26 @@ export function VenueMap({
       }
 
       if (venues.length > 1) {
-        map.fitBounds(L.latLngBounds(venues.map((venue) => venue.at)).pad(0.25));
+        /* Not animated. An animated fit leaves a `transitionend` pending on
+           the map pane, and this map is unmounted mid-flight all the time —
+           switching a report tab does it — at which point Leaflet finishes the
+           zoom against panes `remove()` has already torn down and throws
+           "Cannot read properties of undefined (reading '_leaflet_pos')".
+           There is nothing to animate away from here anyway: this is the
+           opening frame. */
+        map.fitBounds(L.latLngBounds(venues.map((venue) => venue.at)).pad(0.25), {
+          animate: false,
+        });
       }
 
       // The container is often still being laid out on the first paint.
-      window.setTimeout(() => map?.invalidateSize(), 60);
+      settle = window.setTimeout(() => map?.invalidateSize(), 60);
     })();
 
     return () => {
       cancelled = true;
+      if (settle) window.clearTimeout(settle);
+      map?.stop();
       map?.remove();
     };
   }, [venues, zoom, interactive]);

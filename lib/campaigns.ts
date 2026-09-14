@@ -43,13 +43,16 @@ export type Campaign = {
   startedAt?: number | null;
   /** A worked example rather than a booking somebody made. */
   sample?: boolean;
+  /** The shop owner said no. It never runs and is never billed. */
+  rejected?: boolean;
   /** Free text the advertiser gave the campaign at build time. */
   note?: string | null;
 };
 
-export type CampaignStatus = 'review' | 'live';
+export type CampaignStatus = 'review' | 'live' | 'rejected';
 
-export function statusOf(campaign: Pick<Campaign, 'startedAt'>): CampaignStatus {
+export function statusOf(campaign: Pick<Campaign, 'startedAt' | 'rejected'>): CampaignStatus {
+  if (campaign.rejected) return 'rejected';
   return campaign.startedAt ? 'live' : 'review';
 }
 
@@ -123,6 +126,21 @@ export function removeCampaign(id: string) {
   write(read().filter((campaign) => campaign.id !== id));
 }
 
+function patch(id: string, change: Partial<Campaign>) {
+  write(read().map((campaign) => (campaign.id === id ? { ...campaign, ...change } : campaign)));
+}
+
+/* The shop owner's decision, made on their side of the product and read on the
+   advertiser's. Approving is what starts the clock: until a board is actually
+   playing the spot there is nothing to report and nothing to bill. */
+export function approveCampaign(id: string) {
+  patch(id, { startedAt: Date.now(), rejected: false });
+}
+
+export function rejectCampaign(id: string) {
+  patch(id, { rejected: true, startedAt: null });
+}
+
 /** `ready` stays false through the first paint so the prerender matches. */
 export function useCampaigns(): { ready: boolean; campaigns: Campaign[] } {
   const [state, setState] = useState<{ ready: boolean; campaigns: Campaign[] }>({
@@ -186,6 +204,23 @@ const SAMPLES: Omit<Campaign, 'id' | 'createdAt'>[] = [
     startedAt: Date.now() - 11 * DAY,
     sample: true,
     note: 'A strip under the menu, every open hour, around the campus gate.',
+  },
+  {
+    /* Left unapproved on purpose: the shop side needs something in its queue,
+       and a booking that has not been said yes to yet is the honest shape of
+       what an advertiser sees while they wait. */
+    name: 'Iron Rose Gym · January intake',
+    weeklySpend: 70,
+    format: 'rail',
+    venues: ['baopaowow', 'summit-strength'],
+    ages: ['18-24', '25-34'],
+    dayparts: ['evening'],
+    creativeName: 'ironrose-january.png',
+    creativeSrc: null,
+    email: 'sam@ironrosegym.com',
+    startedAt: null,
+    sample: true,
+    note: 'First class free, two doors down. Evenings only.',
   },
   {
     name: 'Mia’s Flower Bar · weekend stems',

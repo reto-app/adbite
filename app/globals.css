@@ -4283,6 +4283,14 @@ text.vs-small {
   transform: scale(1.15);
 }
 
+/* The row the list is pointing at. Hovering used to fly the map to the shop,
+   which made the whole map lurch on every row the cursor crossed. */
+.venue-pin .pin.hot {
+  transform: scale(1.35);
+  border-color: var(--sky-deep);
+  box-shadow: 0 0 0 4px rgba(23, 85, 127, 0.28);
+}
+
 .venue-pin .pin.on i {
   color: var(--sky);
 }
@@ -6290,6 +6298,1394 @@ text.vs-small {
   color: var(--ash);
 }
 
+/* ---- The board designer, shown on the shop page -------------------------- */
+
+.showcase {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(250px, 1fr);
+  gap: 26px;
+  align-items: center;
+  margin: clamp(20px, 3vh, 38px) 0 clamp(22px, 3.4vh, 42px);
+}
+
+.showcase-screen {
+  min-width: 0;
+}
+
+.showcase-controls {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.showcase-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.showcase-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.showcase-chips button {
+  display: grid;
+  gap: 1px;
+  padding: 8px 13px;
+  border: 1px solid var(--board-line);
+  border-radius: 11px;
+  background: transparent;
+  color: var(--ash-dark);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+}
+
+.showcase-chips button:hover {
+  border-color: var(--ash);
+  color: var(--chalk);
+}
+
+.showcase-chips button.on {
+  background: var(--chalk);
+  border-color: var(--chalk);
+  color: var(--board);
+}
+
+.showcase-chips b {
+  font-family: var(--font-display), sans-serif;
+  font-size: 13.5px;
+  letter-spacing: -0.02em;
+}
+
+.showcase-chips i {
+  font-style: normal;
+  font-size: 10.5px;
+  color: inherit;
+  opacity: 0.7;
+}
+
+.showcase-chips.themes {
+  gap: 8px;
+}
+
+.swatch-chip {
+  justify-items: center;
+  padding: 7px 11px 8px !important;
+}
+
+.swatch-chip .theme-swatch {
+  width: 42px;
+  height: 12px;
+  margin-bottom: 3px;
+  border-radius: 4px;
+}
+
+.swatch-chip.theme-chalk .theme-swatch {
+  background: linear-gradient(90deg, #14100d 60%, #ffffff 60%);
+}
+
+.swatch-chip.theme-enamel .theme-swatch {
+  background: linear-gradient(90deg, #f3ead6 60%, #8a6a2f 60%);
+}
+
+.swatch-chip.theme-warm .theme-swatch {
+  background: linear-gradient(90deg, #b4502f 60%, #f6efe4 60%);
+}
+
+.swatch-chip.theme-garden .theme-swatch {
+  background: linear-gradient(90deg, #12372a 60%, #d9b45c 60%);
+}
+
+.showcase-note {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ash-dark);
+}
+
+.showcase .button.invert {
+  justify-self: start;
+}
+
+@media (max-width: 900px) {
+  .showcase {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+}
+
+/* ---- Picking a side ------------------------------------------------------ */
+
+.campaign-page.choose {
+  height: auto;
+  min-height: 100dvh;
+  overflow: visible;
+}
+
+.choose-side {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--band) 0;
+}
+
+.choose-side h1 {
+  font-size: clamp(30px, min(4vw, 7vh), 52px);
+  margin-bottom: 12px;
+}
+
+.choose-side > p {
+  max-width: 56ch;
+  color: var(--ash);
+  margin-bottom: clamp(20px, 3vh, 34px);
+}
+
+.choose-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 880px;
+}
+
+.choose-card {
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  padding: 26px 26px 24px;
+  border: 2px solid var(--board);
+  border-radius: 18px 0 18px 18px;
+  background: var(--chalk);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.choose-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 7px 8px 0 rgba(14, 14, 14, 0.85);
+}
+
+.choose-card b {
+  font-family: var(--font-display), sans-serif;
+  font-size: 23px;
+  letter-spacing: -0.03em;
+}
+
+.choose-card span {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ash);
+}
+
+.choose-card i {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 4px;
+  font-style: normal;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--money);
+}
+
+.side-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border: 1px solid var(--board-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ash-dark);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.side-switch:hover {
+  color: var(--chalk);
+  border-color: var(--ash);
+}
+
+.dash-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Tabs living on the black head band rather than on paper. */
+.head-tabs {
+  border-bottom: 0;
+  gap: 2px;
+}
+
+.head-tabs button {
+  position: relative;
+  margin-bottom: 0;
+  padding: 7px 13px;
+  border-radius: 999px;
+  border-bottom: 0;
+  color: var(--ash-dark);
+  font-size: 12.5px;
+}
+
+.head-tabs button:hover {
+  color: var(--chalk);
+}
+
+.head-tabs button.on {
+  background: var(--chalk);
+  color: var(--board);
+}
+
+.tab-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 2px;
+  border-radius: 50%;
+  background: var(--sky);
+  vertical-align: middle;
+}
+
+.head-tabs button.on .tab-dot {
+  background: var(--money);
+}
+
+/* ---- The shop workspace -------------------------------------------------- */
+
+.shop-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: 20px;
+  width: min(var(--shell), calc(100% - var(--gutter) * 2));
+  margin-inline: auto;
+  padding: 16px 0 18px;
+}
+
+.shop-edit,
+.shop-preview {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.slot-tabs {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.slot-tabs button {
+  display: grid;
+  gap: 2px;
+  padding: 9px 12px;
+  border: 2px solid var(--rule);
+  border-radius: 12px;
+  background: var(--chalk);
+  text-align: left;
+  cursor: pointer;
+}
+
+.slot-tabs button.on {
+  border-color: var(--board);
+  background: var(--board);
+  color: var(--chalk);
+}
+
+.slot-tabs b {
+  font-family: var(--font-display), sans-serif;
+  font-size: 15px;
+  letter-spacing: -0.025em;
+}
+
+.slot-tabs i {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--ash);
+}
+
+.slot-tabs button.on i {
+  color: var(--ash-dark);
+}
+
+.shop-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding-right: 4px;
+}
+
+/* ---- the editor ---------------------------------------------------------- */
+
+.menu-editor {
+  display: grid;
+  gap: 10px;
+}
+
+.edit-section {
+  border: 2px solid var(--rule);
+  border-radius: 13px;
+  background: var(--chalk);
+  padding: 10px 12px 12px;
+}
+
+.edit-section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.edit-section-head input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font-family: var(--font-display), sans-serif;
+  font-size: 16px;
+  letter-spacing: -0.025em;
+  padding: 2px 0;
+}
+
+.edit-section-head input:focus {
+  outline: none;
+  border-bottom-color: var(--board);
+}
+
+.edit-section-tools {
+  display: flex;
+  gap: 4px;
+}
+
+.edit-section-tools button {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  background: var(--chalk);
+  font-size: 12px;
+  color: var(--ash);
+  cursor: pointer;
+}
+
+.edit-section-tools button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.edit-section-tools button:hover:not(:disabled) {
+  border-color: var(--board);
+  color: var(--ink);
+}
+
+.edit-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.edit-items li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1.05fr) minmax(0, 1.25fr) 58px 92px 26px;
+  align-items: center;
+  gap: 5px;
+  padding: 3px;
+  border-radius: 9px;
+}
+
+.edit-items li.held {
+  opacity: 0.45;
+  background: var(--paper-sky);
+}
+
+.edit-items input,
+.edit-items select {
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  background: var(--paper);
+  font-size: 12.5px;
+}
+
+.edit-items input:focus,
+.edit-items select:focus {
+  outline: none;
+  border-color: var(--board);
+  background: var(--chalk);
+}
+
+.edit-price {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.edit-grip {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ash-light);
+  cursor: grab;
+}
+
+.edit-grip:hover {
+  color: var(--ink);
+  background: var(--paper-warm);
+}
+
+.edit-grip:active {
+  cursor: grabbing;
+}
+
+.edit-drop {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ash-light);
+  cursor: pointer;
+}
+
+.edit-drop:hover {
+  background: #fbecea;
+  color: #a32c1c;
+}
+
+.edit-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 8px;
+  padding: 7px 12px;
+  border: 1px dashed var(--ash-light);
+  border-radius: 9px;
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ash);
+  cursor: pointer;
+}
+
+.edit-add:hover {
+  border-color: var(--board);
+  color: var(--ink);
+}
+
+.edit-add.section {
+  width: 100%;
+  padding: 11px;
+  border-style: solid;
+  border-width: 2px;
+  font-size: 13.5px;
+}
+
+/* ---- the side panels ----------------------------------------------------- */
+
+.shop-panel {
+  border: 2px solid var(--rule);
+  border-radius: 13px;
+  background: var(--chalk);
+  padding: 12px 14px 14px;
+}
+
+.shop-panel .prefs-head h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.shop-field {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 9px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ash);
+}
+
+.shop-field input {
+  padding: 8px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--paper);
+  font-size: 13.5px;
+  color: var(--ink);
+}
+
+.shop-field input:focus {
+  outline: none;
+  border-color: var(--board);
+  background: var(--chalk);
+}
+
+.shop-switch {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 22px;
+}
+
+.shop-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+
+.shop-switch span {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--rule);
+  transition: background 0.16s ease;
+  pointer-events: none;
+}
+
+.shop-switch span::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--chalk);
+  transition: transform 0.16s ease;
+}
+
+.shop-switch input:checked + span {
+  background: var(--stem);
+}
+
+.shop-switch input:checked + span::after {
+  transform: translateX(16px);
+}
+
+.shop-switch input:focus-visible + span {
+  outline: 3px solid var(--sky-deep);
+  outline-offset: 2px;
+}
+
+.theme-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.theme-chip {
+  display: grid;
+  gap: 2px;
+  padding: 9px 11px;
+  border: 2px solid var(--rule);
+  border-radius: 11px;
+  background: var(--chalk);
+  text-align: left;
+  cursor: pointer;
+}
+
+.theme-chip.on {
+  border-color: var(--board);
+}
+
+.theme-swatch {
+  width: 100%;
+  height: 16px;
+  border-radius: 5px;
+  background: var(--board);
+  margin-bottom: 4px;
+}
+
+.theme-chip.theme-chalk .theme-swatch {
+  background: linear-gradient(90deg, #14100d 60%, #ffffff 60%);
+}
+
+.theme-chip.theme-enamel .theme-swatch {
+  background: linear-gradient(90deg, #f3ead6 60%, #8a6a2f 60%);
+}
+
+.theme-chip.theme-warm .theme-swatch {
+  background: linear-gradient(90deg, #b4502f 60%, #f6efe4 60%);
+}
+
+.theme-chip.theme-garden .theme-swatch {
+  background: linear-gradient(90deg, #12372a 60%, #d9b45c 60%);
+}
+
+.theme-chip b {
+  font-family: var(--font-display), sans-serif;
+  font-size: 13.5px;
+  letter-spacing: -0.02em;
+}
+
+.theme-chip i {
+  font-style: normal;
+  font-size: 10.5px;
+  line-height: 1.3;
+  color: var(--ash);
+}
+
+.review-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px 26px;
+  gap: 5px;
+  margin-bottom: 5px;
+}
+
+.review-row input {
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  background: var(--paper);
+  font-size: 12.5px;
+}
+
+.review-row input:focus {
+  outline: none;
+  border-color: var(--board);
+  background: var(--chalk);
+}
+
+.clip-drop {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  padding: 16px 12px;
+  border: 2px dashed var(--ash-light);
+  border-radius: 11px;
+  text-align: center;
+  cursor: pointer;
+  color: var(--ash);
+}
+
+.clip-drop:hover {
+  border-color: var(--board);
+  color: var(--ink);
+}
+
+.clip-drop b {
+  font-family: var(--font-display), sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.clip-drop span {
+  font-size: 11.5px;
+}
+
+.clip-preview {
+  width: 100%;
+  margin-top: 9px;
+  border-radius: 10px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: #000;
+}
+
+/* ---- the live preview ---------------------------------------------------- */
+
+.shop-preview {
+  gap: 10px;
+}
+
+.preview-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ash);
+}
+
+.preview-head i {
+  font-style: normal;
+  font-weight: 500;
+}
+
+.share-slider {
+  display: block;
+  padding: 12px 14px 9px;
+  border: 2px solid var(--board);
+  border-radius: 13px;
+  background: var(--chalk);
+}
+
+.share-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.share-head b {
+  font-family: var(--font-display), sans-serif;
+  font-size: 14px;
+  letter-spacing: -0.02em;
+}
+
+.share-head em {
+  font-style: normal;
+  font-family: var(--font-display), sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.04em;
+  color: var(--money);
+}
+
+.preview-note {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--ash);
+}
+
+/* ---- The board itself ----------------------------------------------------
+   Sized in container units so one component serves the editor preview and the
+   marketing example without a second set of numbers. */
+
+.board-canvas {
+  container-type: inline-size;
+  position: relative;
+  display: flex;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 4px solid #22201d;
+  background: var(--bd-bg);
+  color: var(--bd-ink);
+  font-family: var(--font-sans), sans-serif;
+}
+
+.board-canvas.theme-chalk {
+  --bd-bg: #14100d;
+  --bd-ink: #ffffff;
+  --bd-dim: rgba(255, 255, 255, 0.58);
+  --bd-rule: rgba(255, 255, 255, 0.16);
+  --bd-accent: #ffc72c;
+  --bd-ad: rgba(255, 255, 255, 0.07);
+}
+
+.board-canvas.theme-enamel {
+  --bd-bg: #f3ead6;
+  --bd-ink: #241d12;
+  --bd-dim: rgba(36, 29, 18, 0.6);
+  --bd-rule: rgba(36, 29, 18, 0.16);
+  --bd-accent: #8a6a2f;
+  --bd-ad: rgba(36, 29, 18, 0.06);
+}
+
+.board-canvas.theme-warm {
+  --bd-bg: #b4502f;
+  --bd-ink: #fdf3e7;
+  --bd-dim: rgba(253, 243, 231, 0.68);
+  --bd-rule: rgba(253, 243, 231, 0.24);
+  --bd-accent: #ffd9a0;
+  --bd-ad: rgba(253, 243, 231, 0.1);
+}
+
+.board-canvas.theme-garden {
+  --bd-bg: #12372a;
+  --bd-ink: #f4f1e4;
+  --bd-dim: rgba(244, 241, 228, 0.62);
+  --bd-rule: rgba(244, 241, 228, 0.18);
+  --bd-accent: #d9b45c;
+  --bd-ad: rgba(244, 241, 228, 0.08);
+}
+
+.board-menu {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 3cqw 3cqw 2.4cqw;
+}
+
+.board-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: baseline;
+  gap: 1.4cqw;
+  padding-bottom: 1.4cqw;
+  border-bottom: 1px solid var(--bd-rule);
+}
+
+.board-head b {
+  font-family: var(--font-display), sans-serif;
+  font-size: 3.4cqw;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.board-head span {
+  font-size: 1.35cqw;
+  color: var(--bd-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.board-head i {
+  margin-left: auto;
+  font-style: normal;
+  font-size: 1.25cqw;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bd-accent);
+  white-space: nowrap;
+}
+
+.board-cols {
+  flex: 1;
+  min-height: 0;
+  columns: 2;
+  column-gap: 3cqw;
+  padding-top: 1.6cqw;
+  overflow: hidden;
+}
+
+.board-cols section {
+  break-inside: avoid;
+  margin-bottom: 1.8cqw;
+}
+
+.board-cols h4 {
+  margin: 0 0 0.7cqw;
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.7cqw;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--bd-accent);
+}
+
+.board-cols ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.board-cols li {
+  display: flex;
+  align-items: baseline;
+  gap: 1cqw;
+  margin-bottom: 0.55cqw;
+}
+
+.board-cols li.gone {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+
+.board-item {
+  flex: 1;
+  min-width: 0;
+}
+
+.board-item b {
+  display: flex;
+  align-items: center;
+  gap: 0.7cqw;
+  font-size: 1.5cqw;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.board-item i {
+  display: block;
+  font-style: normal;
+  font-size: 1.15cqw;
+  line-height: 1.3;
+  color: var(--bd-dim);
+}
+
+/* Namespaced: a bare `.popular` already exists on the pricing tiers, where it
+   is an absolutely positioned corner flag, and an item tagged Popular was
+   inheriting it straight into the top-right of the board. */
+.board-badge {
+  position: static;
+  font-style: normal;
+  padding: 0.1cqw 0.6cqw;
+  border-radius: 999px;
+  font-size: 0.95cqw;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--bd-accent);
+  color: var(--bd-bg);
+}
+
+.board-badge.bb-out {
+  background: var(--bd-rule);
+  color: var(--bd-dim);
+}
+
+.board-price {
+  flex: 0 0 auto;
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.6cqw;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.board-blank {
+  margin: 0;
+  font-size: 1.4cqw;
+  color: var(--bd-dim);
+}
+
+.board-review {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: baseline;
+  gap: 1cqw;
+  padding-top: 1.2cqw;
+  border-top: 1px solid var(--bd-rule);
+}
+
+.board-stars {
+  flex: 0 0 auto;
+  display: inline-flex;
+  gap: 0.15cqw;
+  color: var(--bd-accent);
+}
+
+.board-review q {
+  flex: 1;
+  min-width: 0;
+  font-size: 1.25cqw;
+  font-style: italic;
+  color: var(--bd-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.board-review cite {
+  flex: 0 0 auto;
+  font-style: normal;
+  font-size: 1.1cqw;
+  color: var(--bd-dim);
+}
+
+.board-ad {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-left: 1px solid var(--bd-rule);
+  background: var(--bd-ad);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 1.4cqw,
+    var(--bd-rule) 1.4cqw 1.5cqw
+  );
+}
+
+.board-ad-label {
+  display: grid;
+  justify-items: center;
+  gap: 0.3cqw;
+  text-align: center;
+  padding: 0.6cqw;
+}
+
+.board-ad-label b {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.5cqw;
+  letter-spacing: -0.02em;
+  color: var(--bd-ink);
+}
+
+.board-ad-label i {
+  font-style: normal;
+  font-size: 1.05cqw;
+  color: var(--bd-dim);
+}
+
+.board-media {
+  position: absolute;
+  right: 1.2cqw;
+  bottom: 1.2cqw;
+  padding: 0.4cqw 1cqw;
+  border-radius: 999px;
+  background: var(--bd-accent);
+  color: var(--bd-bg);
+  font-size: 1cqw;
+  font-weight: 700;
+}
+
+/* ---- the approval queue -------------------------------------------------- */
+
+.shop-queue,
+.shop-money {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 0 30px;
+}
+
+.queue-empty {
+  margin: 0;
+  padding: 26px 22px;
+  border: 2px dashed var(--ash-light);
+  border-radius: 14px;
+  font-size: 14px;
+  color: var(--ash);
+}
+
+.queue-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.queue-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px 16px;
+  border: 2px solid var(--board);
+  border-radius: 15px;
+  background: var(--chalk);
+}
+
+.queue-head b {
+  display: block;
+  font-family: var(--font-display), sans-serif;
+  font-size: 17px;
+  letter-spacing: -0.025em;
+}
+
+.queue-head span {
+  font-size: 11.5px;
+  color: var(--ash);
+}
+
+.queue-facts {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.queue-facts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.queue-facts dt {
+  color: var(--ash);
+}
+
+.queue-facts dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}
+
+.queue-note {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ash);
+}
+
+.queue-art {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 7;
+  border-radius: 10px;
+  background: var(--paper-warm);
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--ash);
+}
+
+.queue-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.queue-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.queue-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px;
+  border: 2px solid var(--rule);
+  border-radius: 999px;
+  background: var(--chalk);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.queue-actions button:hover {
+  border-color: #a32c1c;
+  color: #a32c1c;
+}
+
+.queue-actions button.yes {
+  border-color: var(--board);
+  background: var(--board);
+  color: var(--chalk);
+}
+
+.queue-actions button.yes:hover {
+  background: var(--stem);
+  border-color: var(--stem);
+  color: var(--chalk);
+}
+
+.queue-decided {
+  margin-top: 26px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+}
+
+.queue-decided h3 {
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+
+.queue-decided ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.queue-decided li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 9px 13px;
+  border-radius: 10px;
+  background: var(--chalk);
+  font-size: 13px;
+}
+
+.queue-decided b {
+  font-family: var(--font-display), sans-serif;
+  font-size: 14px;
+  letter-spacing: -0.02em;
+}
+
+.status.gone {
+  background: var(--paper-warm);
+  color: var(--ash);
+}
+
+/* ---- what it pays -------------------------------------------------------- */
+
+/* Four figures here, six on the advertiser's report. */
+.shop-money .stat-grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.money-split {
+  margin-top: 20px;
+  padding: 18px 20px 20px;
+  border: 2px solid var(--board);
+  border-radius: 15px;
+  background: var(--chalk);
+}
+
+.money-split h3 {
+  font-size: 16px;
+  margin-bottom: 14px;
+}
+
+.money-row {
+  display: grid;
+  grid-template-columns: 150px 82px 1fr 92px;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.money-row:last-of-type {
+  border-bottom: 0;
+}
+
+.money-row .rate-tier {
+  grid-area: auto;
+  justify-self: start;
+}
+
+.money-when b {
+  display: block;
+  font-family: var(--font-display), sans-serif;
+  font-size: 15px;
+  letter-spacing: -0.025em;
+}
+
+.money-when i {
+  font-style: normal;
+  font-size: 11.5px;
+  color: var(--ash);
+}
+
+.money-bar {
+  height: 9px;
+  border-radius: 999px;
+  background: var(--paper-warm);
+  overflow: hidden;
+}
+
+.money-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--money);
+}
+
+.money-row.off .money-bar i {
+  background: var(--sky);
+}
+
+.money-figure {
+  text-align: right;
+  font-family: var(--font-display), sans-serif;
+  font-size: 19px;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.money-aside {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  background: var(--paper-sky);
+  color: var(--ink-sky);
+}
+
+.money-aside svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--sky-deep);
+}
+
+.money-aside b {
+  display: block;
+  font-family: var(--font-display), sans-serif;
+  font-size: 17px;
+  letter-spacing: -0.025em;
+  margin-bottom: 4px;
+}
+
+.money-aside p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+@media (max-width: 1040px) {
+  .shop-body {
+    grid-template-columns: 1fr;
+  }
+
+  .shop-scroll,
+  .shop-queue,
+  .shop-money {
+    overflow: visible;
+  }
+
+  .choose-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .shop-preview {
+    order: -1;
+  }
+}
+
+@media (max-width: 760px) {
+  /* The four-column earnings row does not fit a phone, and the shop-side stat
+     grid has to give up the override it took from the wider layout. */
+  .money-row {
+    grid-template-columns: 1fr auto;
+    row-gap: 8px;
+  }
+
+  .money-row .money-bar {
+    grid-column: 1 / -1;
+  }
+
+  .shop-money .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 620px) {
+  .edit-items li {
+    grid-template-columns: 22px minmax(0, 1fr) 58px 26px;
+    row-gap: 4px;
+  }
+
+  .edit-note,
+  .edit-badge {
+    grid-column: 2 / -1;
+  }
+
+  .slot-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .theme-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ---- Responsive -------------------------------------------------------- */
 
 @media (max-width: 900px) {
@@ -7189,6 +8585,223 @@ text.vs-small {
   color: var(--ink-sky);
 }
 
+/* ---- The dashboard tour -------------------------------------------------
+   Real screenshots of the real product, on a black ground so the paper-white
+   app reads as a screen rather than as more page. The frames are stacked and
+   cross-faded rather than swapped, so the panel never collapses to nothing
+   between them and the height is whatever the tallest frame needs. */
+
+.reporting-band {
+  padding: var(--band) 0;
+  background: var(--board);
+  color: var(--chalk);
+}
+
+.reporting-band .section-head p {
+  color: var(--ash-dark);
+}
+
+.reporting-band .section-head a {
+  border-bottom: 2px solid var(--sky);
+  padding-bottom: 1px;
+}
+
+.reporting-band .section-head {
+  max-width: 660px;
+}
+
+.tour {
+  margin-top: clamp(20px, 3vh, 38px);
+}
+
+.tour-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 14px;
+}
+
+.tour-tabs button {
+  position: relative;
+  overflow: hidden;
+  padding: 7px 15px;
+  border: 1px solid var(--board-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ash-dark);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.tour-tabs button:hover {
+  color: var(--chalk);
+  border-color: var(--ash);
+}
+
+.tour-tabs button.on {
+  background: var(--chalk);
+  border-color: var(--chalk);
+  color: var(--board);
+}
+
+.tour-play {
+  margin-left: auto;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0 !important;
+  border-radius: 50% !important;
+}
+
+/* The bar under the live tab, running out the hold. */
+.tour-run {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 100%;
+  transform-origin: left;
+  background: var(--sky-deep);
+  animation: tour-run linear forwards;
+}
+
+@keyframes tour-run {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.tour-frame {
+  margin: 0;
+  display: grid;
+  /* The frames are dense product UI, so the screen takes the room and the
+     caption takes what is left. */
+  grid-template-columns: minmax(0, 1.9fr) minmax(210px, 0.85fr);
+  gap: 26px;
+  align-items: start;
+}
+
+.tour-screen {
+  position: relative;
+  aspect-ratio: 1360 / 850;
+  border: 5px solid #2a2e2c;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+/* The outgoing frame holds at full opacity until the incoming one has
+   finished covering it, then drops in a single step. Fading both at once
+   crosses through a moment where neither is opaque and the panel flashes to
+   its own background. */
+.tour-screen img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  z-index: 0;
+  transition: opacity 0s linear 0.26s;
+}
+
+.tour-screen img.on {
+  opacity: 1;
+  z-index: 1;
+  transition: opacity 0.26s ease;
+}
+
+.tour-frame figcaption {
+  padding-top: 4px;
+}
+
+.tour-frame figcaption b {
+  display: block;
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(20px, 2vw, 27px);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-bottom: 10px;
+}
+
+.tour-frame figcaption span {
+  display: block;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--ash-dark);
+}
+
+.tour-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 16px;
+  padding-bottom: 2px;
+  border-bottom: 2px solid var(--sky);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--chalk);
+}
+
+.tour-cta:hover {
+  border-color: var(--chalk);
+}
+
+.tour-foot {
+  margin: clamp(18px, 2.6vh, 32px) 0 0;
+  max-width: 78ch;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ash);
+}
+
+@media (max-width: 900px) {
+  .tour-frame {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .tour-frame figcaption {
+    padding-right: 0;
+  }
+
+  .tour-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tour-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tour-tabs button {
+    flex: 0 0 auto;
+  }
+
+  .tour-play {
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-screen img,
+  .tour-screen img.on {
+    transition: none;
+  }
+
+  .tour-run {
+    animation: none;
+  }
+}
+
 /* ---- Rate band, on the advertiser page ---------------------------------- */
 
 .rate-band {
@@ -7589,11 +9202,13 @@ text.vs-small {
   margin-top: clamp(20px, 3vh, 44px);
 }
 
+/* The live board above these now does the showing, so the cards are captions
+   rather than essays. */
 .tool {
   border: 1px solid var(--board-line);
   border-radius: 14px;
   background: var(--board-soft);
-  padding: 26px 26px 28px;
+  padding: 18px 18px 20px;
 }
 
 .tool > span {

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Bite } from '@/components/brand';
 import { BoardReel } from '@/components/board-reel';
+import { BoardShowcase } from '@/components/board-showcase';
 import { NetworkMap } from '@/components/network-map';
 import { FormatGrid } from '@/components/format-grid';
 import { VenueScene } from '@/components/venue-scenes';
@@ -77,13 +78,13 @@ const OFF_PAY = sum(OFF_DAYPARTS, (id) => daypartEarnings(SHOP, id));
    features grid and a link to a Menu Designer that did not exist. */
 const tools = [
   [<LayoutTemplate size={22} key="i"/>, 'Design the board itself',
-   'Drag your items around in the browser, set your prices, and push the new menu to the screen. No design software, no waiting on anyone, no call-out fee.'],
+   'Drag your items around, set your prices, push it to the screen.'],
   [<Clapperboard size={22} key="i"/>, 'Play your own food',
-   'Drop in video of the kitchen, the grill, the thing that sells itself. A board that moves holds a queue better than a board that does not.'],
+   'Drop in video of the grill. A board that moves holds a queue.'],
   [<Star size={22} key="i"/>, 'Put your reviews on the wall',
-   'Pull your best Google and Yelp reviews onto the screen and let them run between courses. The people reading it are already standing in your shop.'],
+   'Your best Google and Yelp lines, running between courses.'],
   [<CalendarClock size={22} key="i"/>, 'Different menu, different hour',
-   'Breakfast until eleven, lunch until four, the late board after that. Set it once and the screen keeps up on its own.'],
+   'Breakfast, lunch, then the late board. Set it once.'],
 ];
 
 function JoinForm() {
@@ -218,6 +219,7 @@ export function HomePage() {
           <h2>Level up your menu.</h2>
           <p>Ads are the part that pays. These are the tools that make the screen worth having in a week when nothing sells, and they come with it.</p>
         </div>
+        <BoardShowcase/>
         <div className="tool-grid">
           {tools.map(([icon, title, text]) => (
             <article className="tool" key={title as string}>

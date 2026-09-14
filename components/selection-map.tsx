@@ -24,6 +24,7 @@ export function SelectionMap({
   onRegion,
   onToolDone,
   focus,
+  highlight,
   className,
 }: {
   venues: Venue[];
@@ -34,6 +35,8 @@ export function SelectionMap({
   onRegion: (ids: string[], shape: string) => void;
   onToolDone: () => void;
   focus: Focus;
+  /** The shop the list is pointing at. Lights its pin; never moves the map. */
+  highlight?: string | null;
   className?: string;
 }) {
   const host = useRef<HTMLDivElement>(null);
@@ -97,6 +100,9 @@ export function SelectionMap({
     return () => {
       cancelled = true;
       observer?.disconnect();
+      /* Stop before removing: a pan or zoom still in flight will otherwise
+         land on panes `remove()` has already torn down. */
+      map.current?.stop();
       map.current?.remove();
       map.current = null;
       pins.clear();
@@ -118,7 +124,9 @@ export function SelectionMap({
 
     for (const venue of venues) {
       const on = selected.includes(venue.id);
-      const cls = `pin${on ? ' on' : ''}${venue.status === 'prospect' ? ' prospect' : ''}`;
+      const cls = `pin${on ? ' on' : ''}${venue.status === 'prospect' ? ' prospect' : ''}${
+        highlight === venue.id ? ' hot' : ''
+      }`;
       const existing = markers.current.get(venue.id);
       const icon = L.divIcon({
         className: 'venue-pin',
@@ -143,12 +151,16 @@ export function SelectionMap({
       });
       markers.current.set(venue.id, marker);
     }
-  }, [venues, selected, ready]);
+  }, [venues, selected, highlight, ready]);
 
   /* ---- fly to a neighbourhood ---- */
   useEffect(() => {
     const instance = map.current;
     if (!instance || !focus) return;
+    /* Cancel whatever is already moving first. A second flight started over a
+       running zoom transition leaves Leaflet finishing the old one against a
+       pane the new one has already re-based, and it throws on the way out. */
+    instance.stop();
     instance.flyTo(focus.at, focus.zoom, { duration: 0.6 });
   }, [focus, ready]);
 

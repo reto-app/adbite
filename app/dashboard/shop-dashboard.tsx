@@ -1,0 +1,610 @@
+'use client';
+
+import { useState } from 'react';
+import {
+  Check,
+  Clapperboard,
+  LayoutTemplate,
+  RotateCcw,
+  Sparkles,
+  Star,
+  Trash2,
+  Upload,
+  Wallet,
+  X,
+} from 'lucide-react';
+import { SiteHeader } from '@/components/site-header';
+import { SideSwitch } from '@/components/side-switch';
+import { BoardCanvas } from '@/components/board/board-canvas';
+import { MenuEditor } from '@/components/board/menu-editor';
+import {
+  SLOTS,
+  THEMES,
+  itemCount,
+  newId,
+  resetBoard,
+  saveBoard,
+  useBoard,
+  type Board,
+  type SlotId,
+  type ThemeId,
+} from '@/lib/board';
+import { LIVE_VENUES } from '@/lib/network';
+import {
+  DAYPARTS,
+  count,
+  daypartEarnings,
+  inventory,
+  money,
+  monthlyEarnings,
+  weeklyEarnings,
+  yearlyEarnings,
+} from '@/lib/pricing';
+import {
+  approveCampaign,
+  rejectCampaign,
+  statusOf,
+  useCampaigns,
+  type Campaign,
+} from '@/lib/campaigns';
+import { FORMATS } from '@/lib/boards';
+
+const SHOP = LIVE_VENUES[0];
+const day = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+
+const NAV = [
+  { href: '/advertisers', label: 'For advertisers' },
+  { href: '/', label: 'For shops' },
+  { href: '/faq', label: 'FAQ' },
+];
+
+const TABS = [
+  { id: 'board', label: 'Your board', icon: LayoutTemplate },
+  { id: 'ads', label: 'Ads waiting', icon: Check },
+  { id: 'money', label: 'What it pays', icon: Wallet },
+] as const;
+
+type TabId = (typeof TABS)[number]['id'];
+
+const MAX_CLIP = 8 * 1024 * 1024;
+
+export function ShopDashboard() {
+  const { ready, board } = useBoard();
+  const { campaigns } = useCampaigns();
+  const [tab, setTab] = useState<TabId>('board');
+  const [slot, setSlot] = useState<SlotId>('midday');
+
+  const set = (patch: Partial<Board>) => saveBoard({ ...board, ...patch });
+
+  /* Earnings move with the ad share, because that is the lever the shop
+     actually holds. Everything else about the week is the shop's own hours. */
+  const priced = { ...SHOP, adShare: board.adShare };
+  const waiting = campaigns.filter(
+    (campaign) => campaign.venues.includes(SHOP.id) && statusOf(campaign) === 'review',
+  );
+
+  if (!ready) {
+    return (
+      <main className="campaign-page">
+        <SiteHeader nav={NAV} />
+        <div className="campaign-loading" aria-hidden="true" />
+      </main>
+    );
+  }
+
+  return (
+    <main className="campaign-page shop-page">
+      <SiteHeader nav={NAV} />
+      <div className="dash-head">
+        <div className="wrap dash-head-inner">
+          <div>
+            <span className="eyebrow">
+              <span className="pulse" /> {board.shopName || 'Your shop'}
+            </span>
+            <h1>Your screen</h1>
+          </div>
+          <dl className="dash-totals">
+            <div>
+              <dt>On the board</dt>
+              <dd>{itemCount(board)}</dd>
+            </div>
+            <div>
+              <dt>Ads may use</dt>
+              <dd>{Math.round(board.adShare * 100)}%</dd>
+            </div>
+            <div>
+              <dt>Waiting on you</dt>
+              <dd>{waiting.length}</dd>
+            </div>
+            <div>
+              <dt>You are paid</dt>
+              <dd className="money">{money.format(weeklyEarnings(priced))} / wk</dd>
+            </div>
+          </dl>
+          <SideSwitch />
+          <nav className="tabs head-tabs" aria-label="Shop workspace">
+            {TABS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={tab === item.id ? 'on' : undefined}
+                aria-current={tab === item.id}
+                onClick={() => setTab(item.id)}
+              >
+                <item.icon size={14} /> {item.label}
+                {item.id === 'ads' && waiting.length > 0 && <i className="tab-dot" />}
+              </button>
+            ))}
+          </nav>
+        </div>
+      </div>
+
+      {tab === 'board' && (
+        <BoardTab board={board} slot={slot} onSlot={setSlot} onChange={set} />
+      )}
+      {tab === 'ads' && <AdsTab waiting={waiting} campaigns={campaigns} />}
+      {tab === 'money' && <MoneyTab board={board} priced={priced} />}
+    </main>
+  );
+}
+
+/* ---- the builder --------------------------------------------------------- */
+
+function BoardTab({
+  board,
+  slot,
+  onSlot,
+  onChange,
+}: {
+  board: Board;
+  slot: SlotId;
+  onSlot: (slot: SlotId) => void;
+  onChange: (patch: Partial<Board>) => void;
+}) {
+  const [clipError, setClipError] = useState('');
+
+  const takeClip = (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith('video/')) {
+      setClipError('That file isn’t a video. An MP4 of your kitchen is ideal.');
+      return;
+    }
+    if (file.size > MAX_CLIP) {
+      setClipError('That clip is over 8 MB. Trim it or export it smaller.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result !== 'string') return;
+      setClipError('');
+      onChange({ media: { on: true, name: file.name, src: reader.result } });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <section className="shop-body">
+      <div className="shop-edit">
+        <div className="slot-tabs" role="tablist" aria-label="Which board">
+          {SLOTS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={slot === item.id}
+              className={slot === item.id ? 'on' : undefined}
+              onClick={() => onSlot(item.id)}
+            >
+              <b>{item.label}</b>
+              <i>{item.window}</i>
+            </button>
+          ))}
+        </div>
+
+        <div className="shop-scroll">
+          <MenuEditor
+            board={board}
+            slot={slot}
+            onChange={(sections) => onChange({ slots: { ...board.slots, [slot]: sections } })}
+          />
+
+          <section className="shop-panel">
+            <div className="prefs-head">
+              <h3>The shop</h3>
+              <span className="prefs-hint">What sits along the top of every board</span>
+            </div>
+            <label className="shop-field">
+              Name
+              <input
+                value={board.shopName}
+                onChange={(event) => onChange({ shopName: event.target.value })}
+              />
+            </label>
+            <label className="shop-field">
+              Line underneath
+              <input
+                value={board.tagline}
+                placeholder="What you sell, and where you are"
+                onChange={(event) => onChange({ tagline: event.target.value })}
+              />
+            </label>
+          </section>
+
+          <section className="shop-panel">
+            <div className="prefs-head">
+              <h3>How it looks</h3>
+              <span className="prefs-hint">Four grounds. Nothing else to design</span>
+            </div>
+            <div className="theme-row">
+              {THEMES.map((theme) => (
+                <button
+                  key={theme.id}
+                  type="button"
+                  className={`theme-chip theme-${theme.id}${board.theme === theme.id ? ' on' : ''}`}
+                  aria-pressed={board.theme === theme.id}
+                  onClick={() => onChange({ theme: theme.id as ThemeId })}
+                >
+                  <span className="theme-swatch" aria-hidden="true" />
+                  <b>{theme.label}</b>
+                  <i>{theme.note}</i>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="shop-panel">
+            <div className="prefs-head">
+              <h3>
+                <Star size={15} /> Your reviews, on the wall
+              </h3>
+              <span className="shop-switch">
+                <input
+                  type="checkbox"
+                  aria-label="Show your reviews on the board"
+                  checked={board.reviews.on}
+                  onChange={(event) =>
+                    onChange({ reviews: { ...board.reviews, on: event.target.checked } })
+                  }
+                />
+                <span />
+              </span>
+            </div>
+            {board.reviews.on && (
+              <>
+                {board.reviews.items.map((review, index) => (
+                  <div className="review-row" key={review.id}>
+                    <input
+                      value={review.quote}
+                      aria-label="Review"
+                      placeholder="What they said"
+                      onChange={(event) =>
+                        onChange({
+                          reviews: {
+                            ...board.reviews,
+                            items: board.reviews.items.map((item, i) =>
+                              i === index ? { ...item, quote: event.target.value } : item,
+                            ),
+                          },
+                        })
+                      }
+                    />
+                    <input
+                      className="review-who"
+                      value={review.author}
+                      aria-label="Who said it"
+                      placeholder="Name"
+                      onChange={(event) =>
+                        onChange({
+                          reviews: {
+                            ...board.reviews,
+                            items: board.reviews.items.map((item, i) =>
+                              i === index ? { ...item, author: event.target.value } : item,
+                            ),
+                          },
+                        })
+                      }
+                    />
+                    <button
+                      type="button"
+                      className="edit-drop"
+                      aria-label="Remove this review"
+                      onClick={() =>
+                        onChange({
+                          reviews: {
+                            ...board.reviews,
+                            items: board.reviews.items.filter((_, i) => i !== index),
+                          },
+                        })
+                      }
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="edit-add"
+                  onClick={() =>
+                    onChange({
+                      reviews: {
+                        ...board.reviews,
+                        items: [
+                          ...board.reviews.items,
+                          { id: newId('r'), quote: '', author: '', stars: 5, source: 'Google' },
+                        ],
+                      },
+                    })
+                  }
+                >
+                  Add a review
+                </button>
+                <p className="prefs-note">
+                  Paste your own from Google or Yelp. They run between boards, to a room that is
+                  already standing in your shop.
+                </p>
+              </>
+            )}
+          </section>
+
+          <section className="shop-panel">
+            <div className="prefs-head">
+              <h3>
+                <Clapperboard size={15} /> Play your own food
+              </h3>
+              <span className="shop-switch">
+                <input
+                  type="checkbox"
+                  aria-label="Play your own clip between boards"
+                  checked={board.media.on}
+                  onChange={(event) =>
+                    onChange({ media: { ...board.media, on: event.target.checked } })
+                  }
+                />
+                <span />
+              </span>
+            </div>
+            {board.media.on && (
+              <>
+                <label className="clip-drop">
+                  <Upload size={16} />
+                  <b>{board.media.name ?? 'Choose a clip'}</b>
+                  <span>MP4, up to 8 MB. Muted, on a loop, between boards</span>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    className="visually-hidden"
+                    onChange={(event) => takeClip(event.target.files?.[0])}
+                  />
+                </label>
+                {board.media.src && (
+                  <video className="clip-preview" src={board.media.src} muted loop autoPlay playsInline />
+                )}
+                {clipError && (
+                  <p className="prefs-warn" role="alert">
+                    {clipError}
+                  </p>
+                )}
+              </>
+            )}
+          </section>
+
+          <button type="button" className="edit-add section" onClick={resetBoard}>
+            <RotateCcw size={14} /> Start again from the example board
+          </button>
+        </div>
+      </div>
+
+      <div className="shop-preview">
+        <div className="preview-head">
+          <span>
+            On the wall · {SLOTS.find((s) => s.id === slot)?.label}
+          </span>
+          <i>Updates as you type</i>
+        </div>
+        <BoardCanvas board={board} slot={slot} />
+
+        <label className="share-slider">
+          <span className="share-head">
+            <b>How much of the screen ads may use</b>
+            <em>{Math.round(board.adShare * 100)}%</em>
+          </span>
+          <input
+            className="range-input"
+            type="range"
+            min={0}
+            max={50}
+            step={1}
+            value={Math.round(board.adShare * 100)}
+            style={{ '--fill': `${(board.adShare / 0.5) * 100}%` } as React.CSSProperties}
+            aria-label="Share of the screen ads may use"
+            onChange={(event) => onChange({ adShare: Number(event.target.value) / 100 })}
+          />
+          <span className="spend-scale">
+            <i>None this week</i>
+            <i>Half the board</i>
+          </span>
+        </label>
+        <p className="preview-note">
+          Nothing here is a contract. Drag it to zero for a week you want the whole screen, and
+          your earnings for that week go to zero with it. Every ad still waits for your yes.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+/* ---- the approval queue -------------------------------------------------- */
+
+function AdsTab({ waiting, campaigns }: { waiting: Campaign[]; campaigns: Campaign[] }) {
+  const mine = campaigns.filter((campaign) => campaign.venues.includes(SHOP.id));
+  const decided = mine.filter((campaign) => statusOf(campaign) !== 'review');
+
+  return (
+    <section className="shop-queue wrap">
+      <div className="section-head">
+        <h2>Nothing plays until you say so.</h2>
+        <p>
+          Every creative booked onto your board waits here. Reject anything that does not suit your
+          shop, your customers or your values. No explanation is owed to anyone.
+        </p>
+      </div>
+
+      {waiting.length === 0 ? (
+        <p className="queue-empty">
+          Nothing is waiting on you. When an advertiser books your board, their artwork lands here
+          first. {mine.length === 0 && 'Load the sample campaigns from the advertiser side to see how this reads.'}
+        </p>
+      ) : (
+        <div className="queue-grid">
+          {waiting.map((campaign) => {
+            const format = FORMATS.find((item) => item.id === campaign.format);
+            return (
+              <article className="queue-card" key={campaign.id}>
+                <div className="queue-head">
+                  <b>{campaign.name}</b>
+                  <span>Booked {day.format(new Date(campaign.createdAt))}</span>
+                </div>
+                <dl className="queue-facts">
+                  <div>
+                    <dt>Format</dt>
+                    <dd>{format?.name ?? campaign.format}</dd>
+                  </div>
+                  <div>
+                    <dt>Takes</dt>
+                    <dd>{format?.spec}</dd>
+                  </div>
+                  <div>
+                    <dt>From</dt>
+                    <dd>{campaign.email ?? 'an advertiser'}</dd>
+                  </div>
+                </dl>
+                {campaign.note && <p className="queue-note">{campaign.note}</p>}
+                <div className="queue-art">
+                  {campaign.creativeSrc ? (
+                    <img src={campaign.creativeSrc} alt={campaign.creativeName ?? 'The creative'} />
+                  ) : (
+                    <span>{campaign.creativeName ?? 'Artwork on file'}</span>
+                  )}
+                </div>
+                <div className="queue-actions">
+                  <button type="button" onClick={() => rejectCampaign(campaign.id)}>
+                    <X size={15} /> Reject
+                  </button>
+                  <button
+                    type="button"
+                    className="yes"
+                    onClick={() => approveCampaign(campaign.id)}
+                  >
+                    <Check size={15} /> Approve
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+
+      {decided.length > 0 && (
+        <div className="queue-decided">
+          <h3>Already decided</h3>
+          <ul>
+            {decided.map((campaign) => (
+              <li key={campaign.id}>
+                <b>{campaign.name}</b>
+                {statusOf(campaign) === 'live' ? (
+                  <span className="status live">On your screen</span>
+                ) : (
+                  <span className="status gone">Rejected</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ---- what the screen pays ------------------------------------------------ */
+
+function MoneyTab({ board, priced }: { board: Board; priced: typeof SHOP }) {
+  const week = weeklyEarnings(priced);
+  const stock = inventory([priced]);
+
+  return (
+    <section className="shop-money wrap">
+      <div className="section-head">
+        <h2>What the screen pays you.</h2>
+        <p>
+          Worked from your own hours and the share of the screen you are letting ads use. Move that
+          share on the board tab and every figure here moves with it.
+        </p>
+      </div>
+
+      <div className="stat-grid">
+        <article>
+          <small>Paid each week</small>
+          <b className="money">{money.format(week)}</b>
+          <i>On the cheapest format, so it is a floor</i>
+        </article>
+        <article>
+          <small>A month</small>
+          <b className="money">{money.format(monthlyEarnings(priced))}</b>
+          <i>Paid once a month, itemised by spot</i>
+        </article>
+        <article>
+          <small>A year at this pace</small>
+          <b className="money">{money.format(yearlyEarnings(priced))}</b>
+          <i>{SHOP.hours}</i>
+        </article>
+        <article>
+          <small>Ad minutes you are offering</small>
+          <b>{count.format(stock.minutes)}</b>
+          <i>{Math.round(board.adShare * 100)}% of your open week</i>
+        </article>
+      </div>
+
+      <div className="money-split">
+        <h3>Where it comes from</h3>
+        {DAYPARTS.map((part) => {
+          const pay = daypartEarnings(priced, part.id);
+          const most = Math.max(
+            ...DAYPARTS.map((other) => daypartEarnings(priced, other.id)),
+            0.01,
+          );
+          return (
+            <div className={`money-row ${part.tier}`} key={part.id}>
+              <span className="money-when">
+                <b>{part.label}</b>
+                <i>{part.window}</i>
+              </span>
+              <span className={`rate-tier ${part.tier}`}>
+                {part.tier === 'peak' ? 'Peak' : 'Off-peak'}
+              </span>
+              <span className="money-bar">
+                <i style={{ width: `${Math.max(2, (pay / most) * 100)}%` }} />
+              </span>
+              <span className="money-figure money">{money.format(pay)}</span>
+            </div>
+          );
+        })}
+        <p className="prefs-note">
+          Busy hours are worth more and are paid as such. These are your earnings, quoted on the
+          cheapest format we sell, so a week where the bigger formats go pays more than this.
+        </p>
+      </div>
+
+      <aside className="money-aside">
+        <Sparkles size={18} />
+        <div>
+          <b>The screen earns either way.</b>
+          <p>
+            The board tools are yours whether or not a single ad sells this week. Design it, change
+            it at lunch, put your reviews on it. The ads are the part that pays; the board is the
+            part that works.
+          </p>
+        </div>
+      </aside>
+    </section>
+  );
+}

@@ -78,6 +78,7 @@ export function PlaceStep({
   const [tool, setTool] = useState<MapTool>('pan');
   const [focus, setFocus] = useState<Focus>(null);
   const [drawn, setDrawn] = useState<{ shape: string; added: number } | null>(null);
+  const [hot, setHot] = useState<string | null>(null);
   /* State, not a ref: the Undo button is rendered from it, and a ref read
      during render would not re-render the bar when a shape lands. */
   const [previous, setPrevious] = useState<string[] | null>(null);
@@ -247,7 +248,10 @@ export function PlaceStep({
                   className={`pick-row${on ? ' on' : ''}`}
                   aria-pressed={on}
                   onClick={() => set({ venues: toggle(selected, venue.id) })}
-                  onMouseEnter={() => setFocus({ at: venue.at, zoom: 15, key: Date.now() })}
+                  onMouseEnter={() => setHot(venue.id)}
+                  onMouseLeave={() => setHot(null)}
+                  onFocus={() => setHot(venue.id)}
+                  onBlur={() => setHot(null)}
                 >
                   <span className="pick-tick">{on && <Check size={13} />}</span>
                   <span className="pick-body">
@@ -333,6 +337,7 @@ export function PlaceStep({
             selected={selected}
             tool={tool}
             focus={focus}
+            highlight={hot}
             onToggle={(id) => set({ venues: toggle(selected, id) })}
             onRegion={(ids, shape) => {
               addMany(ids);

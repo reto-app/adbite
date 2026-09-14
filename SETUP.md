@@ -118,6 +118,66 @@ The dashboard's empty state can load three worked examples. They carry
 `sample: true`, are badged **Sample** everywhere, and clear in one click. The
 dashboard is never seeded automatically.
 
+## Two sides, one /dashboard
+
+There is no login. `lib/account.ts` stores a preference — `advertiser` or
+`shop` — in the browser, and `/dashboard` opens the matching workspace. It is
+not authentication and does not pretend to be: a switch in either header flips
+it, because both halves are worth seeing before you commit to either.
+
+| Side | Workspace | What it does |
+| --- | --- | --- |
+| `advertiser` | `app/dashboard/advertiser-dashboard.tsx` | Build a campaign, read what it did |
+| `shop` | `app/dashboard/shop-dashboard.tsx` | Design the board, approve ads, see the earnings |
+
+The two are one product, and the seams are real: the ad a shop approves is the
+campaign an advertiser built, and approving it is what sets `startedAt` and so
+what starts the advertiser's reporting. The share a shop sets on its board is
+the inventory the advertiser is buying.
+
+## The board designer
+
+`lib/board.ts` is the shop's own half of the screen: sections, items, prices,
+three boards for three parts of the day, four grounds, the review ticker, a
+clip of the shop's own food, and the share of the screen ads may use.
+
+`components/board/board-canvas.tsx` draws it, sized in container units
+(`cqw`) rather than pixels, so the same component is the editor's live preview
+at 700px and the marketing page's example at 400px with no second set of
+numbers to keep in step. `components/board-showcase.tsx` is that example: it
+renders the real canvas from the real starter board, so the shop page cannot
+drift from the product the way a mockup would.
+
+Reordering items is native drag-and-drop **and** arrow keys on the grip. Keep
+both. Drag alone puts the one genuinely spatial task in the product out of
+reach of anyone not using a mouse.
+
+Earnings on the shop side are priced against the shop's own `adShare`, so
+moving that slider moves the money. That loop is the point of the screen.
+
+## Screenshots on the advertiser page
+
+`/advertisers` shows the real dashboard rather than a drawing of one.
+`public/shots/*.webp` are captured from the running product and played by
+`components/dashboard-reel.tsx`.
+
+**They go stale when the dashboard changes, and nothing catches that.** To
+retake them: run the dev server, open `/dashboard`, load the sample campaigns,
+and capture at 1360x850 at 2x —
+
+| Frame | Where |
+| --- | --- |
+| `01-overview` | Dashboard, Overview tab |
+| `02-where` | Dashboard, Where it ran |
+| `03-when` | Dashboard, When it ran |
+| `04-place` | New campaign, step 01, with a neighbourhood taken |
+| `05-price` | New campaign, step 02 |
+| `06-make` | New campaign, step 03 |
+
+Then `magick <shot>.png -resize 1360x -strip -quality 84 <shot>.webp`. Wait for
+map tiles to finish loading before capturing 02 and 04, or the frame ships with
+a grey map in it.
+
 ## Vertical rhythm
 
 Sections used to be padded 96-104px top and bottom, which on the 1280x800

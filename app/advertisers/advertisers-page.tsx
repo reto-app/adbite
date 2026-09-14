@@ -7,6 +7,7 @@ import { Bite } from '@/components/brand';
 import { AdvertiserFlow } from '@/components/advertiser-flow';
 import { NORTH_PARK_NOODLE, ShopScene } from '@/components/shop-scene';
 import { BoardReel } from '@/components/board-reel';
+import { DashboardReel } from '@/components/dashboard-reel';
 import { NetworkMap } from '@/components/network-map';
 import { SkyShapes } from '@/components/sky-shapes';
 import { SiteHeader } from '@/components/site-header';
@@ -196,7 +197,11 @@ export function AdvertisersPage() {
       </p>
     </div></section>
 
-    <section id="reporting" className="reporting wrap"><div className="report-copy"><h2>Know how long your ad was on screen.</h2><p>AdBite reports two things: how many times your ad played, and the total minutes it was on screen. No impressions, no reach estimates, no modelled numbers.</p><div className="report-list"><span><Check size={16}/> Plays each week</span><span><Check size={16}/> On-screen minutes, or plays for a video, split peak and off-peak</span><span><Check size={16}/> The shops it ran in</span></div></div><div className="dashboard"><div className="dash-top"><span>Weekly report</span><b className="report-tag">Example week</b></div><div className="report-rows"><div><small>Peak minutes</small><b>96</b></div><div><small>Off-peak minutes</small><b>46</b></div><div><small>Times your ad played</small><b>568</b></div></div><p className="report-empty">A worked example, not a live figure: one shop, one advertiser, a 15-second spot. Your own report shows only the minutes your campaign actually earns, and you are billed on that number.</p></div></section>
+    <section id="reporting" className="reporting-band"><div className="wrap">
+      <div className="section-head"><span className="eyebrow light">The dashboard, not a drawing of it</span><h2>Know exactly where your money went.</h2><p>Every screen below is the real builder and the real report, captured from the product. You can open the <Link href="/dashboard">dashboard</Link> and build a campaign right now, without an account.</p></div>
+      <DashboardReel/>
+      <p className="tour-foot">AdBite bills on two things and reports both: how many times your ad played, and the minutes it was on screen, split peak and off-peak, per shop. Anything worked out rather than counted &mdash; heads past the board, cost per thousand &mdash; is labelled as such on the screen it appears on. There are no impressions here, and no reach estimates dressed up as measurements.</p>
+    </div></section>
 
     <section id="advertise" className="advertise wrap"><SkyShapes /><div className="advertise-copy"><span className="eyebrow">Start local</span><h2>Not near the pilot shop yet?</h2><p>Tell us where you are. As shops join, we’ll come back to the ones with an advertiser already waiting on the block.</p></div><AdvertiseForm/></section>
 
