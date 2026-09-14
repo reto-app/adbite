@@ -2799,6 +2799,10 @@ text.vs-small {
   color: var(--ash);
 }
 
+/* A rounded card on paper, so it needs paper around it. It used to sit flush
+   against whatever section came before, and once the one above it turned black
+   the card's top corners were being cut out of the band rather than resting
+   below it. */
 .advertise {
   position: relative;
   overflow: hidden;
@@ -2809,7 +2813,8 @@ text.vs-small {
   background: var(--sky);
   border-radius: 22px;
   padding: 56px 60px;
-  margin-bottom: 92px;
+  margin-top: var(--band);
+  margin-bottom: var(--band);
 }
 
 .advertise h2 {
@@ -9085,6 +9090,35 @@ text.vs-small {
 }
 
 @media (max-width: 560px) {
+  /* Brand and the three action pills share the top row once the nav drops to
+     its own line, and on a narrow phone they are wider than the screen, which
+     pushed the whole page sideways. Contain them here rather than let one
+     header widen every page. */
+  /* The audience switch is the one thing up here that is duplicated further
+     down: both footers carry the other side. Two pills fit a phone cleanly;
+     three do not, and a scrolled row clips one mid-word. */
+  .audience-link {
+    display: none;
+  }
+
+  .header-actions {
+    /* A guard, so adding a fourth action later widens nothing.
+       `flex: 0 0 auto` on the base rule is what stops it shrinking. */
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: flex-end;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .header-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .header-actions > * {
+    flex: 0 0 auto;
+  }
+
   .rate-row {
     grid-template-columns: 1fr auto;
     grid-template-areas: 'when price' 'tier price' 'stock stock';

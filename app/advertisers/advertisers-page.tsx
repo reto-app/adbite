@@ -106,9 +106,9 @@ function AdvertiseForm() {
           <input id="ad-email" name="email" type="email" required autoComplete="email" placeholder="you@yourbusiness.com" /></label>
       </div>
       <button type="submit" className="button primary" data-track="adv-waitlist-submit" disabled={sending || sent}>
-        {sent ? 'Thanks, we’ll be in touch' : sending ? 'Sending…' : 'Put me on the list'}
+        {sent ? 'Thanks, we’ll be in touch' : sending ? 'Sending…' : 'Get me on the pilot'}
       </button>
-      {sent && <p className="form-note"><Check size={16}/> We’ll write when there’s a screen near you.</p>}
+      {sent && <p className="form-note"><Check size={16}/> We’ll come back with the boards that suit you and what a week on them costs.</p>}
       {error && <p className="form-warn" role="alert">{error} <a href={MAILTO}>Email us instead</a>.</p>}
     </form>
   );
@@ -203,7 +203,7 @@ export function AdvertisersPage() {
       <p className="tour-foot">AdBite bills on two things and reports both: how many times your ad played, and the minutes it was on screen, split peak and off-peak, per shop. Anything worked out rather than counted &mdash; heads past the board, cost per thousand &mdash; is labelled as such on the screen it appears on. There are no impressions here, and no reach estimates dressed up as measurements.</p>
     </div></section>
 
-    <section id="advertise" className="advertise wrap"><SkyShapes /><div className="advertise-copy"><span className="eyebrow">Start local</span><h2>Not near the pilot shop yet?</h2><p>Tell us where you are. As shops join, we’ll come back to the ones with an advertiser already waiting on the block.</p></div><AdvertiseForm/></section>
+    <section id="advertise" className="advertise wrap"><SkyShapes /><div className="advertise-copy"><span className="eyebrow">Pilot access</span><h2>Want to advertise?</h2><p>Put your details in and we will get you onto the pilot. A person reads it, finds the boards that suit what you sell, and writes back with what is open and what it would cost.</p></div><AdvertiseForm/></section>
 
     <SiteFooter links={[
       { href: '/', label: 'For shops' },
