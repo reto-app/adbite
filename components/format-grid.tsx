@@ -1,69 +1,159 @@
 import { GymSpot } from './gym-spot';
 
-/* The three formats, each preview running the thing it describes on a board
+/* The four formats, each preview running the thing it describes on a board
    detailed enough to be a real one: the café's own menu underneath, its name
-   on it, and the ad taking only the share it is sold. */
+   on it, and the ad taking only the share it is sold.
+   
+   Order matches the rate card everywhere else on the site — cheapest first,
+   dearest last — so a reader moving between this and the pricing grid is not
+   re-learning the order. */
+
+/* The shop's own board, under whatever the ad is doing to it. `detail` carries
+   the item descriptions, which only fit when the ad is not taking width;
+   `trim` drops the pastry block, which is what overflows once the banner has
+   taken the bottom of the board. */
+function Menu({ detail = false, trim = false }: { detail?: boolean; trim?: boolean }) {
+  return (
+    <div className="fp-board">
+      <header>
+        <b>SUNNY SPOON</b>
+        <i>Open till 3</i>
+      </header>
+      <div className="fp-cols">
+        <div>
+          <strong>Coffee</strong>
+          <p>
+            <span>
+              Cold brew
+              {detail && <em>Slow steeped, eighteen hours</em>}
+            </span>
+            <i>5.00</i>
+          </p>
+          <p>
+            <span>
+              Cortado
+              {detail && <em>Double shot, whole milk</em>}
+            </span>
+            <i>4.25</i>
+          </p>
+          <p>
+            <span>
+              Oat latte
+              {detail && <em>Hot or iced</em>}
+            </span>
+            <i>5.50</i>
+          </p>
+          <p>
+            <span>
+              Drip
+              {detail && <em>Rotating single origin</em>}
+            </span>
+            <i>3.25</i>
+          </p>
+        </div>
+        <div>
+          <strong>Kitchen</strong>
+          <p>
+            <span>Avocado toast</span>
+            <i>12.00</i>
+          </p>
+          <p>
+            <span>Egg + cheddar</span>
+            <i>8.00</i>
+          </p>
+          {!trim && (
+            <>
+              <strong>Pastry</strong>
+              <p>
+                <span>Morning bun</span>
+                <i>4.50</i>
+              </p>
+              <p>
+                <span>Croissant</span>
+                <i>4.00</i>
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function FormatGrid() {
   return (
     <div className="format-grid">
       <article>
-        <div className="format-preview full" aria-hidden="true">
-          <div className="fp-board">
-            <header>
-              <b>SUNNY SPOON</b>
-              <i>Open till 3</i>
-            </header>
-            <div className="fp-cols">
-              <div>
-                <strong>Coffee</strong>
-                <p>
-                  <span>
-                    Cold brew<em>Slow steeped, eighteen hours</em>
-                  </span>
-                  <i>5.00</i>
-                </p>
-                <p>
-                  <span>
-                    Cortado<em>Double shot, whole milk</em>
-                  </span>
-                  <i>4.25</i>
-                </p>
-                <p>
-                  <span>
-                    Oat latte<em>Hot or iced</em>
-                  </span>
-                  <i>5.50</i>
-                </p>
-                <p>
-                  <span>
-                    Drip<em>Rotating single origin</em>
-                  </span>
-                  <i>3.25</i>
-                </p>
-              </div>
-              <div>
-                <strong>Kitchen</strong>
-                <p>
-                  <span>Avocado toast</span>
-                  <i>12.00</i>
-                </p>
-                <p>
-                  <span>Egg + cheddar</span>
-                  <i>8.00</i>
-                </p>
-                <strong>Pastry</strong>
-                <p>
-                  <span>Morning bun</span>
-                  <i>4.50</i>
-                </p>
-                <p>
-                  <span>Croissant</span>
-                  <i>4.00</i>
-                </p>
-              </div>
-            </div>
-            <div className="fp-foot">Beans roasted on Tuesdays · refills on drip</div>
+        <div className="format-preview banner" aria-hidden="true">
+          <Menu trim />
+          <div className="fp-strip">
+            <b className="one">
+              <i className="fp-mark">9S</i>
+              <span>
+                Ninth Street Books<em>10% off with your receipt</em>
+              </span>
+            </b>
+            <b className="two">
+              <i className="fp-mark">RB</i>
+              <span>
+                Rosewood Barbers<em>Walk-ins till seven</em>
+              </span>
+            </b>
+            <b className="three">
+              <i className="fp-mark">IR</i>
+              <span>
+                Iron Rose Gym<em>First class free</em>
+              </span>
+            </b>
+            <span className="fp-dots">
+              <i />
+              <i />
+              <i />
+            </span>
           </div>
+        </div>
+        <h3>Bottom banner</h3>
+        <p>Your menu stays put. The strip below rotates between advertisers.</p>
+      </article>
+
+      <article>
+        <div className="format-preview rail" aria-hidden="true">
+          <Menu trim />
+          <div className="fp-rail">
+            {/* Short lines: the rail is a third of a board, and on a preview
+                this size that is about a hundred pixels to set copy in. */}
+            <b className="one">
+              <i className="fp-mark">9S</i>
+              <span>Ninth Street Books</span>
+              <strong>10% off</strong>
+              <small>With your receipt</small>
+            </b>
+            <b className="two">
+              <i className="fp-mark">RB</i>
+              <span>Rosewood Barbers</span>
+              <strong>Walk-ins till 7</strong>
+              <small>Next door</small>
+            </b>
+            <b className="three">
+              <i className="fp-mark">IR</i>
+              <span>Iron Rose Gym</span>
+              <strong>First class free</strong>
+              <small>Two blocks north</small>
+            </b>
+            <span className="fp-dots rail">
+              <i />
+              <i />
+              <i />
+            </span>
+          </div>
+        </div>
+        <h3>Side rail</h3>
+        <p>The right third, top to bottom. Your menu keeps the rest of the board.</p>
+      </article>
+
+      <article>
+        <div className="format-preview full" aria-hidden="true">
+          <Menu detail />
           <div className="fp-takeover">
             <span className="fp-kicker">Local spot</span>
             <div className="fp-brandline">
@@ -80,54 +170,7 @@ export function FormatGrid() {
 
       <article>
         <div className="format-preview video" aria-hidden="true">
-          <div className="fp-board">
-            <header>
-              <b>SUNNY SPOON</b>
-              <i>Open till 3</i>
-            </header>
-            <div className="fp-cols">
-              <div>
-                <strong>Coffee</strong>
-                <p>
-                  <span>Cold brew</span>
-                  <i>5.00</i>
-                </p>
-                <p>
-                  <span>Cortado</span>
-                  <i>4.25</i>
-                </p>
-                <p>
-                  <span>Oat latte</span>
-                  <i>5.50</i>
-                </p>
-                <p>
-                  <span>Drip</span>
-                  <i>3.25</i>
-                </p>
-              </div>
-              <div>
-                <strong>Kitchen</strong>
-                <p>
-                  <span>Avocado toast</span>
-                  <i>12.00</i>
-                </p>
-                <p>
-                  <span>Egg + cheddar</span>
-                  <i>8.00</i>
-                </p>
-                <strong>Pastry</strong>
-                <p>
-                  <span>Morning bun</span>
-                  <i>4.50</i>
-                </p>
-                <p>
-                  <span>Croissant</span>
-                  <i>4.00</i>
-                </p>
-              </div>
-            </div>
-            <div className="fp-foot">Beans roasted on Tuesdays · refills on drip</div>
-          </div>
+          <Menu />
           <div className="fp-screen">
             <GymSpot />
             <div className="fp-chrome">
@@ -159,81 +202,6 @@ export function FormatGrid() {
         </div>
         <h3>Short video</h3>
         <p>Fifteen muted seconds on a blank board, then your menu is back. No sound to talk over.</p>
-      </article>
-
-      <article>
-        <div className="format-preview banner" aria-hidden="true">
-          <div className="fp-board">
-            <header>
-              <b>SUNNY SPOON</b>
-              <i>Open till 3</i>
-            </header>
-            <div className="fp-cols">
-              <div>
-                <strong>Coffee</strong>
-                <p>
-                  <span>Cold brew</span>
-                  <i>5.00</i>
-                </p>
-                <p>
-                  <span>Cortado</span>
-                  <i>4.25</i>
-                </p>
-                <p>
-                  <span>Oat latte</span>
-                  <i>5.50</i>
-                </p>
-                <p>
-                  <span>Drip</span>
-                  <i>3.25</i>
-                </p>
-              </div>
-              <div>
-                <strong>Kitchen</strong>
-                <p>
-                  <span>Avocado toast</span>
-                  <i>12.00</i>
-                </p>
-                <p>
-                  <span>Egg + cheddar</span>
-                  <i>8.00</i>
-                </p>
-                <strong>Pastry</strong>
-                <p>
-                  <span>Morning bun</span>
-                  <i>4.50</i>
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="fp-strip">
-            <b className="one">
-              <i className="fp-mark">9S</i>
-              <span>
-                Ninth Street Books<em>10% off with your receipt</em>
-              </span>
-            </b>
-            <b className="two">
-              <i className="fp-mark">RB</i>
-              <span>
-                Rosewood Barbers<em>Walk-ins till seven</em>
-              </span>
-            </b>
-            <b className="three">
-              <i className="fp-mark">IR</i>
-              <span>
-                Iron Rose Gym<em>First class free</em>
-              </span>
-            </b>
-            <span className="fp-dots">
-              <i />
-              <i />
-              <i />
-            </span>
-          </div>
-        </div>
-        <h3>Bottom banner</h3>
-        <p>Your menu stays put. The strip below rotates between advertisers.</p>
       </article>
     </div>
   );

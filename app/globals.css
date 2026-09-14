@@ -1243,9 +1243,9 @@ h3 {
 
 .format-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  margin-top: 40px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-top: clamp(22px, 3vh, 40px);
 }
 
 .format-grid article {
@@ -1345,16 +1345,6 @@ h3 {
 .fp-cols i {
   font-style: normal;
   opacity: 0.72;
-}
-
-.fp-foot {
-  margin-top: auto;
-  padding-top: 8px;
-  border-top: 1px solid rgba(242, 235, 221, 0.14);
-  font-size: 8px;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  opacity: 0.5;
 }
 
 /* ---- full screen: the board blanks for the ad ------------------------- */
@@ -1838,6 +1828,97 @@ h3 {
 @keyframes fpDot {
   0%, 33%, 100% { background: rgba(255, 246, 238, 0.4); }
   4%, 28% { background: #fff6ee; }
+}
+
+/* ---- side rail: the right third, beside the menu ---------------------- */
+
+.format-preview.rail .fp-board {
+  right: 36%;
+  padding-right: 10px;
+}
+
+/* The board has two thirds of its usual width here, so the menu drops to one
+   column rather than squeezing two into it, and the opening hours give up
+   their place on the header line so the shop's name still fits on one. */
+.format-preview.rail .fp-cols {
+  grid-template-columns: 1fr;
+}
+
+.format-preview.rail .fp-board header i {
+  display: none;
+}
+
+.format-preview.rail .fp-cols > div:last-child {
+  display: none;
+}
+
+.fp-rail {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 36%;
+  background: #2f6f5c;
+  overflow: hidden;
+}
+
+.fp-rail b {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 14px 12px 24px;
+  color: #eef7f2;
+  opacity: 0;
+  animation: fpStrip 10.5s ease-in-out infinite;
+}
+
+.fp-rail .fp-mark {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 3px;
+  color: #235345;
+}
+
+.fp-rail span {
+  font-family: var(--font-display), sans-serif;
+  font-size: 11.5px;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+
+.fp-rail strong {
+  font-family: var(--font-display), sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.14;
+  letter-spacing: -0.025em;
+}
+
+.fp-rail small {
+  font-size: 8.5px;
+  line-height: 1.3;
+  opacity: 0.78;
+}
+
+.fp-rail b.one {
+  opacity: 1;
+}
+
+.fp-rail b.two {
+  animation-delay: 3.5s;
+}
+
+.fp-rail b.three {
+  animation-delay: 7s;
+}
+
+.fp-dots.rail {
+  right: 50%;
+  transform: translateX(50%);
+  bottom: 10px;
 }
 
 /* ---- Real boards -------------------------------------------------------
@@ -7832,11 +7913,6 @@ text.vs-small {
     max-width: none;
   }
 
-  .format-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
   .format-preview {
     height: 206px;
   }
@@ -8100,7 +8176,8 @@ text.vs-small {
     order: -1;
   }
 
-  .format-cards {
+  .format-cards,
+  .format-grid {
     grid-template-columns: 1fr 1fr;
   }
 
@@ -8243,7 +8320,8 @@ text.vs-small {
 
 @media (max-width: 620px) {
   .format-cards,
-  .tool-grid {
+  .tool-grid,
+  .format-grid {
     grid-template-columns: 1fr;
   }
 
