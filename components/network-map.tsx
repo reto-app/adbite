@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useCopy } from '@/lib/lang';
+import { ADVERTISERS } from '@/lib/copy/advertisers';
 
 /* The network, as a cartoon of the country with Utah pulled out of it.
  *
@@ -95,10 +97,9 @@ const PLACED = SHOPS.map((shop) => ({
 const LAND =
   'M15.5 20.3 L18.0 37.2 L18.9 51.4 L18.9 76.9 L26.9 95.3 L35.8 118.7 L46.7 124.4 L53.1 132.9 L65.0 131.5 L83.3 141.4 L97.1 141.4 L105.6 137.8 L114.0 153.4 L122.9 157.7 L130.8 152.0 L142.2 176.1 L151.6 166.2 L161.5 158.4 L168.4 152.7 L181.3 156.2 L190.2 157.7 L195.1 148.5 L209.5 149.9 L216.4 149.9 L222.9 158.4 L231.3 184.6 L236.2 173.2 L234.2 157.7 L229.3 143.5 L241.7 129.3 L251.6 115.2 L259.0 94.6 L266.4 76.2 L280.3 69.8 L286.2 58.5 L301.1 47.2 L293.6 28.0 L278.8 44.3 L262.4 44.3 L252.5 51.4 L240.7 56.4 L222.4 67.7 L221.9 47.9 L213.0 38.0 L202.1 33.0 L187.2 32.3 L175.8 32.3 L162.5 16.0 L117.9 16.0 L63.5 16.0 L23.9 16.0 Z';
 
-const DEFAULT_NOTE =
-  'The kinds of shops AdBite is opening with, each in its own town. The pilot runs across Salt Lake, Utah and Cache counties.';
-
-export function NetworkMap({ note = DEFAULT_NOTE }: { note?: string } = {}) {
+export function NetworkMap({ note }: { note?: string } = {}) {
+  const t = useCopy(ADVERTISERS).network;
+  const kindOf = (kind: string) => t.kinds[kind] ?? kind;
   /* `step` counts past the end of the list into a second copy of it, so the
      scroll never runs out of shops. When it lands on the copy we snap back
      to the top with the transition off, and nobody sees the seam. */
@@ -132,10 +133,8 @@ export function NetworkMap({ note = DEFAULT_NOTE }: { note?: string } = {}) {
     <div className="network-grid">
       <div className="network-list">
         <div className="network-list-head">
-          <b>On the network</b>
-          <span>
-            {PLACED.length} shops · {COUNTIES.length} counties
-          </span>
+          <b>{t.onTheNetwork}</b>
+          <span>{t.shopsCounties(PLACED.length, COUNTIES.length)}</span>
         </div>
         <div className="network-scroller">
           <ol className={snap ? 'snap' : undefined} style={{ '--i': step } as React.CSSProperties}>
@@ -144,14 +143,14 @@ export function NetworkMap({ note = DEFAULT_NOTE }: { note?: string } = {}) {
                 <button
                   type="button"
                   aria-pressed={n % PLACED.length === active}
-                  aria-label={`${shop.name}, ${shop.kind} in ${shop.city}, ${shop.countyLabel}`}
+                  aria-label={`${shop.name}, ${kindOf(shop.kind)} · ${shop.city}, ${t.counties[shop.county]}`}
                   onClick={() => setStep(n)}
                 >
                   <i />
                   <span>
                     <b>{shop.name}</b>
                     <em>
-                      {shop.kind} · {shop.city}
+                      {kindOf(shop.kind)} · {shop.city}
                     </em>
                   </span>
                 </button>
@@ -163,8 +162,7 @@ export function NetworkMap({ note = DEFAULT_NOTE }: { note?: string } = {}) {
 
       <figure className="network-figure">
         <p className="visually-hidden">
-          A map of the United States with Utah drawn large over it, marking the shop whose turn it
-          is. Showing {here.name}, {here.kind} in {here.city}, {here.countyLabel}.
+          {t.mapAlt(here.name, kindOf(here.kind), here.city, t.counties[here.county])}
         </p>
         <svg className="nm" viewBox="0 0 320 200" aria-hidden="true">
           <defs>
@@ -201,7 +199,7 @@ export function NetworkMap({ note = DEFAULT_NOTE }: { note?: string } = {}) {
               y={COUNTY_NAME_AT[1]}
               textAnchor="middle"
             >
-              {here.countyLabel.toUpperCase()}
+              {t.counties[here.county].toUpperCase()}
             </text>
 
             {/* Every shop is drawn and all but one are transparent. Keeping
@@ -234,7 +232,7 @@ export function NetworkMap({ note = DEFAULT_NOTE }: { note?: string } = {}) {
             </text>
           </g>
         </svg>
-        <figcaption>{note}</figcaption>
+        <figcaption>{note ?? t.caption}</figcaption>
       </figure>
     </div>
   );

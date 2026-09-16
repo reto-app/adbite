@@ -107,6 +107,37 @@ form.
 
 Any element can report a click by carrying `data-track="some-name"`.
 
+## Languages
+
+The site reads in English or Spanish. The choice is a preference kept in the
+visitor's browser (`adbite.lang`), not a route: every page has one URL, the
+prerendered HTML is English, and the copy swaps on the client once the choice
+is known. A first-time visitor whose browser is set to Spanish gets Spanish
+without being asked. `EN | ES` in the header switches it.
+
+All copy lives in `lib/copy/`, one file per page, each exporting an `en`
+object and an `es` object typed off it, so a string missing from the Spanish
+is a type error rather than an English sentence on a Spanish page. Pages read
+it through `useCopy(DICT)` from `lib/lang.ts`.
+
+| File | Covers |
+| --- | --- |
+| `shared.ts` | Header, footer, sign-in door, and the names of everything the data files define by id (formats, dayparts, placements, slots, themes, badges, groups, areas) |
+| `home.ts` | The shop landing page, format previews, board showcase |
+| `advertisers.ts` | The advertiser landing page, `/signin`, the network map |
+| `shop.ts` | The shop dashboard: editor, queue, earnings, TVs |
+| `campaign.ts` | The advertiser dashboard, the three-step builder, reporting, the flow and tour widgets |
+| `faq.ts`, `pages.ts` | FAQ; About, terms, privacy |
+
+Spanish is neutral Latin American on "tú". A shop is a *negocio*, a board a
+*tablero*, an ad an *anuncio*.
+
+Left in English on purpose: the data files themselves (`lib/boards.ts`,
+`lib/pricing.ts`, `lib/board.ts`, `lib/network.ts`), because pricing, the
+TV channel and the mail templates read them; the illustrated menus inside the
+scenes; page `<title>` and `description` metadata, which is one per URL; and
+the transactional mail in `lib/email/`.
+
 ## Pricing
 
 Every price on the site comes from `lib/pricing.ts`. Change a rate there and the

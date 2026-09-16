@@ -49,24 +49,34 @@ import {
 import { totalsOf } from '@/lib/delivery';
 import { SideSwitch } from '@/components/side-switch';
 import { submitLead } from '@/lib/leads';
+import { localeOf, useCopy, useLang } from '@/lib/lang';
+import { CAMPAIGN } from '@/lib/copy/campaign';
+import { SHARED } from '@/lib/copy/shared';
 
-const day = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+function useNav() {
+  const t = useCopy(SHARED);
+  return [
+    { href: '/advertisers', label: t.nav.forAdvertisers },
+    { href: '/', label: t.nav.forShops },
+    { href: '/faq', label: t.nav.faq },
+  ];
+}
 
-const NAV = [
-  { href: '/advertisers', label: 'For advertisers' },
-  { href: '/', label: 'For shops' },
-  { href: '/faq', label: 'FAQ' },
-];
+function useDay() {
+  const { lang } = useLang();
+  return useMemo(
+    () => new Intl.DateTimeFormat(localeOf(lang), { month: 'short', day: 'numeric' }),
+    [lang],
+  );
+}
 
 /* Place comes first now. It used to be second, which meant the spend slider
    was priced against a network you had not chosen yet and its ceiling jumped
-   under you the moment you did. */
-const STEPS = [
-  { n: '01', title: 'Place it', note: 'Shops, groups and map' },
-  { n: '02', title: 'Price it', note: 'Shape, timing and spend' },
-  { n: '03', title: 'Make it', note: 'Artwork and previews' },
-];
+   under you the moment you did. The step names are in lib/copy/campaign.ts. */
+const STEP_NUMBERS = ['01', '02', '03'];
 
+/* The name a campaign is filed under is data, not display, and stays English
+   so the shop's queue and the mail read the same row. */
 function formatName(id: FormatId) {
   return FORMATS.find((item) => item.id === id)?.name ?? id;
 }
@@ -78,6 +88,10 @@ function formatName(id: FormatId) {
    you were deciding against sat below three screens of controls. */
 
 function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () => void }) {
+  const t = useCopy(CAMPAIGN).dash;
+  const shared = useCopy(SHARED);
+  const { lang } = useLang();
+  const day = useDay();
   const [step, setStep] = useState(0);
   const [spend, setSpend] = useState(60);
   const [dayparts, setDayparts] = useState<Daypart[]>(DAYPARTS.map((part) => part.id));
@@ -103,6 +117,7 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
     const sent = await submitLead({
       kind: 'campaign',
       email: email.trim(),
+      lang,
       detail: {
         weeklySpend: spend,
         minutes,
@@ -131,7 +146,7 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
         startedAt: null,
       });
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : 'Could not save the campaign');
+      setError(failure instanceof Error ? failure.message : t.send.couldNotSave);
       return;
     }
     onDone();
@@ -143,15 +158,15 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
         <div className="wrap campaign-head-inner">
           <div className="campaign-head-row">
             <button type="button" className="head-back" onClick={onCancel}>
-              <ArrowLeft size={15} /> Dashboard
+              <ArrowLeft size={15} /> {t.back}
             </button>
-            <h1>New campaign</h1>
+            <h1>{t.newCampaign}</h1>
           </div>
           <ol className="stepper">
-            {STEPS.map((item, index) => (
-              <li key={item.n} className={index === step ? 'on' : index < step ? 'done' : ''}>
+            {t.steps.map((item, index) => (
+              <li key={STEP_NUMBERS[index]} className={index === step ? 'on' : index < step ? 'done' : ''}>
                 <button type="button" onClick={() => index <= step && setStep(index)}>
-                  <span className="stepper-n">{index < step ? <Check size={15} /> : item.n}</span>
+                  <span className="stepper-n">{index < step ? <Check size={15} /> : STEP_NUMBERS[index]}</span>
                   <span className="stepper-text">
                     <b>{item.title}</b>
                     <small>{item.note}</small>
@@ -182,11 +197,11 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
               <CreativeStep format={format} creative={creative} onCreative={setCreative} />
               <section className="send-block">
                 <div className="prefs-head">
-                  <h3>Send it to us</h3>
-                  <span className="prefs-hint">A person picks this up, not a queue.</span>
+                  <h3>{t.send.title}</h3>
+                  <span className="prefs-hint">{t.send.hint}</span>
                 </div>
                 <label className="send-field" htmlFor="campaign-email">
-                  Your email
+                  {t.send.email}
                   <span className="field">
                     <Mail size={16} />
                     <input
@@ -194,7 +209,7 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
                       type="email"
                       required
                       autoComplete="email"
-                      placeholder="you@yourshop.com"
+                      placeholder={t.send.emailPlaceholder}
                       value={email}
                       onChange={(event) => {
                         setEmail(event.target.value);
@@ -203,11 +218,7 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
                     />
                   </span>
                 </label>
-                <p className="send-note">
-                  AdBite is in pilot, so this goes to info@adbite.site as a request rather than
-                  booking the week outright. Nothing is charged now, the shop owner reviews your
-                  creative before anything runs, and you only ever pay for what actually plays.
-                </p>
+                <p className="send-note">{t.send.note}</p>
                 {error && (
                   <p className="prefs-warn" role="alert">
                     {error}
@@ -223,37 +234,30 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
         <div className="wrap campaign-bar-inner">
           <dl className="bar-summary">
             <div>
-              <dt>{byPlay ? 'Plays' : 'Minutes'} / week</dt>
+              <dt>{t.bar.perWeek(byPlay ? shared.unit.plays : shared.unit.minutes)}</dt>
               <dd>{count.format(byPlay ? minutes * 4 : minutes)}</dd>
             </div>
             <div>
-              <dt>Spend</dt>
+              <dt>{t.bar.spend}</dt>
               <dd className="money">{money.format(spend)}</dd>
             </div>
             <div>
-              <dt>Shops</dt>
+              <dt>{t.bar.shops}</dt>
               <dd>{chosen.length || '0'}</dd>
             </div>
             <div>
-              <dt>Format</dt>
-              <dd className="bar-word">{formatName(format)}</dd>
+              <dt>{t.bar.format}</dt>
+              <dd className="bar-word">{shared.formats[format].name}</dd>
             </div>
             <div className="bar-rate">
-              <dt>Rate</dt>
-              <dd>
-                {rate.format(rateFor(format, 'lunch'))} peak ·{' '}
-                {rate.format(rateFor(format, 'afternoon'))} off
-              </dd>
+              <dt>{t.bar.rate}</dt>
+              <dd>{t.bar.rateLine(rate.format(rateFor(format, 'lunch')), rate.format(rateFor(format, 'afternoon')))}</dd>
             </div>
           </dl>
           <div className="bar-actions">
             {blocked && !sending && (
               <span className="bar-warn">
-                {step === 0
-                  ? 'Pick at least one shop.'
-                  : !creative
-                    ? 'Upload your artwork to submit.'
-                    : 'Add an email so we can reply.'}
+                {step === 0 ? t.bar.pickOne : !creative ? t.bar.upload : t.bar.addEmail}
               </span>
             )}
             <button
@@ -261,7 +265,7 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
               className="button ghost"
               onClick={() => (step > 0 ? setStep(step - 1) : onCancel())}
             >
-              <ArrowLeft size={16} /> {step > 0 ? 'Back' : 'Cancel'}
+              <ArrowLeft size={16} /> {step > 0 ? t.bar.back : t.bar.cancel}
             </button>
             <button
               type="button"
@@ -270,7 +274,7 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
               disabled={blocked}
               onClick={() => (step < 2 ? setStep(step + 1) : void save())}
             >
-              {step === 2 ? (sending ? 'Sending…' : 'Send this to AdBite') : 'Continue'}{' '}
+              {step === 2 ? (sending ? shared.form.sending : t.bar.submit) : t.bar.next}{' '}
               <ArrowRight size={16} />
             </button>
           </div>
@@ -283,18 +287,21 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
 /* ---- the campaign the dashboard is showing ------------------------------ */
 
 function StatusTag({ campaign }: { campaign: Campaign }) {
+  const t = useCopy(CAMPAIGN).dash.status;
   return statusOf(campaign) === 'live' ? (
     <span className="status live">
-      <Radio size={13} /> On screen
+      <Radio size={13} /> {t.onScreen}
     </span>
   ) : (
     <span className="status review">
-      <Hourglass size={13} /> In review with the shop
+      <Hourglass size={13} /> {t.inReview}
     </span>
   );
 }
 
 function CampaignDetail({ campaign, onDelete }: { campaign: Campaign; onDelete: () => void }) {
+  const t = useCopy(CAMPAIGN).dash;
+  const day = useDay();
   const totals = totalsOf(campaign);
   return (
     <div className="detail">
@@ -304,28 +311,23 @@ function CampaignDetail({ campaign, onDelete }: { campaign: Campaign; onDelete: 
             <StatusTag campaign={campaign} />
             {campaign.sample && (
               <span className="status sample">
-                <Sparkles size={12} /> Sample
+                <Sparkles size={12} /> {t.status.sample}
               </span>
             )}
           </span>
           <h2>{campaign.name}</h2>
           <p>
-            Booked {day.format(new Date(campaign.createdAt))}
-            {campaign.startedAt ? ` · playing since ${day.format(new Date(campaign.startedAt))}` : ''}
+            {t.detail.booked(day.format(new Date(campaign.createdAt)))}
+            {campaign.startedAt ? t.detail.playingSince(day.format(new Date(campaign.startedAt))) : ''}
             {campaign.note ? ` · ${campaign.note}` : ''}
           </p>
         </div>
         <button type="button" className="detail-delete" onClick={onDelete}>
-          <Trash2 size={15} /> Delete
+          <Trash2 size={15} /> {t.detail.delete}
         </button>
       </div>
 
-      {!totals.running && (
-        <p className="detail-banner">
-          Nothing has played yet, so every figure below is the week you booked rather than a week
-          that ran. Reporting switches over the first time the board plays your spot.
-        </p>
-      )}
+      {!totals.running && <p className="detail-banner">{t.detail.banner}</p>}
 
       <AnalyticsPanel
         booking={campaign}
@@ -344,6 +346,8 @@ function CampaignDetail({ campaign, onDelete }: { campaign: Campaign; onDelete: 
    campaigns live in this browser. It is open, and the email is asked for at
    submit, which is also the moment intent is highest. */
 export function AdvertiserDashboard() {
+  const t = useCopy(CAMPAIGN).dash;
+  const NAV = useNav();
   const { ready: listReady, campaigns } = useCampaigns();
   const [creating, setCreating] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
@@ -375,43 +379,43 @@ export function AdvertiserDashboard() {
         <div className="wrap dash-head-inner">
           <div>
             <span className="eyebrow">
-              <span className="pulse" /> Advertiser
+              <span className="pulse" /> {t.head.advertiser}
             </span>
-            <h1>Your campaigns</h1>
+            <h1>{t.head.title}</h1>
           </div>
           <dl className="dash-totals">
             <div>
-              <dt>On screen</dt>
+              <dt>{t.head.onScreen}</dt>
               <dd>{listReady ? `${running} / ${campaigns.length}` : '—'}</dd>
             </div>
             <div>
-              <dt>Weekly spend</dt>
+              <dt>{t.head.weeklySpend}</dt>
               <dd className="money">{listReady ? money.format(weekly) : '—'}</dd>
             </div>
             <div>
-              <dt>Spent to date</dt>
+              <dt>{t.head.spentToDate}</dt>
               <dd className="money">{listReady ? money.format(spent) : '—'}</dd>
             </div>
             <div>
-              <dt>Minutes / week</dt>
+              <dt>{t.head.minutesPerWeek}</dt>
               <dd>{listReady ? count.format(minutes) : '—'}</dd>
             </div>
             <div>
-              <dt>Screens reachable</dt>
+              <dt>{t.head.screensReachable}</dt>
               <dd>{totalScreens()}</dd>
             </div>
           </dl>
           <div className="dash-head-actions">
             <SideSwitch />
             <button type="button" className="button invert" onClick={() => setCreating(true)}>
-              <Plus size={17} /> New campaign
+              <Plus size={17} /> {t.newCampaign}
             </button>
           </div>
         </div>
       </div>
 
       <section className="dash">
-        <aside className="dash-list" aria-label="Your campaigns">
+        <aside className="dash-list" aria-label={t.list.label}>
           <div className="dash-list-scroll">
             {campaigns.map((campaign) => {
               const stats = totalsOf(campaign);
@@ -427,23 +431,25 @@ export function AdvertiserDashboard() {
                     <i>{money.format(campaign.weeklySpend)}</i>
                   </span>
                   <span className="dash-item-meta">
-                    {campaign.venues.length} shop{campaign.venues.length === 1 ? '' : 's'} ·{' '}
-                    {count.format(campaignMinutes(campaign))} min / wk
-                    {stats.running ? ` · ${money.format(stats.spend)} spent` : ''}
+                    {t.list.meta(
+                      campaign.venues.length,
+                      count.format(campaignMinutes(campaign)),
+                      stats.running ? money.format(stats.spend) : null,
+                    )}
                   </span>
                   <span className="dash-item-tags">
                     <StatusTag campaign={campaign} />
-                    {campaign.sample && <span className="status sample">Sample</span>}
+                    {campaign.sample && <span className="status sample">{t.status.sample}</span>}
                   </span>
                 </button>
               );
             })}
             <button type="button" className="dash-add" onClick={() => setCreating(true)}>
-              <Plus size={15} /> New campaign
+              <Plus size={15} /> {t.newCampaign}
             </button>
             {listReady && hasSamples(campaigns) && (
               <button type="button" className="dash-add quiet" onClick={clearSamples}>
-                <Trash2 size={14} /> Remove the samples
+                <Trash2 size={14} /> {t.list.removeSamples}
               </button>
             )}
           </div>
@@ -463,27 +469,23 @@ export function AdvertiserDashboard() {
           ) : (
             <div className="dash-empty">
               <Bite className="bite" />
-              <h2>No campaigns yet.</h2>
+              <h2>{t.empty.title}</h2>
               <p>
-                AdBite is going in across Salt Lake, Utah and Cache counties.{' '}
-                {LIVE_VENUES.length} {LIVE_VENUES.length === 1 ? 'board is' : 'boards are'} playing
-                ads today, holding {count.format(inventory(LIVE_VENUES).minutes)} minutes of ad time
-                a week, and another {VENUES.length - LIVE_VENUES.length} shops are being installed
-                and can be booked ahead.
+                {t.empty.text(
+                  LIVE_VENUES.length,
+                  count.format(inventory(LIVE_VENUES).minutes),
+                  VENUES.length - LIVE_VENUES.length,
+                )}
               </p>
               <div className="dash-empty-actions">
                 <button type="button" className="button primary" onClick={() => setCreating(true)}>
-                  <Plus size={17} /> New campaign
+                  <Plus size={17} /> {t.newCampaign}
                 </button>
                 <button type="button" className="button ghost" onClick={loadSamples}>
-                  <Sparkles size={16} /> Load four worked examples
+                  <Sparkles size={16} /> {t.empty.samples}
                 </button>
               </div>
-              <p className="dash-empty-note">
-                Made-up bookings: three with a few weeks on the clock so the reporting has
-                something to show, and one still waiting on the shop owner. They are badged Sample
-                everywhere and clear in one click.
-              </p>
+              <p className="dash-empty-note">{t.empty.note}</p>
             </div>
           )}
         </div>

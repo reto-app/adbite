@@ -13,11 +13,7 @@ export function LangSwitch({ className }: { className?: string } = {}) {
   const { ready, lang } = useLang();
 
   return (
-    <div
-      className={`lang-switch${className ? ` ${className}` : ''}`}
-      role="group"
-      aria-label="Language / Idioma"
-    >
+    <div className={`lang-switch${className ? ` ${className}` : ''}`}>
       {LANGS.map((item) => {
         const on = ready && item.id === lang;
         return (

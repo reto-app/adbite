@@ -18,7 +18,6 @@ import {
   GROUPS,
   NEIGHBORHOODS,
   VENUES,
-  areaLabel,
   totalFootfall,
   type AgeBand,
   type AreaId,
@@ -26,7 +25,10 @@ import {
   type Venue,
 } from '@/lib/network';
 import { count, inventory } from '@/lib/pricing';
-import { SelectionMap, type Focus, type MapTool } from '@/components/selection-map';
+import { SelectionMap, type DrawnShape, type Focus, type MapTool } from '@/components/selection-map';
+import { useCopy } from '@/lib/lang';
+import { CAMPAIGN } from '@/lib/copy/campaign';
+import { SHARED } from '@/lib/copy/shared';
 
 export type Placement = {
   venues: string[];
@@ -45,24 +47,23 @@ export function chosenVenues(placement: Placement): Venue[] {
   return VENUES.filter((venue) => placement.venues.includes(venue.id));
 }
 
+/** A prospect's `since` is 'In conversation' or 'Waitlist' in the data; say
+    it in the page's language and pass a real date through untouched. */
+function sinceLabel(since: string, status: { inConversation: string; waitlist: string }) {
+  if (since === 'In conversation') return status.inConversation;
+  if (since === 'Waitlist') return status.waitlist;
+  return since;
+}
+
 function toggle<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
 }
 
-const TOOLS: { id: MapTool; label: string; hint: string; icon: typeof Hand }[] = [
-  { id: 'pan', label: 'Pick', hint: 'Click a pin to add or drop that shop', icon: Hand },
-  {
-    id: 'radius',
-    label: 'Radius',
-    hint: 'Press on the map and drag out from your own door',
-    icon: CircleDashed,
-  },
-  {
-    id: 'lasso',
-    label: 'Draw area',
-    hint: 'Click corners around a block. Double-click to close it',
-    icon: Lasso,
-  },
+/* The words for each tool are in lib/copy/campaign.ts under `place.tools`. */
+const TOOLS: { id: MapTool; icon: typeof Hand }[] = [
+  { id: 'pan', icon: Hand },
+  { id: 'radius', icon: CircleDashed },
+  { id: 'lasso', icon: Lasso },
 ];
 
 export function PlaceStep({
@@ -72,6 +73,8 @@ export function PlaceStep({
   placement: Placement;
   onChange: (placement: Placement) => void;
 }) {
+  const t = useCopy(CAMPAIGN).place;
+  const shared = useCopy(SHARED);
   const [query, setQuery] = useState('');
   const [areas, setAreas] = useState<AreaId[]>([]);
   const [groups, setGroups] = useState<GroupId[]>([]);
@@ -85,6 +88,12 @@ export function PlaceStep({
 
   const set = (patch: Partial<Placement>) => onChange({ ...placement, ...patch });
   const selected = placement.venues;
+
+  /** "1.2 km radius" or "hand-drawn area, 5 points", in the page's language. */
+  const describe = (shape: DrawnShape) =>
+    shape.kind === 'radius'
+      ? t.radiusShape(shape.metres < 1000 ? `${Math.round(shape.metres)} m` : `${(shape.metres / 1000).toFixed(1)} km`)
+      : t.areaShape(shape.points);
 
   /* The list narrows; the map does not. Filtering the pins away would hide the
      thing you are about to draw a circle around. */
@@ -135,12 +144,12 @@ export function PlaceStep({
           <input
             type="search"
             value={query}
-            placeholder="Search shops, streets, cuisines"
-            aria-label="Search the network"
+            placeholder={t.search}
+            aria-label={t.searchLabel}
             onChange={(event) => setQuery(event.target.value)}
           />
           {query && (
-            <button type="button" aria-label="Clear search" onClick={() => setQuery('')}>
+            <button type="button" aria-label={t.clearSearch} onClick={() => setQuery('')}>
               <X size={14} />
             </button>
           )}
@@ -148,7 +157,7 @@ export function PlaceStep({
 
         <div className="pick-sets">
           <div className="pick-set">
-            <span className="pick-set-label">Neighbourhoods</span>
+            <span className="pick-set-label">{t.neighbourhoods}</span>
             <div className="chip-row">
               {NEIGHBORHOODS.map((area) => {
                 const ids = VENUES.filter((venue) => venue.area === area.id).map(
@@ -161,7 +170,7 @@ export function PlaceStep({
                     type="button"
                     className={`chip${allOn(ids) ? ' on' : ''}${filtered ? ' filtered' : ''}`}
                     aria-pressed={allOn(ids)}
-                    title={`${area.blurb}. Click to take all ${ids.length}; shift-click to filter the list.`}
+                    title={t.chipTitle(shared.areas[area.id].blurb, ids.length)}
                     onClick={(event) => {
                       if (event.shiftKey) {
                         setAreas(toggle(areas, area.id));
@@ -169,10 +178,10 @@ export function PlaceStep({
                       }
                       toggleSet(ids);
                       setFocus({ at: area.at, zoom: area.zoom, key: Date.now() });
-                      setDrawn({ shape: area.label, added: ids.length });
+                      setDrawn({ shape: shared.areas[area.id].label, added: ids.length });
                     }}
                   >
-                    {area.label} <i>{ids.length}</i>
+                    {shared.areas[area.id].label} <i>{ids.length}</i>
                   </button>
                 );
               })}
@@ -180,7 +189,7 @@ export function PlaceStep({
           </div>
 
           <div className="pick-set">
-            <span className="pick-set-label">Kinds of shop</span>
+            <span className="pick-set-label">{t.kinds}</span>
             <div className="chip-row">
               {GROUPS.map((group) => {
                 const ids = VENUES.filter((venue) => venue.group === group.id).map(
@@ -193,17 +202,17 @@ export function PlaceStep({
                     type="button"
                     className={`chip${allOn(ids) ? ' on' : ''}${filtered ? ' filtered' : ''}`}
                     aria-pressed={allOn(ids)}
-                    title={`${group.blurb}. Click to take all ${ids.length}; shift-click to filter the list.`}
+                    title={t.chipTitle(shared.groups[group.id].blurb, ids.length)}
                     onClick={(event) => {
                       if (event.shiftKey) {
                         setGroups(toggle(groups, group.id));
                         return;
                       }
                       toggleSet(ids);
-                      setDrawn({ shape: group.label, added: ids.length });
+                      setDrawn({ shape: shared.groups[group.id].label, added: ids.length });
                     }}
                   >
-                    {group.label} <i>{ids.length}</i>
+                    {shared.groups[group.id].label} <i>{ids.length}</i>
                   </button>
                 );
               })}
@@ -212,17 +221,13 @@ export function PlaceStep({
         </div>
 
         <div className="pick-bulk">
-          <span>
-            {visible.length === VENUES.length
-              ? `${VENUES.length} shops`
-              : `${visible.length} of ${VENUES.length} shown`}
-          </span>
+          <span>{t.shown(visible.length, VENUES.length)}</span>
           <div>
             <button type="button" onClick={() => addMany(visible.map((venue) => venue.id))}>
-              Select shown
+              {t.selectShown}
             </button>
             <button type="button" onClick={() => replace([])}>
-              Clear
+              {t.clear}
             </button>
             {(areas.length > 0 || groups.length > 0) && (
               <button
@@ -232,7 +237,7 @@ export function PlaceStep({
                   setGroups([]);
                 }}
               >
-                Reset filters
+                {t.resetFilters}
               </button>
             )}
           </div>
@@ -258,13 +263,13 @@ export function PlaceStep({
                     <b>
                       {venue.name}
                       {venue.status === 'live' ? (
-                        <em className="tag live">Live</em>
+                        <em className="tag live">{shared.status.live}</em>
                       ) : (
-                        <em className="tag soon">{venue.since}</em>
+                        <em className="tag soon">{sinceLabel(venue.since, shared.status)}</em>
                       )}
                     </b>
                     <span className="pick-kind">
-                      {venue.kind} · {areaLabel(venue.area)}
+                      {venue.kind} · {shared.areas[venue.area].label}
                     </span>
                   </span>
                   <span className="pick-stats">
@@ -279,11 +284,11 @@ export function PlaceStep({
               </li>
             );
           })}
-          {visible.length === 0 && <li className="pick-empty">Nothing matches that.</li>}
+          {visible.length === 0 && <li className="pick-empty">{t.nothingMatches}</li>}
         </ul>
 
         <fieldset className="pick-ages">
-          <legend>Who you hope to reach</legend>
+          <legend>{t.whoTitle}</legend>
           <div className="chip-row">
             {AGE_BANDS.map((band) => (
               <button
@@ -297,13 +302,13 @@ export function PlaceStep({
               </button>
             ))}
           </div>
-          <p>A request on the booking, not a targeting guarantee: one rotation, whole room.</p>
+          <p>{t.whoNote}</p>
         </fieldset>
       </div>
 
       <div className="pick-map">
         <fieldset className="map-tools">
-          <legend className="visually-hidden">Map selection tools</legend>
+          <legend className="visually-hidden">{t.mapTools}</legend>
           {TOOLS.map((item) => (
             <button
               key={item.id}
@@ -312,10 +317,10 @@ export function PlaceStep({
               aria-pressed={tool === item.id}
               onClick={() => setTool(item.id)}
             >
-              <item.icon size={14} /> {item.label}
+              <item.icon size={14} /> {t.tools[item.id].label}
             </button>
           ))}
-          <span className="map-tool-hint">{TOOLS.find((item) => item.id === tool)?.hint}</span>
+          <span className="map-tool-hint">{t.tools[tool].hint}</span>
           {previous && (
             <button
               type="button"
@@ -326,7 +331,7 @@ export function PlaceStep({
                 set({ venues: previous });
               }}
             >
-              <Undo2 size={14} /> Undo
+              <Undo2 size={14} /> {t.undo}
             </button>
           )}
         </fieldset>
@@ -341,46 +346,40 @@ export function PlaceStep({
             onToggle={(id) => set({ venues: toggle(selected, id) })}
             onRegion={(ids, shape) => {
               addMany(ids);
-              setDrawn({ shape, added: ids.length });
+              setDrawn({ shape: describe(shape), added: ids.length });
             }}
             onToolDone={() => setTool('pan')}
           />
           {drawn && (
             <output className="map-drawn">
-              <MapPin size={13} /> {drawn.shape} · {drawn.added} shop
-              {drawn.added === 1 ? '' : 's'} added
+              <MapPin size={13} /> {t.drawn(drawn.shape, drawn.added)}
             </output>
           )}
         </div>
 
         <div className="map-foot">
           <div>
-            <small>Shops</small>
+            <small>{t.foot.shops}</small>
             <b>
               {chosen.length}
-              <i> of {VENUES.length}</i>
+              <i>{t.foot.of(VENUES.length)}</i>
             </b>
           </div>
           <div>
-            <small>Screens</small>
+            <small>{t.foot.screens}</small>
             <b>{chosen.reduce((total, venue) => total + venue.screens, 0)}</b>
           </div>
           <div>
-            <small>Minutes a week</small>
+            <small>{t.foot.minutes}</small>
             <b>{count.format(stock.minutes)}</b>
           </div>
           <div>
-            <small>Heads past the board</small>
+            <small>{t.foot.heads}</small>
             <b>{count.format(totalFootfall(chosen))}</b>
           </div>
         </div>
 
-        <p className="map-note">
-          {live.length} of the {chosen.length || 0} shop{chosen.length === 1 ? '' : 's'} you have
-          picked {live.length === 1 ? 'is' : 'are'} playing ads today. The rest are boards we are
-          installing: they travel with your request and hold your slot, and nothing is billed for
-          one until its screen is up.
-        </p>
+        <p className="map-note">{t.note(live.length, chosen.length || 0)}</p>
       </div>
     </div>
   );

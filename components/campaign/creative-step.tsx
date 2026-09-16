@@ -2,7 +2,10 @@
 
 import { useRef, useState } from 'react';
 import { Image as ImageIcon, Trash2, Upload } from 'lucide-react';
-import { BOARDS, FORMATS, type FormatId } from '@/lib/boards';
+import { BOARDS, type FormatId } from '@/lib/boards';
+import { useCopy } from '@/lib/lang';
+import { CAMPAIGN } from '@/lib/copy/campaign';
+import { SHARED } from '@/lib/copy/shared';
 
 const MAX_BYTES = 6 * 1024 * 1024;
 
@@ -15,6 +18,8 @@ export function CreativeStep({
   creative: { name: string; src: string } | null;
   onCreative: (creative: { name: string; src: string } | null) => void;
 }) {
+  const t = useCopy(CAMPAIGN).creative;
+  const shared = useCopy(SHARED);
   const input = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState('');
@@ -22,11 +27,11 @@ export function CreativeStep({
   const take = (file: File | undefined) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      setError('That file isn’t an image. Upload a PNG or JPG of your ad.');
+      setError(t.notImage);
       return;
     }
     if (file.size > MAX_BYTES) {
-      setError('That image is over 6 MB. Export it a little smaller and try again.');
+      setError(t.tooBig);
       return;
     }
     const reader = new FileReader();
@@ -39,7 +44,7 @@ export function CreativeStep({
   };
 
   const playable = BOARDS.filter((board) => board.slots[format]);
-  const chosenFormat = FORMATS.find((item) => item.id === format) ?? FORMATS[0];
+  const chosenFormat = shared.formats[format];
 
   return (
     <div className="creative-step">
@@ -48,15 +53,13 @@ export function CreativeStep({
           <h3>{chosenFormat.name}</h3>
           <span className="prefs-hint">{chosenFormat.spec}</span>
         </div>
-        <p>{chosenFormat.blurb} Change the shape, or what it costs, back in step 01.</p>
+        <p>{chosenFormat.blurb}{t.changeBack}</p>
       </section>
 
       <section className="upload">
         <div className="prefs-head">
-          <h3>Upload your ad</h3>
-          <span className="prefs-hint">
-            {FORMATS.find((item) => item.id === format)?.spec}
-          </span>
+          <h3>{t.upload}</h3>
+          <span className="prefs-hint">{chosenFormat.spec}</span>
         </div>
         <div
           className={`dropzone${dragging ? ' dragging' : ''}${creative ? ' filled' : ''}`}
@@ -73,13 +76,13 @@ export function CreativeStep({
         >
           {creative ? (
             <div className="dropzone-filled">
-              <img src={creative.src} alt="Your uploaded ad creative" />
+              <img src={creative.src} alt={t.uploadedAlt} />
               <div>
                 <b>{creative.name}</b>
-                <span>Placed in every preview below.</span>
+                <span>{t.placed}</span>
                 <div className="dropzone-actions">
                   <button type="button" onClick={() => input.current?.click()}>
-                    <Upload size={14} /> Replace
+                    <Upload size={14} /> {t.replace}
                   </button>
                   <button
                     type="button"
@@ -88,7 +91,7 @@ export function CreativeStep({
                       if (input.current) input.current.value = '';
                     }}
                   >
-                    <Trash2 size={14} /> Remove
+                    <Trash2 size={14} /> {t.remove}
                   </button>
                 </div>
               </div>
@@ -96,8 +99,8 @@ export function CreativeStep({
           ) : (
             <button type="button" className="dropzone-empty" onClick={() => input.current?.click()}>
               <ImageIcon size={26} />
-              <b>Drop your artwork here</b>
-              <span>or choose a file · PNG or JPG, up to 6 MB</span>
+              <b>{t.drop}</b>
+              <span>{t.dropSub}</span>
             </button>
           )}
           <input
@@ -117,10 +120,8 @@ export function CreativeStep({
 
       <section className="previews">
         <div className="prefs-head">
-          <h3>On the screens we run</h3>
-          <span className="prefs-hint">
-            {playable.length} of {BOARDS.length} board types carry this format.
-          </span>
+          <h3>{t.previews}</h3>
+          <span className="prefs-hint">{t.previewsHint(playable.length, BOARDS.length)}</span>
         </div>
         <div className="preview-grid">
           {BOARDS.map((board) => {
@@ -131,7 +132,7 @@ export function CreativeStep({
                 className={`preview${board.portrait ? ' portrait' : ''}${slot ? '' : ' off'}`}
               >
                 <div className="preview-screen">
-                  <img src={`/boards/${board.id}.jpg`} alt={`${board.name} board`} />
+                  <img src={`/boards/${board.id}.jpg`} alt={t.boardAlt(board.name)} />
                   {slot && (
                     <div
                       className="preview-slot"
@@ -145,14 +146,14 @@ export function CreativeStep({
                       {creative ? (
                         <img src={creative.src} alt="" />
                       ) : (
-                        <span>Your ad here</span>
+                        <span>{t.yourAdHere}</span>
                       )}
                     </div>
                   )}
                 </div>
                 <figcaption>
                   <b>{board.name}</b>
-                  <span>{slot ? board.screen : 'Doesn’t carry this format'}</span>
+                  <span>{slot ? board.screen : t.noFormat}</span>
                 </figcaption>
               </figure>
             );

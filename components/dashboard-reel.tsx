@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Pause, Play } from 'lucide-react';
 import { Link } from '@/components/nav';
+import { useCopy } from '@/lib/lang';
+import { CAMPAIGN } from '@/lib/copy/campaign';
 
 /* A tour of the advertiser dashboard, in its own screenshots.
  *
@@ -13,54 +15,21 @@ import { Link } from '@/components/nav';
  * them, and they have to be retaken when the dashboard changes, which is the
  * price of showing the real thing. */
 
+/* The words for each frame are in lib/copy/campaign.ts under `tour.frames`,
+   in this order. */
 const FRAMES = [
-  {
-    id: 'place',
-    src: '/shots/04-place.webp',
-    tab: 'Pick the shops',
-    title: 'Pick the shops, or draw the block.',
-    note: 'Search the network, take a whole neighbourhood in one press, or circle a radius around your own front door and take everything inside it.',
-  },
-  {
-    id: 'price',
-    src: '/shots/05-price.webp',
-    tab: 'Price the week',
-    title: 'See the week before you buy it.',
-    note: 'Shape, hours and spend on one screen. Move any of the three and the minutes, the rate and the monthly figure all move with it.',
-  },
-  {
-    id: 'make',
-    src: '/shots/06-make.webp',
-    tab: 'Drop the artwork',
-    title: 'Your artwork, in the slot it will occupy.',
-    note: 'Drop in a PNG and it appears on every board type that carries your format, at the size and position it will actually run.',
-  },
-  {
-    id: 'overview',
-    src: '/shots/01-overview.webp',
-    tab: 'Watch it run',
-    title: 'Then watch what it does.',
-    note: 'Spend to date, minutes on screen, cost per play and cost per thousand heads, with a bar for every day since the board started playing it.',
-  },
-  {
-    id: 'where',
-    src: '/shots/02-where.webp',
-    tab: 'Where it ran',
-    title: 'Down to the screen.',
-    note: 'Every shop it played on, how long it held each one, what that shop cost and what share of the week it took.',
-  },
-  {
-    id: 'when',
-    src: '/shots/03-when.webp',
-    tab: 'When it ran',
-    title: 'And down to the hour.',
-    note: 'Which dayparts you bought, what each was charged at, and where the minutes landed across the shop day.',
-  },
+  { id: 'place', src: '/shots/04-place.webp' },
+  { id: 'price', src: '/shots/05-price.webp' },
+  { id: 'make', src: '/shots/06-make.webp' },
+  { id: 'overview', src: '/shots/01-overview.webp' },
+  { id: 'where', src: '/shots/02-where.webp' },
+  { id: 'when', src: '/shots/03-when.webp' },
 ];
 
 const HOLD = 5200;
 
 export function DashboardReel() {
+  const t = useCopy(CAMPAIGN).tour;
   const [at, setAt] = useState(0);
   const [playing, setPlaying] = useState(true);
   /* Nudged on every manual jump so the progress bar restarts its run rather
@@ -82,7 +51,7 @@ export function DashboardReel() {
     return () => window.clearTimeout(timer);
   }, [at, playing, run]);
 
-  const frame = FRAMES[at];
+  const frame = t.frames[at];
 
   const jump = (index: number) => {
     setAt(index);
@@ -91,7 +60,7 @@ export function DashboardReel() {
 
   return (
     <div className="tour">
-      <div className="tour-tabs" role="tablist" aria-label="Dashboard tour">
+      <div className="tour-tabs" role="tablist" aria-label={t.label}>
         {FRAMES.map((item, index) => (
           <button
             key={item.id}
@@ -101,7 +70,7 @@ export function DashboardReel() {
             className={index === at ? 'on' : undefined}
             onClick={() => jump(index)}
           >
-            <span>{item.tab}</span>
+            <span>{t.frames[index].tab}</span>
             {index === at && playing && (
               <i className="tour-run" key={run} style={{ animationDuration: `${HOLD}ms` }} />
             )}
@@ -111,7 +80,7 @@ export function DashboardReel() {
           type="button"
           className="tour-play"
           onClick={() => setPlaying((on) => !on)}
-          aria-label={playing ? 'Pause the tour' : 'Play the tour'}
+          aria-label={playing ? t.pause : t.play}
         >
           {playing ? <Pause size={14} /> : <Play size={14} />}
         </button>
@@ -123,7 +92,7 @@ export function DashboardReel() {
             <img
               key={item.id}
               src={item.src}
-              alt={`${item.tab}: ${item.title}`}
+              alt={`${t.frames[index].tab}: ${t.frames[index].title}`}
               width={1360}
               height={850}
               loading={index === 0 ? 'eager' : 'lazy'}
@@ -137,7 +106,7 @@ export function DashboardReel() {
           <b>{frame.title}</b>
           <span>{frame.note}</span>
           <Link className="tour-cta" href="/dashboard" data-track="tour-open-dashboard">
-            Open it yourself <ArrowRight size={15} />
+            {t.open} <ArrowRight size={15} />
           </Link>
         </figcaption>
       </figure>

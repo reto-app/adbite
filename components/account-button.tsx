@@ -16,8 +16,13 @@ export function AccountButton() {
   const next = pathname && pathname !== '/signin' ? `?next=${encodeURIComponent(pathname)}` : '';
 
   return (
-    <Link className="signin-link" href={`/signin${next}`} data-track="header-access">
-      <MonitorPlay size={15} /> {t.header.getOnABoard}
+    <Link
+      className="signin-link"
+      href={`/signin${next}`}
+      data-track="header-access"
+      aria-label={t.header.getOnABoard}
+    >
+      <MonitorPlay size={15} /> <span>{t.header.getOnABoard}</span>
     </Link>
   );
 }

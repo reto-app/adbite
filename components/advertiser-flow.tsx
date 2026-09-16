@@ -18,6 +18,9 @@ import { FORMATS, boardById, type FormatId } from '@/lib/boards';
    one shop" must not quietly map seventeen. */
 import { LIVE_VENUES, PILOT_CITY, totalScreens } from '@/lib/network';
 import { VenueMap } from '@/components/venue-map';
+import { useCopy } from '@/lib/lang';
+import { CAMPAIGN } from '@/lib/copy/campaign';
+import { SHARED } from '@/lib/copy/shared';
 import {
   DAYPARTS,
   blendedRate,
@@ -34,35 +37,39 @@ import {
 type NodeId = 'spend' | 'where' | 'creative' | 'review' | 'live' | 'bill';
 type Verdict = 'pending' | 'approved' | 'rejected';
 
-const NODES: { id: NodeId; marker: string; title: string; note: string; kind?: 'decision' }[] = [
-  { id: 'spend', marker: '01', title: 'Set your spend', note: 'Minutes, not impressions' },
-  { id: 'where', marker: '02', title: 'Choose when', note: 'Peak costs more' },
-  { id: 'creative', marker: '03', title: 'Build your ad', note: 'Format and artwork' },
-  { id: 'review', marker: '?', title: 'The shop owner reviews it', note: 'Their screen, their call', kind: 'decision' },
-  { id: 'live', marker: '→', title: 'Your ad joins the rotation', note: 'In front of the whole room' },
-  { id: 'bill', marker: '$', title: 'You pay for minutes shown', note: 'The rest rolls over' },
+/* The words for each node are in lib/copy/campaign.ts under `flow.nodes`,
+   in this order. */
+const NODES: { id: NodeId; marker: string; kind?: 'decision' }[] = [
+  { id: 'spend', marker: '01' },
+  { id: 'where', marker: '02' },
+  { id: 'creative', marker: '03' },
+  { id: 'review', marker: '?', kind: 'decision' },
+  { id: 'live', marker: '→' },
+  { id: 'bill', marker: '$' },
 ];
 
 /* A stand-in creative, so the flow shows a real ad in a real slot rather than
    an empty rectangle. Warm color belongs to the advertiser, never to AdBite. */
 function SampleAd({ format }: { format: FormatId }) {
+  const t = useCopy(CAMPAIGN).flow.sample;
   return (
     <div className={`flow-ad is-${format}`}>
-      <span>Mia’s Flower Bar</span>
-      <b>Bright stems for your table</b>
-      <small>Freedom Blvd &amp; 700 North · open till 7</small>
+      <span>{t.name}</span>
+      <b>{t.line}</b>
+      <small>{t.where}</small>
       {format === 'video' && <em className="flow-ad-clock">0:15</em>}
     </div>
   );
 }
 
 function BoardShot({ format, dim }: { format: FormatId; dim?: boolean }) {
+  const t = useCopy(CAMPAIGN).creative;
   const board = boardById(FORMATS.find((item) => item.id === format)?.showcase ?? 'rosas');
   const slot = board.slots[format];
   return (
     <figure className={`flow-board${dim ? ' dim' : ''}`}>
       <div className="preview-screen">
-        <img src={`/boards/${board.id}.jpg`} alt={`${board.name} board`} />
+        <img src={`/boards/${board.id}.jpg`} alt={t.boardAlt(board.name)} />
         {slot && (
           <div
             className="preview-slot"
@@ -87,6 +94,8 @@ function BoardShot({ format, dim }: { format: FormatId; dim?: boolean }) {
 const ALL_DAYPARTS: Daypart[] = DAYPARTS.map((part) => part.id);
 
 export function AdvertiserFlow() {
+  const t = useCopy(CAMPAIGN).flow;
+  const shared = useCopy(SHARED);
   const [node, setNode] = useState<NodeId>('spend');
   const [spend, setSpend] = useState(60);
   const [dayparts, setDayparts] = useState<Daypart[]>(ALL_DAYPARTS);
@@ -99,6 +108,8 @@ export function AdvertiserFlow() {
   const minutes = minutesFor(capped, LIVE_VENUES, chosen, format);
   const rate = blendedRate(LIVE_VENUES, chosen, format);
   const byPlay = unitOf(format) === 'play';
+  const one = byPlay ? shared.unit.play : shared.unit.minute;
+  const units = byPlay ? shared.unit.plays : 'min';
   const fill = (capped - 25) / Math.max(1, ceiling - 25);
 
   // A week rarely fills to the last minute, and the remainder carries over.
@@ -111,7 +122,7 @@ export function AdvertiserFlow() {
     <section className="flow-section" id="flow">
       <div className="wrap">
         <div className="section-head">
-          <h2>How it works</h2>
+          <h2>{t.title}</h2>
         </div>
 
         <div className="flow">
@@ -136,8 +147,8 @@ export function AdvertiserFlow() {
                     {item.marker}
                   </span>
                   <span className="flow-text">
-                    <b>{item.title}</b>
-                    <small>{item.note}</small>
+                    <b>{t.nodes[i].title}</b>
+                    <small>{t.nodes[i].note}</small>
                   </span>
                 </button>
 
@@ -145,8 +156,7 @@ export function AdvertiserFlow() {
                   <div className={`flow-branch${verdict === 'rejected' ? ' on' : ''}`}>
                     <RotateCcw size={14} />
                     <span>
-                      Rejected? Swap the artwork and it comes straight back to <b>step 03</b>. No
-                      charge for an ad that never ran.
+                      {t.branchBefore}<b>{t.branchStep}</b>{t.branchAfter}
                     </span>
                   </div>
                 )}
@@ -159,24 +169,21 @@ export function AdvertiserFlow() {
               <div className="flow-body">
                 <div className="flow-figure">
                   <Bite className="bite" />
-                  <small>
-                    {byPlay ? 'Times it plays each week' : 'Minutes on screen each week'}
-                  </small>
+                  <small>{byPlay ? t.timesPlays : t.minutesOnScreen}</small>
                   <strong>
                     {count.format(byPlay ? minutes * 4 : minutes)}
-                    <span>{byPlay ? 'plays' : 'min'}</span>
+                    <span>{units}</span>
                   </strong>
                   <div className="spend-meter" aria-hidden="true">
                     <i style={{ width: `${Math.max(3, fill * 100)}%` }} />
                   </div>
                   <p>
-                    <b className="money">{money.format(capped)}</b> a week ·{' '}
-                    {cents.format(byPlay ? rate / 4 : rate)} a {byPlay ? 'play' : 'minute'} on this
-                    mix
+                    <b className="money">{money.format(capped)}</b>
+                    {t.aWeekOnMix(cents.format(byPlay ? rate / 4 : rate), one)}
                   </p>
                 </div>
                 <label className="flow-slider">
-                  <span>Drag to set a weekly spend</span>
+                  <span>{t.drag}</span>
                   <input
                     id="flow-spend"
                     className="range-input"
@@ -187,15 +194,12 @@ export function AdvertiserFlow() {
                     value={capped}
                     onChange={(event) => setSpend(Number(event.target.value))}
                     style={{ '--fill': `${fill * 100}%` } as React.CSSProperties}
-                    aria-label="Weekly spend"
-                    aria-valuetext={`${money.format(capped)} a week, ${count.format(minutes)} minutes on screen`}
+                    aria-label={shared.nav.earnings}
+                    aria-valuetext={t.spendValue(money.format(capped), count.format(minutes))}
                   />
                 </label>
                 <p className="flow-note">
-                  Two things set the price: how much of the board your ad takes, and when it runs.
-                  A strip under the menu starts at {cents.format(rateFor('banner', 'afternoon'))} a
-                  minute; blanking the whole board at peak is {cents.format(rateFor('full', 'lunch'))}.
-                  No auctions, no bidding against national brands for the shop down the street.
+                  {t.spendNote(cents.format(rateFor('banner', 'afternoon')), cents.format(rateFor('full', 'lunch')))}
                 </p>
               </div>
             )}
@@ -233,7 +237,7 @@ export function AdvertiserFlow() {
                           setDayparts(next.length ? next : ALL_DAYPARTS);
                         }}
                       >
-                        {part.label} <i>{part.window}</i>
+                        {shared.dayparts[part.id].label} <i>{shared.dayparts[part.id].window}</i>
                         <em className="money">
                           {cents.format(rateFor(format, part.id))}
                         </em>
@@ -241,12 +245,7 @@ export function AdvertiserFlow() {
                     );
                   })}
                 </div>
-                <p className="flow-note">
-                  AdBite is live in one shop in {PILOT_CITY} today, so &ldquo;where&rdquo; is a
-                  short list and &ldquo;when&rdquo; is the real choice. Lunch and dinner are peak
-                  because there is a queue in front of the board; the afternoon is about half the
-                  price. As shops join, this map and the builder fill in together.
-                </p>
+                <p className="flow-note">{t.whereNote(PILOT_CITY)}</p>
               </div>
             )}
 
@@ -264,18 +263,18 @@ export function AdvertiserFlow() {
                         setVerdict('pending');
                       }}
                     >
-                      {item.name}
+                      {shared.formats[item.id].name}
                       <em className="money">{cents.format(rateFor(item.id, 'lunch'))}</em>
                     </button>
                   ))}
                 </div>
                 <BoardShot format={format} />
                 <p className="flow-note">
-                  {FORMATS.find((item) => item.id === format)?.blurb}{' '}
+                  {shared.formats[format].blurb}{' '}
                   {byPlay
-                    ? 'Billed per play rather than per minute, because a count of runs is what you are buying.'
-                    : `${cents.format(rateFor(format, 'lunch'))} a minute at peak, ${cents.format(rateFor(format, 'afternoon'))} off-peak.`}{' '}
-                  Upload your own artwork in the builder and it lands in this exact slot.
+                    ? t.billedPerPlay
+                    : t.peakOff(cents.format(rateFor(format, 'lunch')), cents.format(rateFor(format, 'afternoon')))}
+                  {t.uploadLands}
                 </p>
               </div>
             )}
@@ -286,15 +285,13 @@ export function AdvertiserFlow() {
                 <div className={`flow-verdict is-${verdict}`}>
                   {verdict === 'pending' && (
                     <>
-                      <p>
-                        The shop sees your ad before anyone else does. Try it from their side:
-                      </p>
+                      <p>{t.reviewPending}</p>
                       <div className="flow-verdict-actions">
                         <button type="button" onClick={() => setVerdict('rejected')}>
-                          <X size={16} /> Reject
+                          <X size={16} /> {t.reject}
                         </button>
                         <button type="button" className="approve" onClick={() => setVerdict('approved')}>
-                          <Check size={16} /> Approve
+                          <Check size={16} /> {t.approve}
                         </button>
                       </div>
                     </>
@@ -302,26 +299,24 @@ export function AdvertiserFlow() {
                   {verdict === 'approved' && (
                     <>
                       <p>
-                        <b>Approved.</b> It goes into the rotation on the next content push, and
-                        your minutes start counting from the first play.
+                        <b>{t.approved}</b>{t.approvedText}
                       </p>
                       <button type="button" className="flow-again" onClick={() => setVerdict('pending')}>
-                        <RotateCcw size={14} /> Try the other answer
+                        <RotateCcw size={14} /> {t.tryOther}
                       </button>
                     </>
                   )}
                   {verdict === 'rejected' && (
                     <>
                       <p>
-                        <b>Rejected.</b> Nothing runs, nothing is billed. You get the reason if the
-                        owner gives one, swap the artwork, and it returns to their queue.
+                        <b>{t.rejected}</b>{t.rejectedText}
                       </p>
                       <div className="flow-verdict-actions">
                         <button type="button" onClick={() => setNode('creative')}>
-                          <RotateCcw size={16} /> Back to step 03
+                          <RotateCcw size={16} /> {t.backTo3}
                         </button>
                         <button type="button" className="approve" onClick={() => setVerdict('pending')}>
-                          Try again
+                          {t.tryAgain}
                         </button>
                       </div>
                     </>
@@ -335,21 +330,17 @@ export function AdvertiserFlow() {
                 <BoardShot format={format} />
                 <div className="flow-rotation">
                   <span className="flow-live">
-                    <i /> On screen now
+                    <i /> {t.onScreenNow}
                   </span>
                   <div className="flow-loop" aria-hidden="true">
-                    <i className="mine">You</i>
+                    <i className="mine">{t.you}</i>
                     <i />
                     <i />
                     <i />
                     <i />
                     <i />
                   </div>
-                  <p className="flow-note">
-                    Your turn comes round every few minutes, every hour the shop is open, on the
-                    only screen in the room. Nobody scrolls past it, nobody blocks it, and nobody
-                    else is bidding for that second.
-                  </p>
+                  <p className="flow-note">{t.liveNote}</p>
                 </div>
               </div>
             )}
@@ -359,50 +350,45 @@ export function AdvertiserFlow() {
                 <div className="flow-bill">
                   <div className="flow-bill-head">
                     <Receipt size={18} />
-                    <span>Week of Sep 8 · {LIVE_VENUES.length} shop</span>
+                    <span>{t.weekOf(LIVE_VENUES.length)}</span>
                   </div>
                   <dl>
                     <div>
-                      <dt>{byPlay ? 'Plays booked' : 'Minutes booked'}</dt>
+                      <dt>{t.booked(byPlay)}</dt>
                       <dd>{count.format(byPlay ? minutes * 4 : minutes)}</dd>
                     </div>
                     <div>
-                      <dt>{byPlay ? 'Plays that ran' : 'Minutes actually shown'}</dt>
+                      <dt>{t.ran(byPlay)}</dt>
                       <dd>{count.format(byPlay ? shown * 4 : shown)}</dd>
                     </div>
                     <div>
-                      <dt>Rate</dt>
+                      <dt>{t.rate}</dt>
                       <dd>
-                        {cents.format(byPlay ? rate / 4 : rate)} / {byPlay ? 'play' : 'min'}
+                        {cents.format(byPlay ? rate / 4 : rate)} / {byPlay ? shared.unit.play : 'min'}
                       </dd>
                     </div>
                     <div className="rolled">
-                      <dt>Unrun, rolled into next week</dt>
+                      <dt>{t.rolled}</dt>
                       <dd>
-                        {count.format(byPlay ? (minutes - shown) * 4 : minutes - shown)}{' '}
-                        {byPlay ? 'plays' : 'min'}
+                        {count.format(byPlay ? (minutes - shown) * 4 : minutes - shown)} {units}
                       </dd>
                     </div>
                   </dl>
                   <div className="flow-bill-total">
-                    <span>You pay</span>
+                    <span>{t.youPay}</span>
                     <strong>{cents.format(billed)}</strong>
                   </div>
                 </div>
-                <p className="flow-note">
-                  A play that never happened is never charged. Time on a screen, or runs of a
-                  video, counted by the player itself and reported back every week.
-                </p>
+                <p className="flow-note">{t.billNote}</p>
               </div>
             )}
 
             <div className="flow-cta">
               <Link className="button primary" href="/dashboard" data-track="flow-build">
-                Build yours, no account needed <ArrowRight size={16} />
+                {t.cta} <ArrowRight size={16} />
               </Link>
               <span>
-                <MonitorPlay size={15} /> {LIVE_VENUES.length} shop · {totalScreens(LIVE_VENUES)} screen in{' '}
-                {PILOT_CITY}
+                <MonitorPlay size={15} /> {t.ctaSub(LIVE_VENUES.length, totalScreens(LIVE_VENUES), PILOT_CITY)}
               </span>
             </div>
           </div>

@@ -4,6 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import 'leaflet/dist/leaflet.css';
 import { distanceKm, pointInPolygon, type Venue } from '@/lib/network';
 
+export type DrawnShape =
+  | { kind: 'radius'; metres: number }
+  | { kind: 'area'; points: number };
+
 export type MapTool = 'pan' | 'radius' | 'lasso';
 
 export type Focus = { at: [number, number]; zoom: number; key: number } | null;
@@ -31,8 +35,10 @@ export function SelectionMap({
   selected: string[];
   tool: MapTool;
   onToggle: (id: string) => void;
-  /** A drawn shape resolved to the shops inside it. */
-  onRegion: (ids: string[], shape: string) => void;
+  /** A drawn shape resolved to the shops inside it. The shape is described
+      rather than named, so the caller can put it into words in its own
+      language. */
+  onRegion: (ids: string[], shape: DrawnShape) => void;
   onToolDone: () => void;
   focus: Focus;
   /** The shop the list is pointing at. Lights its pin; never moves the map. */
@@ -213,10 +219,9 @@ export function SelectionMap({
         const inside = handlers.current.venues.filter(
           (venue) => distanceKm(centre!, venue.at) * 1000 <= metres,
         );
-        const km = metres / 1000;
         handlers.current.onRegion(
           inside.map((venue) => venue.id),
-          `${km < 1 ? `${Math.round(metres)} m` : `${km.toFixed(1)} km`} radius`,
+          { kind: 'radius', metres },
         );
         centre = null;
         handlers.current.onToolDone();
@@ -254,7 +259,7 @@ export function SelectionMap({
       const inside = handlers.current.venues.filter((venue) => pointInPolygon(venue.at, points));
       handlers.current.onRegion(
         inside.map((venue) => venue.id),
-        `hand-drawn area, ${points.length} points`,
+        { kind: 'area', points: points.length },
       );
       handlers.current.onToolDone();
     };
