@@ -19,7 +19,6 @@ import {
 import { Bite } from '@/components/brand';
 import { BoardReel } from '@/components/board-reel';
 import { BoardShowcase } from '@/components/board-showcase';
-import { NetworkMap } from '@/components/network-map';
 import { FormatGrid } from '@/components/format-grid';
 import { VenueScene } from '@/components/venue-scenes';
 import { ShopScene } from '@/components/shop-scene';
@@ -241,8 +240,6 @@ export function HomePage() {
     </section>
 
     <section className="venues wrap"><div className="section-head"><h2>For the places people return to.</h2></div><div className="venue-copy"><article><VenueScene kind="restaurant"/><h3>Restaurants</h3><p>Make your menu board work a little harder between orders.</p></article><article><VenueScene kind="barber"/><h3>Barbers</h3><p>Turn waiting-room watching into a local opportunity.</p></article><article><VenueScene kind="salon"/><h3>Salons &amp; cosmetics</h3><p>Keep your look and feel while earning from your screen.</p></article><article><VenueScene kind="cafe"/><h3>Caf&eacute;s &amp; more</h3><p>Any independent shop with a TV is welcome.</p></article></div></section>
-
-    <section id="network" className="network"><div className="wrap"><div className="section-head network-head"><h2>You are joining a network, not a billboard.</h2><p>Shops sign up one block at a time, and advertisers book across the whole map. That is the part that fills your screen: you never have to go sell a single spot yourself.</p></div><NetworkMap/></div></section>
 
     <section id="join" className="join wrap"><SkyShapes /><div className="join-copy"><span className="eyebrow">Pilot opening soon</span><h2>Let your screen earn a little extra.</h2><p>Tell us about your shop. We’ll reach out when AdBite is ready in your area.</p><div className="menu-designer"><MonitorPlay size={22}/><div><b>Already thinking about your screen?</b><p>See what the board tools can do in <a href="#tools">Level up your menu</a>, or look at the ad side from the buyer&rsquo;s chair in the <Link href="/dashboard">campaign builder</Link>.</p></div></div></div><JoinForm/></section>
 

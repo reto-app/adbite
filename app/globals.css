@@ -2368,7 +2368,7 @@ h3 {
 .nm-state-name {
   fill: #0e0e0e;
   font-family: var(--font-display), sans-serif;
-  font-size: 8.4px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.07em;
 }
@@ -2392,11 +2392,11 @@ h3 {
 }
 
 .nm-band-name {
-  font-size: 3.9px;
+  font-size: 4.4px;
 }
 
 .nm-band-count {
-  font-size: 4.4px;
+  font-size: 5px;
 }
 
 .nm-band.on .nm-band-name,
@@ -2410,6 +2410,24 @@ h3 {
 
 .nm-pin.on circle {
   fill: var(--sky-deep);
+}
+
+/* The shops drop into their county one after another once the map is looked
+   at, rather than being there from the start. Scaling from the dot's own
+   centre needs fill-box; the default would scale it from the SVG's origin and
+   fling it across the country. */
+@media (prefers-reduced-motion: no-preference) {
+  .nm.seen .nm-pin {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    animation: nmDrop 0.44s cubic-bezier(0.18, 1.25, 0.4, 1) backwards;
+    animation-delay: calc(var(--n, 0) * 55ms);
+  }
+}
+
+@keyframes nmDrop {
+  from { opacity: 0; transform: scale(0.1); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .nm-leader {
