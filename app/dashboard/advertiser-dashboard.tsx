@@ -49,7 +49,6 @@ import {
 import { totalsOf } from '@/lib/delivery';
 import { usePlays } from '@/lib/plays';
 import { SideSwitch } from '@/components/side-switch';
-import { submitLead } from '@/lib/leads';
 import { localeOf, useCopy, useLang } from '@/lib/lang';
 import { CAMPAIGN } from '@/lib/copy/campaign';
 import { SHARED } from '@/lib/copy/shared';
@@ -91,7 +90,6 @@ function formatName(id: FormatId) {
 function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () => void }) {
   const t = useCopy(CAMPAIGN).dash;
   const shared = useCopy(SHARED);
-  const { lang } = useLang();
   const day = useDay();
   const [step, setStep] = useState(0);
   const [spend, setSpend] = useState(60);
@@ -112,27 +110,13 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
   const blocked =
     (step === 0 && chosen.length === 0) || (step === 2 && (!creative || !emailOk || sending));
 
+  /* A booking is a row now, not a note to us: it lands in the database, the
+     shop sees it in their queue, and api/notify mails both sides. It used to
+     also go to info@ as a lead, which was the pilot's only record of it and
+     is now a second copy of something nobody needs to read. */
   const save = async () => {
     setSending(true);
     setError('');
-    const sent = await submitLead({
-      kind: 'campaign',
-      email: email.trim(),
-      lang,
-      detail: {
-        weeklySpend: spend,
-        minutes,
-        dayparts,
-        format: formatName(format),
-        venues: chosen.map((venue) => venue.name),
-        creative: creative?.name ?? null,
-      },
-    });
-    setSending(false);
-    if (!sent.ok) {
-      setError(sent.message);
-      return;
-    }
     try {
       await addCampaign({
         name: `${formatName(format)} · ${day.format(new Date())}`,
@@ -150,6 +134,8 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : t.send.couldNotSave);
       return;
+    } finally {
+      setSending(false);
     }
     onDone();
   };
@@ -470,7 +456,7 @@ export function AdvertiserDashboard() {
             <CampaignDetail
               campaign={active}
               onDelete={() => {
-                removeCampaign(active.id);
+                void removeCampaign(active.id);
                 setSelected(null);
               }}
             />

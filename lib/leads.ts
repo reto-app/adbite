@@ -11,13 +11,15 @@
 import { MAIL } from '@/lib/site';
 import type { Lang } from '@/lib/lang';
 
-export type LeadKind = 'shop' | 'advertiser' | 'campaign';
+/* Bookings used to come through here too. They are rows now, so the only
+   leads left are the two waitlists and the advertiser enquiry. */
+export type LeadKind = 'shop' | 'advertiser';
 
 export type Lead = {
   kind: LeadKind;
   email: string;
   /** The language the form was read in, so the reply and any error come
-      back in it. Optional so the campaign builder's older call sites hold. */
+      back in it. */
   lang?: Lang;
   /** Whatever the specific form collected. Shapes differ per form. */
   detail: Record<string, unknown>;
