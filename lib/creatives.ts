@@ -22,6 +22,7 @@ export type Uploaded = {
   kind: 'image' | 'video';
   bytes: number;
   seconds: number | null;
+  processing: boolean;
 };
 
 async function sha256(file: File) {
@@ -100,7 +101,7 @@ export async function uploadCreative(
     headers: { 'content-type': 'application/json', authorization: `Bearer ${jwt}` },
     body: JSON.stringify({ creativeId: started.creativeId }),
   });
-  const finished = (await finish.json().catch(() => ({}))) as { url?: string; message?: string };
+  const finished = (await finish.json().catch(() => ({}))) as { url?: string; message?: string; processing?: boolean };
   if (!finish.ok || !finished.url) return { ok: false, message: finished.message ?? 'The upload could not be confirmed.' };
   onProgress?.(1);
 
@@ -113,6 +114,9 @@ export async function uploadCreative(
       kind: file.type.startsWith('video/') ? 'video' : 'image',
       bytes: file.size,
       seconds: dimensions.seconds,
+      /* True while the render worker is re-encoding it. The booking can be
+         made now; the spot reaches a wall when the file is ready. */
+      processing: Boolean(finished.processing),
     },
   };
 }

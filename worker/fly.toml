@@ -1,0 +1,14 @@
+# One always-on machine, smallest that can run ffmpeg without swapping.
+app = "adbite-worker"
+primary_region = "sjc"
+
+[build]
+
+[env]
+  POLL_SECONDS = "10"
+  REEL_SCAN_SECONDS = "60"
+
+# No services: nothing calls this machine. It polls Supabase and writes to R2.
+[[vm]]
+  size = "shared-cpu-2x"
+  memory = "2gb"

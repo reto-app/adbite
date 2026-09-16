@@ -10,6 +10,10 @@
  * object is really there and really that size before it marks the creative
  * usable. Nothing a TV will play is taken on the browser's word.
  *
+ * An image is usable at that point. A video is handed to the render worker
+ * (see worker/) and becomes usable when it comes back in a profile every
+ * Roku can decode.
+ *
  * The object is keyed by its own hash, so the same artwork booked twice is
  * stored once and a re-cut is a different file. That hash is also what the
  * channel names its local copy, which is why the browser computes it.
@@ -67,7 +71,7 @@ export async function POST(request: Request): Promise<Response> {
     const creativeId = String(fields.creativeid ?? '');
     const { data: creative } = await db
       .from('creatives')
-      .select('id, advertiser_id, storage_path, bytes')
+      .select('id, advertiser_id, storage_path, bytes, kind')
       .eq('id', creativeId)
       .maybeSingle();
     if (!creative || creative.advertiser_id !== user.id) return json(404, { message: 'No such upload' });
@@ -83,9 +87,20 @@ export async function POST(request: Request): Promise<Response> {
       return json(409, { message: 'The upload was cut short. Try again.' });
     }
 
-    await db.from('creatives').update({ ready: true }).eq('id', creative.id);
     const origin = process.env.ASSETS_ORIGIN ?? 'https://assets.adbite.site';
-    return json(200, { ready: true, url: `${origin}/${creative.storage_path}` });
+    const url = `${origin}/${creative.storage_path}`;
+
+    /* An image is ready the moment it has landed. A video is not: it goes to
+       the render worker first, which re-encodes it to something every Roku
+       decodes. The advertiser can preview the file they uploaded meanwhile;
+       no board carries it until the worker says so. */
+    if (creative.kind === 'video') {
+      await db.from('render_jobs').insert({ kind: 'transcode', creative_id: creative.id });
+      return json(200, { ready: false, processing: true, url });
+    }
+
+    await db.from('creatives').update({ ready: true }).eq('id', creative.id);
+    return json(200, { ready: true, url });
   }
 
   const name = String(fields.name ?? 'artwork');

@@ -104,7 +104,8 @@ export async function POST(request: Request): Promise<Response> {
     const c = row.campaigns;
     const creative = c.creatives;
     if (!creative?.ready || !creative.storage_path || !creative.sha256 || !creative.bytes) continue;
-    if (c.status === 'paused' || c.status === 'ended') continue;
+    /* Only Checkout's signed webhook moves a campaign to live. */
+    if (c.status !== 'live') continue;
     spots.push({
       campaignId: c.id,
       name: c.name,
@@ -116,13 +117,33 @@ export async function POST(request: Request): Promise<Response> {
     });
   }
 
+  /* A second screen plays the shop's stitched reel when the worker has one. */
+  const screen = (device.screen as 'menu' | 'reel') ?? 'menu';
+  let reel = null;
+  if (screen === 'reel') {
+    const { data: row } = await db
+      .from('reels')
+      .select('storage_path, sha256, bytes, seconds')
+      .eq('shop_id', device.shop_id)
+      .maybeSingle();
+    if (row) {
+      reel = {
+        src: `${origin}/${row.storage_path.replace(/^\/+/, '')}`,
+        sha256: row.sha256,
+        bytes: row.bytes,
+        seconds: Number(row.seconds),
+      };
+    }
+  }
+
   const board = compose({
     shopId: shop.id,
     board: boardRow.board,
     boardVersion: boardRow.version,
     updatedAt: boardRow.updated_at,
     spots,
-    screen: (device.screen as 'menu' | 'reel') ?? 'menu',
+    screen,
+    reel,
     pollMinutes: POLL_MINUTES,
   });
   const text = serialize(board);

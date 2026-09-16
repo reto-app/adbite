@@ -27,6 +27,9 @@ export type Spot = {
   seconds?: number | null;
 };
 
+/** A shop's approved spots stitched into one file by the render worker. */
+export type Reel = { src: string; sha256: string; bytes: number; seconds: number };
+
 export type ComposeInput = {
   shopId: string;
   board: Board;
@@ -35,6 +38,8 @@ export type ComposeInput = {
   spots: Spot[];
   /** Screen role of the device this is for. */
   screen: 'menu' | 'reel';
+  /** Only used by a reel screen, and only when the worker has built one. */
+  reel?: Reel | null;
   pollMinutes: number;
 };
 
@@ -91,6 +96,42 @@ export function compose(input: ComposeInput): RokuBoard {
     if (placement === 'rail') return format === 'rail';
     return false;
   };
+
+  /* A second screen plays one stitched file on a loop: no rotation, no
+     re-opening between clips, and therefore no dark gap. Until the worker has
+     built it the screen falls through to the ordinary full-screen rotation,
+     which is a worse picture but not a blank wall. */
+  if (input.screen === 'reel' && input.reel) {
+    const { adPlacement: _unused, ...board } = input.board;
+    return {
+      version: 1,
+      exportedAt: input.updatedAt,
+      shopId: input.shopId,
+      boardVersion: input.boardVersion,
+      remoteUrl: null,
+      refreshMinutes: input.pollMinutes,
+      keepAwake: true,
+      textScale: 1,
+      adLayout: 'rail',
+      supplemental: true,
+      spotSeconds: 15,
+      reviewSeconds: 12,
+      slotWindows: DEFAULT_WINDOWS,
+      board: { ...board, adShare: 0, media: { ...board.media, src: null } },
+      ads: [
+        {
+          id: `reel-${input.shopId}`,
+          name: `${board.shopName} reel`,
+          format: 'video',
+          src: input.reel.src,
+          sha256: input.reel.sha256,
+          bytes: input.reel.bytes,
+          seconds: Math.round(input.reel.seconds),
+          loop: true,
+        },
+      ],
+    };
+  }
 
   const ads = input.spots
     .filter((spot) => spot.src && spot.sha256 && spot.bytes > 0 && allowed(spot.format))
