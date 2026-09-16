@@ -95,7 +95,6 @@ export function DashboardPage() {
   const t = useCopy(SHARED);
   const NAV = useNav();
 
-  if (typeof window !== 'undefined' && window.location.hash === '#force-shop') return <ShopDashboard />;
   if (!ready) {
     return (
       <main className="campaign-page">
