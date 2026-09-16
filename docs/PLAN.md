@@ -179,6 +179,16 @@ files.
 - Reel size stays under the device cap from the phase 2 test (the 145 s
   Mexico reel was 42 MB at CRF 22; CRF 25 roughly halves it).
 
+## Reels and billing (2026-09-16)
+
+A looping reel is one file made of several campaigns, so neither end can say
+which spot is on screen at a given instant. The channel reports a record a
+minute while a `loop` spot is up, with measured seconds; `api/device/sync`
+splits that time across `reels.segments` in proportion to each spot's length,
+using the segments' own total so the parts add back up to the time the wall
+showed. Verified end to end: ten reported minutes became ten per-campaign
+rows totalling 600.01s against a 116-second reel of ten spots.
+
 ## Phase 5: money (Stripe)
 
 **Status 2026-09-16: built, awaiting migration and Stripe/Vercel configuration.**

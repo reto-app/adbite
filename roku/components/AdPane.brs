@@ -10,6 +10,7 @@ sub init()
     m.videoPending = false
     m.holdingPlate = false
     m.slotless = false
+    m.loopAd = invalid
 
     ' --- the slot, drawn in place ---
     m.slotGroup = m.top.createChild("Group")
@@ -47,6 +48,15 @@ sub init()
     m.fadeInterp.key = [0.0, 1.0]
     m.fadeInterp.keyValue = [0.0, 1.0]
     m.fadeInterp.fieldToInterp = "slotPoster.opacity"
+
+    ' A looping spot never finishes, so it would otherwise report one play
+    ' however long it ran. This ticks while one is on screen and reports the
+    ' time that actually elapsed, which is what the board is billed by.
+    m.loopSpan = invalid
+    m.loopTimer = m.top.createChild("Timer")
+    m.loopTimer.duration = 60
+    m.loopTimer.repeat = true
+    m.loopTimer.observeField("fire", "onLoopTick")
 
     m.timer = m.top.createChild("Timer")
     m.timer.repeat = false
@@ -99,6 +109,7 @@ sub reload()
         drawPlaceholder()
     end if
 
+    stopLoopClock()
     m.ads = playableAds(config)
     m.index = -1
     m.timer.control = "stop"
@@ -230,6 +241,12 @@ sub playVideo(ad as Object)
     ' that takes. Such a spot never finishes, so it is the whole rotation.
     looping = (ad.loop = true)
     m.fullVideo.loop = looping
+    stopLoopClock()
+    if looping
+        m.loopAd = ad
+        m.loopSpan = CreateObject("roTimespan")
+        m.loopTimer.control = "start"
+    end if
 
     m.top.playingVideo = true
     m.fullVideo.content = content
@@ -239,6 +256,28 @@ sub playVideo(ad as Object)
     ' A wedged stream must not park the rotation on a black screen, so the
     ' timer still runs behind playback as a backstop.
     if not looping then queueNext(adSeconds(ad) + 3)
+end sub
+
+' One record a minute for as long as the loop is on the wall. The seconds
+' reported are measured, not assumed, so a spot that was interrupted or that
+' started mid-minute is billed for what it actually showed.
+sub onLoopTick()
+    if m.loopSpan = invalid or m.loopAd = invalid then return
+    elapsed = m.loopSpan.TotalMilliseconds() / 1000.0
+    m.loopSpan.Mark()
+    if elapsed > 0.5 then reportPlay(m.loopAd, elapsed)
+end sub
+
+' Whatever is left of the current minute goes up with it, so stopping does
+' not throw away time the wall really showed.
+sub stopLoopClock()
+    if m.loopSpan <> invalid and m.loopAd <> invalid
+        elapsed = m.loopSpan.TotalMilliseconds() / 1000.0
+        if elapsed > 0.5 then reportPlay(m.loopAd, elapsed)
+    end if
+    m.loopTimer.control = "stop"
+    m.loopSpan = invalid
+    m.loopAd = invalid
 end sub
 
 sub onVideoState()
@@ -272,6 +311,7 @@ end sub
 sub hideFull()
     if m.top.playingVideo then m.top.playingVideo = false
     if not m.showingFull then return
+    stopLoopClock()
     m.fullGroup.visible = false
     m.fullVideo.visible = false
     m.fullVideo.control = "stop"

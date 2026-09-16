@@ -80,6 +80,12 @@ nothing streams. Plays ride along in the same request.
 tools/build.sh universal/board.json   # the package every shop gets
 ```
 
+A spot marked `loop` never finishes, so it cannot report itself the way a
+spot that takes a turn does. The channel reports one record a minute for as
+long as such a spot is on the wall, carrying the seconds that actually
+elapsed; the server splits those minutes across the campaigns the reel was
+stitched from. That is what makes a second screen billable at all.
+
 `tools/point.sh <ip> <url>` still works for a hand-served board; a stored
 `remoteUrl` is only consulted when the package has no `syncUrl`.
 

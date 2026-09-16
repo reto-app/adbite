@@ -120,7 +120,9 @@ export function compose(input: ComposeInput): RokuBoard {
       board: { ...board, adShare: 0, media: { ...board.media, src: null } },
       ads: [
         {
-          id: `reel-${input.shopId}`,
+          /* Not a campaign id: this one file is several campaigns, and the
+             server splits the time it reports across them. */
+          id: 'reel',
           name: `${board.shopName} reel`,
           format: 'video',
           src: input.reel.src,

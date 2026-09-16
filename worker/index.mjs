@@ -191,7 +191,7 @@ async function buildReel(shopId, spots, dir) {
     } else {
       inputs.push('-loop', '1', '-t', String(seconds), '-i', local);
     }
-    parts.push({ seconds });
+    parts.push({ seconds, campaignId: spot.id });
     index += 1;
   }
 
@@ -216,7 +216,10 @@ async function buildReel(shopId, spots, dir) {
   }
   args.push('-an', '-c:v', 'libx264', '-profile:v', 'high', '-level', '4.1', '-pix_fmt', 'yuv420p', '-crf', String(REEL_CRF), '-preset', 'medium', '-r', '30', '-movflags', '+faststart', output);
   await run('ffmpeg', args);
-  return { output, seconds: total };
+  /* What the reel is made of, so the seconds a screen spends looping it can
+     be credited to the campaigns inside it. */
+  const segments = parts.map((part) => ({ campaign_id: part.campaignId, seconds: part.seconds }));
+  return { output, seconds: total, segments };
 }
 
 async function reelFor(shopId, dir) {
@@ -230,7 +233,7 @@ async function reelFor(shopId, dir) {
   }
   if (existing?.built_from === built) return false;
 
-  const { output, seconds } = await buildReel(shopId, spots, dir);
+  const { output, seconds, segments } = await buildReel(shopId, spots, dir);
   const sha = await hashOf(output);
   const key = `reels/${sha}.mp4`;
   const { bytes } = await upload(output, key, 'video/mp4');
@@ -240,6 +243,7 @@ async function reelFor(shopId, dir) {
     sha256: sha,
     bytes,
     seconds,
+    segments,
     built_from: built,
     built_at: new Date().toISOString(),
   });

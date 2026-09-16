@@ -53,18 +53,49 @@ export async function POST(request: Request): Promise<Response> {
   const heartbeat: Record<string, unknown> = { last_seen: now };
   if (body.channelVersion) heartbeat.channel_version = body.channelVersion;
 
-  /* Plays first, so a board that fails to compose still keeps the log. */
-  const plays = body.plays.filter((p) => p && typeof p.id === 'string' && p.id.length === 36).slice(0, 2000);
-  if (plays.length) {
-    await db.from('plays').insert(
-      plays.map((p) => ({
-        device_id: device.id,
-        campaign_id: p.id,
-        played_at: p.at && !Number.isNaN(Date.parse(p.at)) ? p.at : now,
-        seconds: Math.max(0, Math.min(600, Number(p.seconds) || 0)),
-      })),
-    );
+  /* Plays first, so a board that fails to compose still keeps the log.
+     A screen showing a stitched reel reports one record per minute under the
+     id `reel`, because the file is several campaigns and it cannot know
+     which one is on screen at any instant; those are expanded below. */
+  const reported = body.plays.slice(0, 2000);
+  const direct = reported.filter((p) => p && typeof p.id === 'string' && p.id.length === 36);
+  const reelSeconds = reported
+    .filter((p) => p && p.id === 'reel')
+    .reduce((total, p) => total + Math.max(0, Math.min(600, Number(p.seconds) || 0)), 0);
+
+  const rows = direct.map((p) => ({
+    device_id: device.id,
+    campaign_id: p.id,
+    played_at: p.at && !Number.isNaN(Date.parse(p.at)) ? p.at : now,
+    seconds: Math.max(0, Math.min(600, Number(p.seconds) || 0)),
+  }));
+
+  if (reelSeconds > 0 && device.shop_id) {
+    const { data: reelRow } = await db
+      .from('reels')
+      .select('segments')
+      .eq('shop_id', device.shop_id)
+      .maybeSingle();
+    const segments = (reelRow?.segments ?? []) as { campaign_id: string; seconds: number }[];
+    /* Share out the looping time by how much of the reel each spot is, using
+       the segments' own total so the parts add back up to the time the wall
+       actually showed rather than to the file's length after its dissolves. */
+    const whole = segments.reduce((total, segment) => total + (Number(segment.seconds) || 0), 0);
+    if (whole > 0) {
+      for (const segment of segments) {
+        const share = (Number(segment.seconds) || 0) / whole;
+        if (share <= 0) continue;
+        rows.push({
+          device_id: device.id,
+          campaign_id: segment.campaign_id,
+          played_at: now,
+          seconds: Math.round(reelSeconds * share * 100) / 100,
+        });
+      }
+    }
   }
+
+  if (rows.length) await db.from('plays').insert(rows);
 
   if (!device.shop_id) {
     await db.from('devices').update(heartbeat).eq('id', device.id);
