@@ -52,6 +52,8 @@ import {
 } from '@/lib/campaigns';
 import { FORMATS } from '@/lib/boards';
 import { POLL_MINUTES, isOnline, pairDevice, renameDevice, useDevices, type Device } from '@/lib/devices';
+import { beginConnectOnboarding } from '@/lib/payments';
+import { useShopStatements } from '@/lib/statements';
 import { localeOf, useCopy, useLang } from '@/lib/lang';
 import { SHARED } from '@/lib/copy/shared';
 import { SHOP as COPY } from '@/lib/copy/shop';
@@ -553,6 +555,9 @@ function MoneyTab({ board, priced }: { board: Board; priced: typeof SHOP }) {
   const shared = useCopy(SHARED);
   const week = weeklyEarnings(priced);
   const stock = inventory([priced]);
+  const [connecting, setConnecting] = useState(false);
+  const [connectError, setConnectError] = useState('');
+  const statements = useShopStatements();
 
   return (
     <section className="shop-money wrap">
@@ -576,6 +581,11 @@ function MoneyTab({ board, priced }: { board: Board; priced: typeof SHOP }) {
           <small>{t.year}</small>
           <b className="money">{money.format(yearlyEarnings(priced))}</b>
           <i>{SHOP.hours}</i>
+        </article>
+        <article>
+          <small>Paid to you</small>
+          <b className="money">{statements.ready ? money.format(statements.paidCents / 100) : '—'}</b>
+          <i>Settled weekly from completed delivery</i>
         </article>
         <article>
           <small>{t.minutes}</small>
@@ -618,6 +628,21 @@ function MoneyTab({ board, priced }: { board: Board; priced: typeof SHOP }) {
           <p>{t.eitherWayText}</p>
         </div>
       </aside>
+      <button
+        type="button"
+        className="button primary"
+        disabled={connecting}
+        onClick={() => {
+          setConnecting(true); setConnectError('');
+          void beginConnectOnboarding().catch((error: unknown) => {
+            setConnectError(error instanceof Error ? error.message : 'Could not start Stripe onboarding.');
+            setConnecting(false);
+          });
+        }}
+      >
+        {connecting ? 'Opening secure payout setup…' : 'Set up payouts'}
+      </button>
+      {connectError && <p className="form-warn" role="alert">{connectError}</p>}
     </section>
   );
 }

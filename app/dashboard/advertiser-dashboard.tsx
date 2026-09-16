@@ -37,6 +37,7 @@ import {
 } from '@/lib/pricing';
 import {
   addCampaign,
+  beginPaymentSetup,
   campaignMinutes,
   clearSamples,
   hasSamples,
@@ -48,6 +49,7 @@ import {
 } from '@/lib/campaigns';
 import { totalsOf } from '@/lib/delivery';
 import { usePlays } from '@/lib/plays';
+import { useAdvertiserStatements } from '@/lib/statements';
 import { SideSwitch } from '@/components/side-switch';
 import { localeOf, useCopy, useLang } from '@/lib/lang';
 import { CAMPAIGN } from '@/lib/copy/campaign';
@@ -118,7 +120,7 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
     setSending(true);
     setError('');
     try {
-      await addCampaign({
+      const saved = await addCampaign({
         name: `${formatName(format)} · ${day.format(new Date())}`,
         weeklySpend: spend,
         format,
@@ -131,6 +133,8 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
         email: email.trim(),
         startedAt: null,
       });
+      await beginPaymentSetup(saved.id);
+      return;
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : t.send.couldNotSave);
       return;
@@ -351,6 +355,7 @@ export function AdvertiserDashboard() {
   );
 
   const { byCampaign: plays } = usePlays();
+  const statements = useAdvertiserStatements();
   const weekly = campaigns.reduce((total, campaign) => total + campaign.weeklySpend, 0);
   const minutes = campaigns.reduce((total, campaign) => total + campaignMinutes(campaign), 0);
   const running = campaigns.filter((campaign) => statusOf(campaign) === 'live').length;
@@ -388,7 +393,7 @@ export function AdvertiserDashboard() {
             </div>
             <div>
               <dt>{t.head.spentToDate}</dt>
-              <dd className="money">{listReady ? money.format(spent) : '—'}</dd>
+              <dd className="money">{statements.ready ? money.format(statements.paidCents / 100) : listReady ? money.format(spent) : '—'}</dd>
             </div>
             <div>
               <dt>{t.head.minutesPerWeek}</dt>

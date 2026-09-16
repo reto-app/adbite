@@ -71,12 +71,92 @@ paste:
 Without it the signed PUT is refused by the browser (the server-side path,
 and therefore the seeded demo spot, still works).
 
-**Video is not transcoded yet.** An MP4 is accepted up to 12 MB and 20
-seconds and goes to a TV as uploaded; a file the Roku cannot decode is
-dropped from the rotation rather than shown as a black rectangle. The render
-worker in phase 4 is what makes that guarantee instead of a hope.
+## Render worker (Fly)
+
+Videos are not sent to a TV unchanged. Completing an MP4 upload writes a
+`transcode` job; the worker makes a muted 1080p30 H.264 file, generates its
+poster, and marks the creative ready only after both are in R2. It also builds
+one loopable reel for every shop that has a device set to **Ads only (second
+screen)**.
+
+Apply the migration before deploying the worker, then create and deploy the
+Fly app from the repository root:
+
+```bash
+supabase db push
+fly launch --config worker/fly.toml --no-deploy
+fly secrets set --config worker/fly.toml \
+  SUPABASE_URL="https://uvvjndrdetvvvyrmwhpu.supabase.co" \
+  SUPABASE_SERVICE_ROLE_KEY="…" \
+  R2_ACCOUNT_ID="…" R2_ACCESS_KEY_ID="…" R2_SECRET_ACCESS_KEY="…" \
+  R2_BUCKET="adbite-assets"
+fly deploy --config worker/fly.toml
+```
+
+The Fly secret values are the same server-side Supabase and R2 credentials
+already used by Vercel. Do not set `ASSETS_ORIGIN` there: the worker reads and
+writes through R2's S3 endpoint, while only the site and Roku need its public
+origin. `fly logs --config worker/fly.toml` shows job failures and retries.
+
+## Payments (Stripe)
+
+Advertisers pay AdBite; AdBite pays each shop its share. Two hops, and they
+are not the same thing:
+
+1. **Transfer** — the platform balance into the shop's connected-account
+   balance, one per shop per weekly charge, naming the Stripe charge the
+   money arrived on (`source_transaction`) so it moves before card funds
+   settle.
+2. **Payout** — that balance into the shop's own bank. In the US this is an
+   ACH deposit to the account they enter during Stripe-hosted onboarding; we
+   never see the details. Cadence is the **platform payout schedule**, set to
+   monthly in the Stripe Dashboard under Connect settings, so a shop's balance
+   accrues weekly and lands in their bank once a month. Debit-card payouts
+   (Instant Payouts) are possible but cost about 1.5% and are pointless on a
+   monthly cadence.
+
+| Variable | Purpose |
+| --- | --- |
+| `STRIPE_SECRET_KEY` | Server only. |
+| `STRIPE_WEBHOOK_SECRET` | Verifies the signature on `/api/stripe/webhook`. |
+| `CRON_SECRET` | Bearer token the Monday cron sends to `/api/stripe/bill`. Without it that route answers 401 and no billing happens, which is the safe default. |
+| `APP_ORIGIN` | Where Checkout and onboarding return to. Defaults to `https://adbite.site`. |
+
+**Do not set these until the payment-method flow has been run end to end in
+test mode.** The first cron run charges every advertiser with delivered plays,
+and an advertiser with no card on file has their campaigns paused and is
+emailed about it.
+
+Stripe will not take a payment under **fifty cents**, and this rate card is
+priced in fractions of one. An advertiser under that threshold is not charged;
+their plays stay unbilled (`plays.charge_id is null`) and join the next run,
+which is why the weekly query asks for everything uncollected rather than one
+week of it.
 
 ## Mail the product sends
+
+## Stripe (Phase 5 in progress)
+
+Set these server-only values in Vercel and `.env.local` before using the new
+Checkout route. Use a restricted `rk_` key with only the customer, Checkout,
+SetupIntent, PaymentIntent, transfer, and Connect-account permissions this
+service needs (rather than a broad `sk_` key). Configure Stripe to send
+`checkout.session.completed`, `payment_intent.succeeded`,
+`payment_intent.payment_failed`, and `v2.core.account.updated` to
+`https://adbite.site/api/stripe/webhook`; copy that endpoint's signing secret
+into `STRIPE_WEBHOOK_SECRET`.
+
+Vercel calls `/api/stripe/bill` every Monday at 08:00 UTC. Set `CRON_SECRET`
+as a sensitive Vercel environment variable; Vercel must send it as
+`Authorization: Bearer <CRON_SECRET>` for the route to run. The endpoint is
+idempotent per billing week, so a safe manual retry uses the same header.
+
+| Variable | Purpose |
+| --- | --- |
+| `STRIPE_SECRET_KEY` | Server-only restricted Stripe key (`rk_`), test mode first; never expose it to the browser. |
+| `STRIPE_WEBHOOK_SECRET` | Signing secret for the webhook endpoint. |
+| `APP_ORIGIN` | `https://adbite.site`; used for Checkout return URLs. |
+| `CRON_SECRET` | Vercel Cron authorization secret for the weekly billing route. |
 
 `lib/email/` is every mail as data plus one layout; `api/notify.ts` sends
 them through Resend after a booking or a shop's decision, called by the

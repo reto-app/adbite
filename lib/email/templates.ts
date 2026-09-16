@@ -118,3 +118,18 @@ export function campaignDecided(facts: { campaignName: string; shopName: string;
     reason: 'You booked this campaign on adbite.site.',
   };
 }
+
+/** To the advertiser when their saved payment method cannot settle a week. */
+export function paymentFailed(): Mail {
+  return {
+    subject: 'Your AdBite payment needs attention',
+    preview: 'Your affected campaigns have been paused.',
+    title: 'We could not settle last week’s delivery.',
+    blocks: [
+      { kind: 'lead', text: 'The payment method on file did not complete the weekly charge, so the affected campaigns are paused and no new delivery will be billed.' },
+      { kind: 'p', text: 'Open your dashboard to update your payment method. Once it is current, contact support to resume the campaign.' },
+    ],
+    button: { label: 'Open your dashboard', href: DASHBOARD },
+    reason: 'You have an active advertiser account on adbite.site.',
+  };
+}

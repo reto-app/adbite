@@ -273,6 +273,22 @@ export async function removeCampaign(id: string) {
   reloadCampaigns();
 }
 
+/** Opens Stripe Checkout to save the card used for later usage-based charges.
+    The signed webhook, rather than this browser redirect, makes it playable. */
+export async function beginPaymentSetup(campaignId: string): Promise<void> {
+  const { data } = await supabase().auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error('Sign in to add a payment method');
+  const response = await fetch('/api/stripe/checkout', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+    body: JSON.stringify({ campaignId }),
+  });
+  const body = (await response.json().catch(() => ({}))) as { url?: string; message?: string };
+  if (!response.ok || !body.url) throw new Error(body.message ?? 'Could not open secure checkout');
+  window.location.assign(body.url);
+}
+
 /* The shop owner's decision, made on their side of the product and read on the
    advertiser's. Approving is what starts the clock: until a board is actually
    playing the spot there is nothing to report and nothing to bill. */

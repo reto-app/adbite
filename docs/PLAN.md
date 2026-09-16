@@ -159,6 +159,10 @@ shop approving it, played from local storage.
 
 ## Phase 4: render worker (video without streaming)
 
+**Status 2026-09-16: built, awaiting migration and Fly deployment.** The
+worker, queue, reel triggers, and device composition are in this repository;
+the required one-time deployment commands are in `SETUP.md`.
+
 Goal: video creatives and stitched reels, produced server-side, delivered as
 files.
 
@@ -176,6 +180,15 @@ files.
   Mexico reel was 42 MB at CRF 22; CRF 25 roughly halves it).
 
 ## Phase 5: money (Stripe)
+
+**Status 2026-09-16: built, awaiting migration and Stripe/Vercel configuration.**
+Checkout setup sessions and signed webhook promotion gate a campaign before it
+can reach a TV. The Monday billing job tallies device plays against the rate
+card in each shop's time zone, charges advertisers off-session once per week,
+pauses campaigns and mails the advertiser when collection fails, and transfers
+the recorded share only after the charge succeeds. Connect recipient onboarding
+uses Accounts v2; the dashboard now reads its charges and payouts from the
+auditable ledger.
 
 - Advertiser: Stripe Checkout in `setup` mode at booking; payment method
   saved to the customer. Campaign is `in_review` until a card is on file.
