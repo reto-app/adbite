@@ -132,6 +132,13 @@ Deliverable: Bao Pao Wow paired, menu edited on the site, shows on the TV.
 
 ## Phase 3: ads get booked, approved and delivered (site)
 
+**Status 2026-09-16: built.** Uploads go to R2 by signed PUT and are
+size-checked server-side before a creative is playable; the builder accepts
+PNG/JPG/WEBP and MP4 with a progress bar; the shop's queue plays the real
+creative; delivery figures read the play log (`lib/plays.ts`) and fall back
+to the model only until a screen reports. Open: the R2 CORS policy (needs a
+dashboard click, see SETUP.md) and video transcoding, which is phase 4.
+
 Goal: an advertiser books, the shop approves in their dashboard, the creative
 is on the shop's TV the next sync.
 

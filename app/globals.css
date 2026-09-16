@@ -4913,13 +4913,32 @@ text.vs-small {
   padding: 18px;
 }
 
-.dropzone-filled > img {
+.dropzone-filled > img,
+.dropzone-filled > video {
   width: 190px;
   height: 108px;
   object-fit: cover;
   border-radius: 10px;
   border: 2px solid var(--board);
   background: var(--paper-warm);
+}
+
+/* While a file is on its way to storage. */
+.upload-bar {
+  display: block;
+  width: min(280px, 60%);
+  height: 6px;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: rgba(19, 20, 22, 0.12);
+  overflow: hidden;
+}
+
+.upload-bar i {
+  display: block;
+  height: 100%;
+  background: var(--sky);
+  transition: width 0.2s ease-out;
 }
 
 .dropzone-filled b {
@@ -5741,8 +5760,9 @@ text.vs-small {
 
 .dash-head-inner {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 26px;
+  gap: 14px 26px;
   padding: 12px 0;
 }
 
@@ -5783,15 +5803,22 @@ text.vs-small {
   color: var(--chalk);
 }
 
+/* The stats never shrink below their words. When the tabs and the switch do
+   not fit beside them, the tabs wrap to a second line rather than a stat
+   quietly vanishing, which used to happen to two of the four in English and
+   to three in Spanish. */
 .dash-totals {
-  flex: 1;
+  flex: 1 0 auto;
   display: flex;
   gap: 22px;
   margin: 0;
   padding-left: 26px;
   border-left: 1px solid var(--board-line);
-  min-width: 0;
-  overflow: hidden;
+  min-width: max-content;
+}
+
+.dash-head-inner > .head-tabs {
+  margin-left: auto;
 }
 
 .dash-totals dt {
@@ -7916,6 +7943,7 @@ text.vs-small {
   color: var(--ash);
 }
 
+.queue-art video,
 .queue-art img {
   width: 100%;
   height: 100%;

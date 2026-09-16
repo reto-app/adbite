@@ -25,6 +25,7 @@ import {
   splitByDaypart,
   splitByVenue,
   totalsOf,
+  type Measured,
   venuesOf,
   weeksRunning,
   type Bookable,
@@ -49,16 +50,19 @@ export function AnalyticsPanel({
   booking,
   creativeName,
   creativeSrc,
+  measured,
 }: {
   booking: Bookable;
   creativeName: string | null;
   creativeSrc: string | null;
+  /** What the screens reported, when they have reported anything. */
+  measured?: Measured | null;
 }) {
   const t = useCopy(CAMPAIGN).analytics;
   const shared = useCopy(SHARED);
   const [tab, setTab] = useState<TabId>('overview');
 
-  const totals = totalsOf(booking);
+  const totals = totalsOf(booking, measured);
   const weeks = weeksRunning(booking);
   const scale = totals.running ? weeks : 1;
   const venues = venuesOf(booking);

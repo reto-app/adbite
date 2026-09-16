@@ -499,7 +499,9 @@ function AdsTab({ waiting, campaigns }: { waiting: Campaign[]; campaigns: Campai
                 </dl>
                 {campaign.note && <p className="queue-note">{campaign.note}</p>}
                 <div className="queue-art">
-                  {campaign.creativeSrc ? (
+                  {campaign.creativeSrc && campaign.format === 'video' ? (
+                    <video src={campaign.creativeSrc} muted loop autoPlay playsInline />
+                  ) : campaign.creativeSrc ? (
                     <img src={campaign.creativeSrc} alt={campaign.creativeName ?? t.theCreative} />
                   ) : (
                     <span>{campaign.creativeName ?? t.onFile}</span>

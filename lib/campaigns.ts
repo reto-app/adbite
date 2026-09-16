@@ -19,6 +19,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { ASSETS_ORIGIN } from '@/lib/creatives';
 import { FORMATS, type FormatId } from '@/lib/boards';
 import { DAYPARTS } from '@/lib/pricing';
 import type { AgeBand } from '@/lib/network';
@@ -37,8 +38,10 @@ export type Campaign = {
   ages: AgeBand[];
   dayparts: Daypart[];
   creativeName: string | null;
-  /** Dropped first if the artwork will not fit in storage. */
+  /** The public URL of the artwork, which is also what a TV downloads. */
   creativeSrc: string | null;
+  /** The row in `creatives` this booking plays. */
+  creativeId?: string | null;
   /** Where to send the booking confirmation. */
   email: string | null;
   /** Set once the shop approves and the board starts playing it. */
@@ -95,6 +98,8 @@ type Row = {
   ages: AgeBand[];
   dayparts: Daypart[];
   creative_name: string | null;
+  creative_id: string | null;
+  creatives?: { storage_path: string | null; kind: string } | null;
   email: string | null;
   note: string | null;
   approvals?: Approval[];
@@ -143,7 +148,12 @@ function fromRow(row: Row, mine: string[] | null): Campaign {
     ages: row.ages ?? [],
     dayparts: row.dayparts ?? [],
     creativeName: row.creative_name,
-    creativeSrc: previews.get(row.id) ?? null,
+    creativeId: row.creative_id,
+    /* The artwork itself, wherever it lives. A booking made in this tab
+       before the row came back is previewed from the local copy. */
+    creativeSrc: row.creatives?.storage_path
+      ? `${ASSETS_ORIGIN}/${row.creatives.storage_path}`
+      : previews.get(row.id) ?? null,
     email: row.email,
     note: row.note,
     startedAt,
@@ -181,13 +191,13 @@ async function load() {
     const shops = await myShopIds(auth.user.id);
     const { data } = await db
       .from('campaigns')
-      .select('*, approvals(shop_id, status, decided_at)')
+      .select('*, approvals(shop_id, status, decided_at), creatives(storage_path, kind)')
       .order('created_at', { ascending: false });
     rows = ((data ?? []) as Row[]).map((row) => fromRow(row, shops));
   } else {
     const { data } = await db
       .from('campaigns')
-      .select('*, approvals(shop_id, status, decided_at)')
+      .select('*, approvals(shop_id, status, decided_at), creatives(storage_path, kind)')
       .eq('advertiser_id', auth.user.id)
       .order('created_at', { ascending: false });
     rows = ((data ?? []) as Row[]).map((row) => fromRow(row, null));
@@ -225,6 +235,7 @@ export async function addCampaign(campaign: Omit<Campaign, 'id' | 'createdAt'>):
       ages: campaign.ages,
       weekly_spend: campaign.weeklySpend,
       creative_name: campaign.creativeName,
+      creative_id: campaign.creativeId ?? null,
       email: campaign.email,
       note: campaign.note ?? null,
     })

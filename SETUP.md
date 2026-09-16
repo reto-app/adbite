@@ -34,6 +34,48 @@ curl -X PATCH https://api.supabase.com/v1/projects/uvvjndrdetvvvyrmwhpu/config/a
 
 (Template edits are refused until custom SMTP is set, which it is.)
 
+## Artwork storage (Cloudflare R2)
+
+Bucket `adbite-assets` on the AdBite Cloudflare account, public behind
+`assets.adbite.site`. Uploads go straight from the browser with a signed PUT
+from `api/uploads.ts`; the function then checks the object's real size before
+marking the creative playable. Objects are keyed by their own SHA-256, which
+is also the name a TV gives its local copy.
+
+| Variable | Purpose |
+| --- | --- |
+| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | S3 credentials. Object read/write is all they need. |
+| `R2_BUCKET` | `adbite-assets` |
+| `ASSETS_ORIGIN` | `https://assets.adbite.site`, what the composed board points TVs at. |
+
+**A CORS policy is required for browser uploads**, and an object-scoped API
+token cannot set one. In the R2 dashboard, bucket → Settings → CORS policy,
+paste:
+
+```json
+[
+  {
+    "AllowedOrigins": [
+      "https://adbite.site",
+      "https://www.adbite.site",
+      "http://localhost:3000"
+    ],
+    "AllowedMethods": ["PUT", "GET", "HEAD"],
+    "AllowedHeaders": ["content-type"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+Without it the signed PUT is refused by the browser (the server-side path,
+and therefore the seeded demo spot, still works).
+
+**Video is not transcoded yet.** An MP4 is accepted up to 12 MB and 20
+seconds and goes to a TV as uploaded; a file the Roku cannot decode is
+dropped from the rotation rather than shown as a black rectangle. The render
+worker in phase 4 is what makes that guarantee instead of a hope.
+
 ## Mail the product sends
 
 `lib/email/` is every mail as data plus one layout; `api/notify.ts` sends

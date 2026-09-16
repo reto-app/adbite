@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { Bite } from '@/components/brand';
 import { SiteHeader } from '@/components/site-header';
-import { CreativeStep } from '@/components/campaign/creative-step';
+import { CreativeStep, type Creative } from '@/components/campaign/creative-step';
 import {
   DEFAULT_PLACEMENT,
   PlaceStep,
@@ -47,6 +47,7 @@ import {
   type Campaign,
 } from '@/lib/campaigns';
 import { totalsOf } from '@/lib/delivery';
+import { usePlays } from '@/lib/plays';
 import { SideSwitch } from '@/components/side-switch';
 import { submitLead } from '@/lib/leads';
 import { localeOf, useCopy, useLang } from '@/lib/lang';
@@ -97,7 +98,7 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
   const [dayparts, setDayparts] = useState<Daypart[]>(DAYPARTS.map((part) => part.id));
   const [placement, setPlacement] = useState<Placement>(DEFAULT_PLACEMENT);
   const [format, setFormat] = useState<FormatId>('banner');
-  const [creative, setCreative] = useState<{ name: string; src: string } | null>(null);
+  const [creative, setCreative] = useState<Creative | null>(null);
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
@@ -142,6 +143,7 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
         dayparts,
         creativeName: creative?.name ?? null,
         creativeSrc: creative?.src ?? null,
+        creativeId: creative?.creativeId ?? null,
         email: email.trim(),
         startedAt: null,
       });
@@ -302,7 +304,8 @@ function StatusTag({ campaign }: { campaign: Campaign }) {
 function CampaignDetail({ campaign, onDelete }: { campaign: Campaign; onDelete: () => void }) {
   const t = useCopy(CAMPAIGN).dash;
   const day = useDay();
-  const totals = totalsOf(campaign);
+  const { byCampaign } = usePlays();
+  const totals = totalsOf(campaign, byCampaign[campaign.id]);
   return (
     <div className="detail">
       <div className="detail-head">
@@ -327,12 +330,16 @@ function CampaignDetail({ campaign, onDelete }: { campaign: Campaign; onDelete: 
         </button>
       </div>
 
-      {!totals.running && <p className="detail-banner">{t.detail.banner}</p>}
+      {/* The banner says "nothing has played yet", so it follows the figures
+          rather than the approval: a campaign a shop approved this morning is
+          still a forecast until a screen reports its first spot. */}
+      {totals.source === 'model' && <p className="detail-banner">{t.detail.banner}</p>}
 
       <AnalyticsPanel
         booking={campaign}
         creativeName={campaign.creativeName}
         creativeSrc={campaign.creativeSrc}
+        measured={byCampaign[campaign.id]}
       />
     </div>
   );
@@ -357,10 +364,11 @@ export function AdvertiserDashboard() {
     [campaigns, selected],
   );
 
+  const { byCampaign: plays } = usePlays();
   const weekly = campaigns.reduce((total, campaign) => total + campaign.weeklySpend, 0);
   const minutes = campaigns.reduce((total, campaign) => total + campaignMinutes(campaign), 0);
   const running = campaigns.filter((campaign) => statusOf(campaign) === 'live').length;
-  const spent = campaigns.reduce((total, campaign) => total + totalsOf(campaign).spend, 0);
+  const spent = campaigns.reduce((total, campaign) => total + totalsOf(campaign, plays[campaign.id]).spend, 0);
 
   if (creating) {
     return (
@@ -418,7 +426,7 @@ export function AdvertiserDashboard() {
         <aside className="dash-list" aria-label={t.list.label}>
           <div className="dash-list-scroll">
             {campaigns.map((campaign) => {
-              const stats = totalsOf(campaign);
+              const stats = totalsOf(campaign, plays[campaign.id]);
               return (
                 <button
                   key={campaign.id}

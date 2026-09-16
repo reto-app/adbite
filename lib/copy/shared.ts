@@ -308,7 +308,7 @@ const es: typeof en = {
     warm: { label: 'Cálido', note: 'Terracota y tinta, para un local con madera' },
     garden: { label: 'Jardín', note: 'Verde profundo y dorado, más sobrio y un poco formal' },
   },
-  badges: { none: 'Sin etiqueta', new: 'Nuevo', popular: 'Popular', out: 'Agotado' },
+  badges: { none: 'Ninguna', new: 'Nuevo', popular: 'Popular', out: 'Agotado' },
   groups: {
     food: { label: 'Restaurantes', blurb: 'Tableros de menú en el mostrador, filas al almuerzo y la cena' },
     coffee: { label: 'Cafés y panaderías', blurb: 'Mañanas, laptops, gente que se queda' },

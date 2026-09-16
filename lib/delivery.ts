@@ -13,8 +13,11 @@
  * reloads instead of reshuffling on every render. It is texture, not data,
  * and it is centred so it never moves a total.
  *
- * When a real ad server lands, this file is the seam: keep the shapes, swap
- * the source. */
+ * That was the whole story until TVs started reporting what they played.
+ * A campaign with a play log now reads its headline figures off that log
+ * (`Measured` below) and keeps the model only for the shapes nothing counts:
+ * reach, and the day-to-day and shop-to-shop splits. `source` on the totals
+ * says which of the two a surface is showing, and every surface labels it. */
 
 import { FORMATS, type FormatId } from '@/lib/boards';
 import { VENUES, type Venue } from '@/lib/network';
@@ -264,8 +267,18 @@ export function byHour(booking: Bookable, scale = 1): HourCell[] {
 
 /* ---- the headline numbers ------------------------------------------------ */
 
+/** What the TVs actually reported for a campaign. */
+export type Measured = {
+  plays: number;
+  seconds: number;
+  /** When the first play landed, or null if none have. */
+  since: number | null;
+};
+
 export type Totals = {
   running: boolean;
+  /** 'log' once TVs have reported plays; 'model' before that. */
+  source: 'log' | 'model';
   /** Weeks elapsed since the board started playing it, as a fraction. */
   weeks: number;
   days: number;
@@ -287,7 +300,7 @@ export type Totals = {
   shops: number;
 };
 
-export function totalsOf(booking: Bookable): Totals {
+export function totalsOf(booking: Bookable, measured?: Measured | null): Totals {
   const venues = venuesOf(booking);
   const weeks = weeksRunning(booking);
   const running = weeks > 0;
@@ -303,17 +316,27 @@ export function totalsOf(booking: Bookable): Totals {
   const reach = splits.reduce((total, split) => total + split.reach, 0);
   const weekMinutes = splitByVenue(booking).reduce((total, split) => total + split.minutes, 0);
 
+  /* A play log beats the model. Delivered time and plays are counted; what
+     they cost is that count at the rate this booking was priced at, which is
+     the same arithmetic the advertiser agreed to. */
+  const counted = Boolean(measured && measured.plays > 0);
+  const rate = minutes ? spend / minutes : 0;
+  const deliveredMinutes = counted ? measured!.seconds / 60 : minutes;
+  const deliveredPlays = counted ? measured!.plays : plays;
+  const deliveredSpend = counted ? deliveredMinutes * rate : spend;
+
   return {
     running,
+    source: counted ? 'log' : 'model',
     weeks,
     days: daysRunning(booking),
-    minutes,
-    plays,
-    spend,
+    minutes: deliveredMinutes,
+    plays: deliveredPlays,
+    spend: deliveredSpend,
     reach,
-    perPlay: plays ? spend / plays : 0,
-    perMinute: minutes ? spend / minutes : 0,
-    perThousand: reach ? (spend / reach) * 1000 : 0,
+    perPlay: deliveredPlays ? deliveredSpend / deliveredPlays : 0,
+    perMinute: deliveredMinutes ? deliveredSpend / deliveredMinutes : 0,
+    perThousand: reach ? (deliveredSpend / reach) * 1000 : 0,
     weeklySpend: booking.weeklySpend,
     weeklyMinutes: weekMinutes,
     byPlay: unitOf(booking.format) === 'play',
