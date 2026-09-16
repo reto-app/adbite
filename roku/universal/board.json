@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "exportedAt": "2026-09-16T00:00:00.000Z",
+  "shopId": "unpaired",
+  "syncUrl": "https://adbite.site/api/device",
+  "pairing": true,
+  "remoteUrl": null,
+  "refreshMinutes": 1,
+  "keepAwake": true,
+  "textScale": 1,
+  "adLayout": "rail",
+  "spotSeconds": 15,
+  "reviewSeconds": 12,
+  "slotWindows": [
+    { "id": "morning", "label": "Breakfast", "startMinute": 0, "endMinute": 660 },
+    { "id": "midday", "label": "Lunch", "startMinute": 660, "endMinute": 960 },
+    { "id": "evening", "label": "Evening", "startMinute": 960, "endMinute": 1440 }
+  ],
+  "board": {
+    "shopName": "AdBite Board",
+    "tagline": "Waiting to be paired",
+    "theme": "chalk",
+    "adShare": 0,
+    "slots": { "morning": [], "midday": [], "evening": [] },
+    "reviews": { "on": false, "items": [] },
+    "media": { "on": false, "name": null, "src": null }
+  },
+  "ads": []
+}

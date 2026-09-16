@@ -9893,3 +9893,27 @@ text.vs-small {
 .access-done .button {
   margin-top: 6px;
 }
+
+/* ---- the shop's TVs -------------------------------------------------------- */
+.tv-pair {
+  margin-bottom: 28px;
+}
+.tv-on,
+.tv-off {
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.tv-on {
+  color: #0f6b3a;
+  background: #d8f3e3;
+}
+.tv-off {
+  color: #7a3a10;
+  background: #fbe4d2;
+}
+.tv-card b[title] {
+  cursor: text;
+}

@@ -25,6 +25,16 @@
     <Video id="keepAwake" translation="[1916, 1076]" width="2" height="2"
            opacity="0.01" mute="true" enableUI="false" loop="true" />
 
+    <!-- The pairing card: what a screen shows until a shop claims it. -->
+    <Group id="pairing" visible="false">
+      <Rectangle width="1920" height="1080" color="0x0D0D0DFF" />
+      <Poster uri="pkg:/images/icon_focus_hd.png" translation="[96, 84]" width="290" height="218" />
+      <Label id="pairTitle" translation="[0, 330]" width="1920" horizAlign="center" color="0xFFFFFFFF" />
+      <Label id="pairCode" translation="[0, 420]" width="1920" horizAlign="center" color="0x8FD0F6FF" />
+      <Label id="pairHelp" translation="[260, 700]" width="1400" horizAlign="center" wrap="true" color="0xC9D1D9FF" />
+      <Label id="pairFoot" translation="[0, 960]" width="1920" horizAlign="center" color="0x6B7480FF" />
+    </Group>
+
     <Group id="diagnostics" visible="false" translation="[72, 72]">
       <Rectangle id="diagBg" width="820" height="290" color="0x000000E6" />
       <Label id="diagText" translation="[28, 24]" width="764" height="242" wrap="true" />

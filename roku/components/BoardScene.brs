@@ -5,6 +5,8 @@ sub init()
     m.keepAwake = m.top.findNode("keepAwake")
     m.diagnostics = m.top.findNode("diagnostics")
     m.diagText = m.top.findNode("diagText")
+    m.pairing = m.top.findNode("pairing")
+    m.pendingPlays = []
 
     m.config = invalid
     m.slotId = ""
@@ -13,6 +15,7 @@ sub init()
     m.nextRefreshAt = 0
 
     m.ads.observeField("playingVideo", "onAdVideo")
+    m.ads.observeField("played", "onPlayed")
 
     m.slotTimer = m.top.createChild("Timer")
     m.slotTimer.duration = 30
@@ -29,6 +32,7 @@ sub init()
     m.loader = CreateObject("roSGNode", "ConfigTask")
     m.loader.observeField("config", "onConfig")
     m.loader.observeField("error", "onLoaderError")
+    m.loader.observeField("playsAccepted", "onPlaysAccepted")
     reloadConfig()
 
     m.slotTimer.control = "start"
@@ -38,7 +42,32 @@ end sub
 sub reloadConfig()
     m.loader.control = "stop"
     m.loader.remoteUrl = m.top.launchRemoteUrl
+    ' The play log rides along with the sync and is dropped once the server
+    ' has taken it. Capped so a TV cut off for a month does not grow a list
+    ' without bound; the oldest go first.
+    while m.pendingPlays.count() > 2000
+        m.pendingPlays.Delete(0)
+    end while
+    m.loader.plays = m.pendingPlays
     m.loader.control = "RUN"
+end sub
+
+' AdPane reports each spot it put on the wall; the scene keeps the list
+' between syncs.
+sub onPlayed()
+    play = m.ads.played
+    if play = invalid or play.id = invalid then return
+    m.pendingPlays.Push(play)
+end sub
+
+sub onPlaysAccepted()
+    taken = m.loader.playsAccepted
+    if taken <= 0 then return
+    kept = []
+    for i = taken to m.pendingPlays.count() - 1
+        kept.Push(m.pendingPlays[i])
+    end for
+    m.pendingPlays = kept
 end sub
 
 sub onLoaderError()
@@ -57,14 +86,66 @@ sub onConfig()
     m.source = m.loader.source
     m.slotId = currentSlotId()
 
-    theme = BoardTheme(strOrDefault(config.board.theme, "chalk"))
-    m.backdrop.color = theme.bg
+    if config.pairing = true
+        showPairing(strOrDefault(config.pairCode, ""))
+    else
+        m.pairing.visible = false
+        m.menu.visible = true
+        m.ads.visible = true
+        theme = BoardTheme(strOrDefault(config.board.theme, "chalk"))
+        m.backdrop.color = theme.bg
+        layout()
+    end if
 
-    layout()
     startKeepAwake()
     startRefresh()
     refreshDiagnostics()
 end sub
+
+' Until a shop claims it, the screen is a card with a code and one
+' instruction. Kept plain on purpose: it is read across a room by someone
+' who has never seen the product.
+sub showPairing(code as String)
+    m.menu.visible = false
+    m.ads.visible = false
+    m.backdrop.color = &h0D0D0DFF
+
+    title = m.top.findNode("pairTitle")
+    title.font = BoardFont(56, true)
+    title.text = "Pair this screen"
+
+    codeLabel = m.top.findNode("pairCode")
+    codeLabel.font = BoardFont(220, true)
+    if code = ""
+        codeLabel.text = "· · · · · ·"
+    else
+        codeLabel.text = spaced(code)
+    end if
+
+    help = m.top.findNode("pairHelp")
+    help.font = BoardFont(40, false)
+    help.text = "On your computer or phone, sign in at adbite.site/dashboard, open Your TVs, and type this code. The board appears here within a minute."
+
+    device = CreateObject("roDeviceInfo")
+    foot = m.top.findNode("pairFoot")
+    foot.font = BoardFont(28, false)
+    if code = ""
+        foot.text = "Connecting to AdBite… check this TV is on Wi-Fi. Press OPTIONS for details."
+    else
+        foot.text = "AdBite Board " + CreateObject("roAppInfo").GetVersion() + "  ·  " + device.GetModelDisplayName()
+    end if
+
+    m.pairing.visible = true
+end sub
+
+function spaced(code as String) as String
+    out = ""
+    for i = 0 to Len(code) - 1
+        if i > 0 then out = out + " "
+        out = out + Mid(code, i + 1, 1)
+    end for
+    return out
+end function
 
 ' ---- layout ---------------------------------------------------------------
 
@@ -170,7 +251,8 @@ end sub
 ' at launch, so a TV restarted after a menu change does not wait for its slot.
 sub startRefresh()
     remote = strOrDefault(m.config.remoteUrl, "")
-    if remote = "" and m.top.launchRemoteUrl = "" and not registryHasUrl()
+    syncing = strOrDefault(m.config.syncUrl, "") <> ""
+    if remote = "" and m.top.launchRemoteUrl = "" and not registryHasUrl() and not syncing
         ' Nothing to poll. The packaged board only changes on a re-sideload.
         m.refreshTimer.control = "stop"
         m.nextRefreshAt = 0
@@ -302,21 +384,49 @@ sub refreshDiagnostics()
         if m.config.ads <> invalid then items = m.config.ads.count()
     end if
 
+    section = CreateObject("roRegistrySection", "adbite")
+    deviceId = "unregistered"
+    if section.Exists("deviceId") then deviceId = section.Read("deviceId")
+
     lines = [
         shop + "  ·  " + m.slotId,
         "board from " + m.source + ", exported " + exported,
-        items.ToStr() + " spot(s) in the rotation",
+        items.ToStr() + " spot(s) in the rotation  ·  " + m.pendingPlays.count().ToStr() + " play(s) to report",
         "polling " + pollingDescription(),
+        "device " + deviceId + "  ·  cache " + cacheDescription(),
         "channel " + app.GetVersion() + "  ·  " + device.GetModelDisplayName(),
         "ip " + addresses,
         "",
-        "OPTIONS hides this  ·  PLAY re-reads the board"
+        "OPTIONS hides this  ·  PLAY syncs now"
     ]
 
     m.diagText.font = BoardFont(26, false)
     m.diagText.color = &hFFFFFFFF
     m.diagText.text = joinLines(lines)
 end sub
+
+' How much of the device's cache the spots are using, and what is left. On a
+' Roku the answer to "what is left" is advisory: cachefs can be evicted.
+function cacheDescription() as String
+    fs = CreateObject("roFileSystem")
+    used = 0
+    files = fs.Find("cachefs:/", "^a-")
+    if files <> invalid
+        for each name in files
+            stat = fs.Stat("cachefs:/" + name)
+            if stat <> invalid and stat.size <> invalid then used = used + stat.size
+        end for
+    end if
+    out = (used / 1048576).ToStr() + " MB in spots"
+    info = fs.GetVolumeInfo("cachefs:")
+    if info <> invalid and info.blocks <> invalid and info.blocksize <> invalid
+        total = info.blocks * info.blocksize / 1048576
+        free = 0
+        if info.freeblocks <> invalid then free = info.freeblocks * info.blocksize / 1048576
+        out = out + ", " + Int(free).ToStr() + " of " + Int(total).ToStr() + " MB free"
+    end if
+    return out
+end function
 
 ' The one line that says whether this TV is talking to a server at all, and
 ' when it will next do so. It is the first thing to read when a menu change
@@ -328,6 +438,7 @@ function pollingDescription() as String
         if section.Exists("remoteUrl") then url = section.Read("remoteUrl")
     end if
     if url = "" and m.config <> invalid then url = strOrDefault(m.config.remoteUrl, "")
+    if url = "" and m.config <> invalid then url = strOrDefault(m.config.syncUrl, "")
     if url = "" then return "nothing — this is the board inside the package"
 
     when = "off"

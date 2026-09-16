@@ -77,6 +77,12 @@ only per-browser conveniences.
 
 ## Phase 2: the board reaches a TV by itself (site + channel)
 
+**Status 2026-09-16: server and channel built; server verified on a preview
+(register → pair → composed board with an R2-hosted spot → etag 304 →
+plays recorded). R2 bucket `adbite-assets` live at assets.adbite.site.
+Waiting on: the Hisense on the hotspot for the end-to-end run and the
+cachefs capacity reading (the OPTIONS overlay now prints it).**
+
 Goal: pair a TV from the dashboard, edit the menu, see it on the wall within
 10 minutes, with no laptop involved.
 

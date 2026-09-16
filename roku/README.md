@@ -65,6 +65,24 @@ OPTIONS overlay will say what it is trying to reach. Re-run `tools/point.sh`
 after each `tools/serve.sh`. For anything longer-lived than an afternoon, use a
 named Cloudflare tunnel or a real host.
 
+## The universal package
+
+`universal/board.json` names a sync server instead of a menu. A TV running
+that package registers itself with `POST /api/device/register`, shows a
+six-character pairing code, and polls `POST /api/device/sync` every ten
+minutes once a shop has claimed it from the dashboard's **Your TVs** tab.
+The response is the same board.json shape, composed on the server from the
+shop's saved board and the spots it has approved; every asset it names is
+downloaded to `cachefs:` and verified by size before the board is shown, so
+nothing streams. Plays ride along in the same request.
+
+```bash
+tools/build.sh universal/board.json   # the package every shop gets
+```
+
+`tools/point.sh <ip> <url>` still works for a hand-served board; a stored
+`remoteUrl` is only consulted when the package has no `syncUrl`.
+
 ## Getting it onto a TV
 
 Put the Roku in developer mode — on the remote:

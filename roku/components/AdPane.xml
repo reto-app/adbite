@@ -23,6 +23,9 @@
     <!-- Read by BoardScene, which parks the keep-awake clip while a spot has
          the decoder. -->
     <field id="playingVideo" type="boolean" value="false" />
+    <!-- Set each time a spot goes on the wall: { id, at, seconds }. The
+         scene collects these and the next sync carries them. -->
+    <field id="played" type="assocarray" />
   </interface>
 
   <script type="text/brightscript" uri="pkg:/components/AdPane.brs" />

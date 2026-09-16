@@ -16,8 +16,13 @@
   <interface>
     <field id="remoteUrl" type="string" value="" />
     <field id="config" type="assocarray" />
+    <!-- package | cache | remote | sync | pairing -->
     <field id="source" type="string" value="" />
     <field id="error" type="string" value="" />
+    <!-- Spots played since the last sync, handed in by the scene; how many
+         of them the server took, handed back. -->
+    <field id="plays" type="array" />
+    <field id="playsAccepted" type="integer" value="0" />
   </interface>
 
   <script type="text/brightscript" uri="pkg:/components/ConfigTask.brs" />

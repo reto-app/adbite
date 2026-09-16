@@ -9,6 +9,7 @@ import {
   Sparkles,
   Star,
   Trash2,
+  Tv,
   Upload,
   Wallet,
   X,
@@ -51,6 +52,7 @@ import {
   type Campaign,
 } from '@/lib/campaigns';
 import { FORMATS } from '@/lib/boards';
+import { POLL_MINUTES, isOnline, pairDevice, renameDevice, useDevices, type Device } from '@/lib/devices';
 
 const SHOP = LIVE_VENUES[0];
 const day = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
@@ -65,6 +67,7 @@ const TABS = [
   { id: 'board', label: 'Your board', icon: LayoutTemplate },
   { id: 'ads', label: 'Ads waiting', icon: Check },
   { id: 'money', label: 'What it pays', icon: Wallet },
+  { id: 'tvs', label: 'Your TVs', icon: Tv },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -148,6 +151,7 @@ export function ShopDashboard() {
       )}
       {tab === 'ads' && <AdsTab waiting={waiting} campaigns={campaigns} />}
       {tab === 'money' && <MoneyTab board={board} priced={priced} />}
+      {tab === 'tvs' && <TvTab />}
     </main>
   );
 }
@@ -609,5 +613,134 @@ function MoneyTab({ board, priced }: { board: Board; priced: typeof SHOP }) {
         </div>
       </aside>
     </section>
+  );
+}
+
+/* ---- the TVs --------------------------------------------------------------
+   A screen introduces itself with a code; the owner types it once. After
+   that the panel is a status board: is it on, when did it last check in,
+   which build is it running. The ten-minute figure is the poll interval and
+   is the honest answer to "when will my change show up". */
+function TvTab() {
+  const { ready, devices } = useDevices();
+  const [code, setCode] = useState('');
+  const [name, setName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [paired, setPaired] = useState(false);
+
+  const pair = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setError('');
+    setPaired(false);
+    const result = await pairDevice(code, name);
+    setBusy(false);
+    if (result.ok) {
+      setPaired(true);
+      setCode('');
+      setName('');
+    } else {
+      setError(result.message);
+    }
+  };
+
+  return (
+    <section className="shop-queue wrap">
+      <div className="section-head">
+        <h2>Your TVs.</h2>
+        <p>
+          Open the AdBite Board channel on a Roku and it shows a six-character code. Type it here
+          and that screen is yours. Every TV checks for changes every {POLL_MINUTES} minutes, so a
+          menu edit or an approved ad takes up to {POLL_MINUTES} minutes to reach the wall.
+        </p>
+      </div>
+
+      <form className="access-form tv-pair" onSubmit={pair}>
+        <div className="form-grid">
+          <label htmlFor="tv-code">
+            Code on the TV
+            <input
+              id="tv-code"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="ABC234"
+              maxLength={7}
+              autoComplete="off"
+              spellCheck={false}
+              required
+            />
+          </label>
+          <label htmlFor="tv-name">
+            Call it
+            <input id="tv-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Counter TV" />
+          </label>
+        </div>
+        <button className="button primary" type="submit" disabled={busy || code.replace(/[^A-Z0-9]/g, '').length < 6}>
+          {busy ? 'Pairing…' : 'Pair this TV'}
+        </button>
+        {error && (
+          <p className="form-warn" role="alert">
+            {error}
+          </p>
+        )}
+        {paired && <p className="form-note">Paired. Your board is on it within a minute.</p>}
+      </form>
+
+      {ready && devices.length === 0 ? (
+        <p className="queue-empty">No TVs yet. Pair the first one above.</p>
+      ) : (
+        <div className="queue-grid">
+          {devices.map((device) => (
+            <TvCard key={device.id} device={device} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+const when = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+function TvCard({ device }: { device: Device }) {
+  const online = isOnline(device);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(device.name);
+
+  return (
+    <article className="queue-card tv-card">
+      <div className="queue-head">
+        {editing ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              setEditing(false);
+              if (draft.trim() && draft.trim() !== device.name) void renameDevice(device.id, draft.trim());
+            }}
+          >
+            <input value={draft} onChange={(e) => setDraft(e.target.value)} autoFocus />
+          </form>
+        ) : (
+          <b onDoubleClick={() => setEditing(true)} title="Double-click to rename">
+            {device.name}
+          </b>
+        )}
+        <span className={online ? 'tv-on' : 'tv-off'}>{online ? 'On the wall' : 'Not checking in'}</span>
+      </div>
+      <dl className="queue-facts">
+        <div>
+          <dt>Last checked in</dt>
+          <dd>{device.lastSeen ? when.format(new Date(device.lastSeen)) : 'Never'}</dd>
+        </div>
+        <div>
+          <dt>Shows</dt>
+          <dd>{device.screen === 'reel' ? 'Ads only (second screen)' : 'Your menu and ads'}</dd>
+        </div>
+        <div>
+          <dt>Channel</dt>
+          <dd>{device.channelVersion ?? 'unknown'}</dd>
+        </div>
+      </dl>
+    </article>
   );
 }

@@ -151,10 +151,20 @@ sub advance()
     queueNext(adSeconds(ad))
 end sub
 
+' What actually reached the wall, for billing and for the advertiser's
+' numbers. Reported at the moment the spot is visible, never when it was
+' merely scheduled.
+sub reportPlay(ad as Object, seconds as Float)
+    if ad = invalid or ad.id = invalid then return
+    now = CreateObject("roDateTime")
+    m.top.played = { id: ad.id, at: now.ToISOString(), seconds: seconds }
+end sub
+
 sub onSlotPosterLoad()
     status = m.slotPoster.loadStatus
     if status = "ready"
         m.fade.control = "start"
+        if m.index >= 0 and m.index < m.ads.count() then reportPlay(m.ads[m.index], adSeconds(m.ads[m.index]))
     else if status = "failed"
         ' A spot whose artwork will not decode is dead weight in the rotation.
         ' Drop it and move on rather than holding a blank rail for 15 seconds.
@@ -180,6 +190,7 @@ sub showFullPoster(ad as Object)
     m.fullPoster.uri = strOr(ad.src, "")
     m.fullGroup.visible = true
     m.showingFull = true
+    reportPlay(ad, adSeconds(ad))
     queueNext(adSeconds(ad))
 end sub
 
@@ -226,6 +237,7 @@ sub onVideoState()
         m.videoPending = false
         m.fullVideo.visible = true
         m.fullGroup.visible = true
+        if m.index >= 0 and m.index < m.ads.count() then reportPlay(m.ads[m.index], adSeconds(m.ads[m.index]))
     else if state = "finished" or state = "error"
         if state = "error" then print "[adbite] video spot failed to play"
         m.videoPending = false
