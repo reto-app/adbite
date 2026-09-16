@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!-- The whole wall.
+
+     The scene owns three clocks and nothing else:
+       the slot clock   swaps breakfast for lunch at the shop's own hours
+       the refresh      re-reads the board, so a hosted menu can change
+       the keep-awake   holds the screensaver off a screen nobody touches
+
+     Ad rotation belongs to AdPane and menu layout to MenuPane. -->
+
+<component name="BoardScene" extends="Scene">
+  <interface>
+    <field id="launchRemoteUrl" type="string" value="" />
+  </interface>
+
+  <children>
+    <Rectangle id="backdrop" width="1920" height="1080" color="0x14100DFF" />
+    <MenuPane id="menu" />
+    <AdPane id="ads" />
+
+    <!-- Two pixels of muted, looping black. A Roku with video playing does not
+         raise its screensaver, and that is the only lever a channel has over
+         it. Anything else on the wall would be a burn-in risk. -->
+    <Video id="keepAwake" translation="[1916, 1076]" width="2" height="2"
+           opacity="0.01" mute="true" enableUI="false" loop="true" />
+
+    <Group id="diagnostics" visible="false" translation="[72, 72]">
+      <Rectangle id="diagBg" width="820" height="290" color="0x000000E6" />
+      <Label id="diagText" translation="[28, 24]" width="764" height="242" wrap="true" />
+    </Group>
+  </children>
+
+  <script type="text/brightscript" uri="pkg:/components/BoardScene.brs" />
+  <script type="text/brightscript" uri="pkg:/components/theme.brs" />
+</component>

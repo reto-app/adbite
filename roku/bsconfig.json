@@ -1,0 +1,16 @@
+{
+  "//": "Validation only. The package is a plain BrightScript zip built by tools/build.sh; brighterscript is here to catch a syntax error before it reaches a wall-mounted TV as a black screen.",
+  "rootDir": ".",
+  "files": [
+    "manifest",
+    "source/**/*.brs",
+    "components/**/*.xml",
+    "components/**/*.brs",
+    "images/**/*",
+    "media/**/*",
+    "ads/**/*",
+    "board.json"
+  ],
+  "autoImportComponentScript": false,
+  "createPackage": false
+}

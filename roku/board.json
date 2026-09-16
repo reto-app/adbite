@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "exportedAt": "2026-09-14T00:00:00.000Z",
+  "shopId": "sample",
+
+  "remoteUrl": null,
+  "refreshAt": "04:00",
+  "refreshMinutes": 15,
+  "keepAwake": true,
+  "textScale": 1,
+  "adLayout": "rail",
+  "spotSeconds": 15,
+  "reviewSeconds": 12,
+
+  "slotWindows": [
+    { "id": "morning", "label": "Breakfast", "startMinute": 0,    "endMinute": 660 },
+    { "id": "midday",  "label": "Lunch",     "startMinute": 660,  "endMinute": 960 },
+    { "id": "evening", "label": "Evening",   "startMinute": 960,  "endMinute": 1440 }
+  ],
+
+  "board": {
+    "shopName": "Bao Pao Wow",
+    "tagline": "Filipino steamed buns · 660 N Freedom Blvd",
+    "theme": "chalk",
+    "adShare": 0.3333333333333333,
+    "slots": {
+      "morning": [
+        {
+          "id": "s-m1",
+          "title": "Early",
+          "items": [
+            { "id": "i1", "name": "Pandesal basket", "note": "Four warm rolls, salted butter", "price": "4", "badge": "none" },
+            { "id": "i2", "name": "Longganisa plate", "note": "Garlic rice, fried egg", "price": "9", "badge": "popular" },
+            { "id": "i3", "name": "Champorado", "note": "Chocolate rice porridge", "price": "6", "badge": "none" }
+          ]
+        },
+        {
+          "id": "s-m2",
+          "title": "Coffee",
+          "items": [
+            { "id": "i4", "name": "Barako drip", "note": "Strong, local beans", "price": "3", "badge": "none" },
+            { "id": "i5", "name": "Iced kapeng puti", "note": "Condensed milk", "price": "4.50", "badge": "none" }
+          ]
+        }
+      ],
+      "midday": [
+        {
+          "id": "s-d1",
+          "title": "Buns",
+          "items": [
+            { "id": "i6", "name": "Pork asado bao", "note": "Braised shoulder, hoisin", "price": "5", "badge": "popular" },
+            { "id": "i7", "name": "Chicken adobo bao", "note": "Soy, vinegar, black pepper", "price": "5", "badge": "none" },
+            { "id": "i8", "name": "Crispy pata bao", "note": "Pork knuckle, pickled radish", "price": "6", "badge": "new" },
+            { "id": "i9", "name": "Ube + cheese bao", "note": "Sweet, for after", "price": "4", "badge": "none" }
+          ]
+        },
+        {
+          "id": "s-d2",
+          "title": "Plates",
+          "items": [
+            { "id": "i10", "name": "Sisig rice bowl", "note": "Chopped pork, calamansi, egg", "price": "12", "badge": "none" },
+            { "id": "i11", "name": "Pancit bihon", "note": "Rice noodles, cabbage, lemon", "price": "10", "badge": "none" },
+            { "id": "i12", "name": "Lumpia, six", "note": "Sweet chilli on the side", "price": "7", "badge": "none" }
+          ]
+        },
+        {
+          "id": "s-d3",
+          "title": "Drinks",
+          "items": [
+            { "id": "i13", "name": "Calamansi soda", "note": "House-pressed", "price": "4", "badge": "none" },
+            { "id": "i14", "name": "Sago at gulaman", "note": "Brown sugar, pandan jelly", "price": "5", "badge": "none" },
+            { "id": "i15", "name": "Bottled water", "note": "", "price": "2", "badge": "none" }
+          ]
+        }
+      ],
+      "evening": [
+        {
+          "id": "s-e1",
+          "title": "Bigger plates",
+          "items": [
+            { "id": "i16", "name": "Kare-kare", "note": "Oxtail, peanut, bagoong", "price": "18", "badge": "popular" },
+            { "id": "i17", "name": "Crispy pata", "note": "Whole knuckle, to share", "price": "24", "badge": "none" },
+            { "id": "i18", "name": "Bangus belly", "note": "Grilled, garlic rice", "price": "16", "badge": "none" }
+          ]
+        },
+        {
+          "id": "s-e2",
+          "title": "Late buns",
+          "items": [
+            { "id": "i19", "name": "Pork asado bao", "note": "Braised shoulder, hoisin", "price": "5", "badge": "none" },
+            { "id": "i20", "name": "Ube + cheese bao", "note": "Sweet, for after", "price": "4", "badge": "none" }
+          ]
+        }
+      ]
+    },
+    "reviews": {
+      "on": true,
+      "items": [
+        { "id": "r1", "quote": "The crispy pata bao is the best thing I have eaten in Provo this year.", "author": "Dani R.", "stars": 5, "source": "Google" },
+        { "id": "r2", "quote": "Tiny place, enormous flavour. The sisig bowl is worth the queue.", "author": "Marcus T.", "stars": 5, "source": "Yelp" },
+        { "id": "r3", "quote": "Went for one bun. Left with four and a soda.", "author": "Priya N.", "stars": 4, "source": "Google" }
+      ]
+    },
+    "media": { "on": false, "name": null, "src": null }
+  },
+
+  "ads": [
+    { "id": "spot-rosas", "name": "Rosa's Taqueria", "format": "video", "src": "ads/rosas-spot.mp4", "seconds": 15 }
+  ]
+}

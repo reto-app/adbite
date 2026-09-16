@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!-- The sold half of the screen.
+     
+     Two placements, decided by the board rather than by each ad, because the
+     shop sold one shape of space: a rail down the right, or a strip along the
+     foot. A `full` or `video` campaign is the exception — it buys the whole
+     screen for its turn, so it is drawn over everything and the menu comes
+     back when the spot ends.
+
+     With nothing booked this draws the same hatched "Ad space" placeholder the
+     dashboard preview does, so an empty week looks deliberate instead of
+     broken. -->
+
+<component name="AdPane" extends="Group">
+  <interface>
+    <field id="config" type="assocarray" />
+    <!-- [x, y, width, height] of the rail or banner slot -->
+    <field id="slot" type="floatarray" />
+    <field id="placement" type="string" value="rail" />
+    <!-- Bumped by BoardScene once the slot and the board are both set. -->
+    <field id="revision" type="integer" value="0" onChange="reload" />
+    <!-- Read by BoardScene, which parks the keep-awake clip while a spot has
+         the decoder. -->
+    <field id="playingVideo" type="boolean" value="false" />
+  </interface>
+
+  <script type="text/brightscript" uri="pkg:/components/AdPane.brs" />
+  <script type="text/brightscript" uri="pkg:/components/theme.brs" />
+</component>

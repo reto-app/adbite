@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!-- The shop's half of the screen: header, the menu in two columns, and a
+     review along the foot.
+
+     It is laid out in code rather than XML because the menu is data. The
+     numbers below are the web preview's `cqw` sizes resolved against a 1920
+     board, so what the shop approved in the dashboard is what the wall shows.
+     -->
+
+<component name="MenuPane" extends="Group">
+  <interface>
+    <field id="config" type="assocarray" />
+    <field id="slotId" type="string" value="midday" />
+    <field id="paneWidth" type="float" value="1280" />
+    <field id="paneHeight" type="float" value="1080" />
+    <!-- Bumped by BoardScene once the four above are all set. Redrawing on
+         each of them in turn rebuilds the menu four times and shows a frame of
+         the previous board's layout on the way past. -->
+    <field id="revision" type="integer" value="0" onChange="redraw" />
+  </interface>
+
+  <script type="text/brightscript" uri="pkg:/components/MenuPane.brs" />
+  <script type="text/brightscript" uri="pkg:/components/theme.brs" />
+</component>

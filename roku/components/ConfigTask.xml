@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!-- Where the board comes from.
+
+     Resolution order, first hit wins as the *live* board:
+
+       1. remoteUrl  a hosted board.json, if one was baked in or set on the TV
+       2. cachefs:/  the last good remote copy, so a dead uplink at 6am still
+                     shows yesterday's menu rather than a stale packaged one
+       3. pkg:/      the copy exported into the package. Always present.
+
+     The packaged copy is read first and published immediately, so the board is
+     on screen before the network is consulted at all. -->
+
+<component name="ConfigTask" extends="Task">
+  <interface>
+    <field id="remoteUrl" type="string" value="" />
+    <field id="config" type="assocarray" />
+    <field id="source" type="string" value="" />
+    <field id="error" type="string" value="" />
+  </interface>
+
+  <script type="text/brightscript" uri="pkg:/components/ConfigTask.brs" />
+</component>

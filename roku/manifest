@@ -1,0 +1,23 @@
+# AdBite Board — a menu board for a sideloaded Roku.
+#
+# The package is built by tools/build.sh, or exported from the shop dashboard
+# with the menu and the booked ads already baked into board.json. Bump
+# build_version on every package you hand a shop so they can tell two apart on
+# the About screen.
+
+title=AdBite Board
+major_version=1
+minor_version=0
+build_version=00008
+
+mm_icon_focus_hd=pkg:/images/icon_focus_hd.png
+mm_icon_side_hd=pkg:/images/icon_side_hd.png
+
+splash_screen_fhd=pkg:/images/splash_fhd.png
+splash_screen_hd=pkg:/images/splash_hd.png
+splash_color=#14100D
+splash_min_time=600
+
+# The board is drawn at 1920x1080 and letterboxed down by the device on an HD
+# panel, so there is one set of coordinates rather than two.
+ui_resolutions=fhd
