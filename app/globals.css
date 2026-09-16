@@ -2376,16 +2376,19 @@ h3 {
 /* No card behind a county, just its name under the shops in it. The boxes
    that used to be here read as rows in a table, which is the wrong idea for
    three places on a map. */
+/* One county name at a time, so it can be twice the size three stacked ones
+   could ever have been and still sit clear of everything. */
 .nm-county-name {
-  fill: #8095a6;
-  font-size: 4.8px;
+  fill: var(--sky-deep);
+  font-size: 8.5px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  transition: fill 0.2s ease;
+  letter-spacing: 0.1em;
+  animation: nmName 0.4s ease-out;
 }
 
-.nm-county-name.on {
-  fill: var(--sky-deep);
+@keyframes nmName {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Only the shop whose turn it is is visible. The rest are drawn and fully

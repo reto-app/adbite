@@ -40,21 +40,21 @@ function project(lat: number, lng: number): [number, number] {
   ];
 }
 
-/* County names sit out in the West Desert, each at its own county's latitude.
-   That half of the state is empty on a real map too. They are set over two
-   lines because on one they run east far enough to reach the shops, which are
-   all crowded against the mountains in a band about four units wide. */
-const NAME_X = 34;
-const NAME_LEADING = 5.6;
+/* The county of whichever shop is lit, written once in the clear band between
+   the southernmost shop and the state's own name.
+ *
+ * Three names down the side of the state was the obvious thing and it does
+ * not work. The shops crowd into a strip about five units wide against the
+ * mountains, so a name long enough to say "Salt Lake County" either runs into
+ * them or has to be set so small it cannot be read: 5px on a phone. One name
+ * at a time can be twice that size, never collides with anything, and tells
+ * you which county you are looking at as the light moves. */
+const COUNTY_NAME_AT: [number, number] = [80, 100];
 
-/* `labelLat` is where the name is written, not where the county is. Salt Lake
-   and Utah counties share a border, so at their own latitudes two two-line
-   names land on top of each other; these are pushed a little apart. The shops
-   are not moved, only the writing. */
-const COUNTIES: { id: CountyId; label: string; lines: [string, string]; labelLat: number }[] = [
-  { id: 'cache', label: 'Cache County', lines: ['CACHE', 'COUNTY'], labelLat: 41.75 },
-  { id: 'saltlake', label: 'Salt Lake County', lines: ['SALT LAKE', 'COUNTY'], labelLat: 40.8 },
-  { id: 'utah', label: 'Utah County', lines: ['UTAH', 'COUNTY'], labelLat: 40.05 },
+const COUNTIES: { id: CountyId; label: string }[] = [
+  { id: 'cache', label: 'Cache County' },
+  { id: 'saltlake', label: 'Salt Lake County' },
+  { id: 'utah', label: 'Utah County' },
 ];
 
 const SHOPS: {
@@ -65,24 +65,27 @@ const SHOPS: {
   /** The town the shop is in, as geocoded. */
   at: [number, number];
 }[] = [
-  { name: 'The Sunny Spoon', kind: 'Diner', city: 'Smithfield, UT', county: 'cache', at: [41.8388, -111.8324] },
-  { name: 'Canyon Road Tacos', kind: 'Taqueria', city: 'North Logan, UT', county: 'cache', at: [41.7688, -111.806] },
-  { name: 'Rosewood Barbers', kind: 'Barbershop', city: 'Logan, UT', county: 'cache', at: [41.7355, -111.8344] },
-  { name: 'Morningside Bagels', kind: 'Bakery', city: 'Providence, UT', county: 'cache', at: [41.7055, -111.8172] },
   { name: 'The Roost Shop', kind: 'Chicken shop', city: 'Salt Lake City, UT', county: 'saltlake', at: [40.7608, -111.891] },
+  { name: 'Gold Room Salon', kind: 'Salon', city: 'Spanish Fork, UT', county: 'utah', at: [40.115, -111.6549] },
+  { name: 'The Sunny Spoon', kind: 'Diner', city: 'Smithfield, UT', county: 'cache', at: [41.8388, -111.8324] },
   { name: 'Meridian Café', kind: 'Café', city: 'Millcreek, UT', county: 'saltlake', at: [40.6869, -111.875] },
+  { name: 'Rosas Taqueria', kind: 'Taqueria', city: 'Provo, UT', county: 'utah', at: [40.2338, -111.6585] },
+  { name: 'Morningside Bagels', kind: 'Bakery', city: 'Providence, UT', county: 'cache', at: [41.7055, -111.8172] },
   { name: 'Blue Line Deli', kind: 'Deli', city: 'Murray, UT', county: 'saltlake', at: [40.6669, -111.888] },
+  { name: 'Forno Nove', kind: 'Pizzeria', city: 'Orem, UT', county: 'utah', at: [40.2969, -111.6946] },
+  { name: 'Canyon Road Tacos', kind: 'Taqueria', city: 'North Logan, UT', county: 'cache', at: [41.7688, -111.806] },
   { name: 'Marigold Studio', kind: 'Salon', city: 'Sandy, UT', county: 'saltlake', at: [40.5649, -111.8389] },
+  { name: 'Poppy Nail Bar', kind: 'Nail salon', city: 'American Fork, UT', county: 'utah', at: [40.3769, -111.7958] },
+  { name: 'Rosewood Barbers', kind: 'Barbershop', city: 'Logan, UT', county: 'cache', at: [41.7355, -111.8344] },
   { name: 'Wasatch Cuts', kind: 'Barbershop', city: 'Draper, UT', county: 'saltlake', at: [40.5247, -111.8638] },
   { name: 'Cedar + Co', kind: 'Barbershop', city: 'Lehi, UT', county: 'utah', at: [40.3916, -111.8508] },
-  { name: 'Poppy Nail Bar', kind: 'Nail salon', city: 'American Fork, UT', county: 'utah', at: [40.3769, -111.7958] },
-  { name: 'Forno Nove', kind: 'Pizzeria', city: 'Orem, UT', county: 'utah', at: [40.2969, -111.6946] },
-  { name: 'Rosas Taqueria', kind: 'Taqueria', city: 'Provo, UT', county: 'utah', at: [40.2338, -111.6585] },
-  { name: 'Gold Room Salon', kind: 'Salon', city: 'Spanish Fork, UT', county: 'utah', at: [40.115, -111.6549] },
 ];
 
-/* Listed and lit north to south, so the light walks down the front in order
-   rather than jumping about it. */
+/* The array order is the rotation order, and it is deliberately not
+   geographic. Sorted north to south the light crept one town at a time down a
+   line and barely looked like it was moving; dealt out between the three
+   counties it jumps the length of the state and back, which is both livelier
+   and a truer picture of a network you book across rather than along. */
 const PLACED = SHOPS.map((shop) => ({
   ...shop,
   countyLabel: COUNTIES.find((county) => county.id === shop.county)?.label ?? '',
@@ -181,30 +184,25 @@ export function NetworkMap({ note = DEFAULT_NOTE }: { note?: string } = {}) {
           <g className="nm-state">
             <path className="nm-state-shadow" d={UTAH} transform="translate(4 4)" />
             <path className="nm-state-face" d={UTAH} />
-            {/* The southern two thirds of the state has no shops on it and
-                never will at pilot scale, so the state's own name goes there
-                rather than fighting Cache County for the top left. */}
-            <text className="nm-state-name" x="80" y="132" textAnchor="middle">
+            {/* The southern third of the state has no shops on it and never
+                will at pilot scale, so the state's own name goes down there:
+                out of the shops' way, and far enough below the county name
+                that "UTAH COUNTY" over "UTAH" does not read as one phrase. */}
+            <text className="nm-state-name" x="80" y="155" textAnchor="middle">
               UTAH
             </text>
 
-            {COUNTIES.map((county) => {
-              const top = project(county.labelLat, BOUNDS.west)[1];
-              return (
-                <text
-                  key={county.id}
-                  className={county.id === here.county ? 'nm-county-name on' : 'nm-county-name'}
-                  x={NAME_X}
-                  y={top}
-                >
-                  {county.lines.map((line, i) => (
-                    <tspan key={line} x={NAME_X} y={top + i * NAME_LEADING}>
-                      {line}
-                    </tspan>
-                  ))}
-                </text>
-              );
-            })}
+            {/* Keyed on the county so React swaps the element when the
+                light crosses a county line, which is what the fade hangs on. */}
+            <text
+              key={here.county}
+              className="nm-county-name"
+              x={COUNTY_NAME_AT[0]}
+              y={COUNTY_NAME_AT[1]}
+              textAnchor="middle"
+            >
+              {here.countyLabel.toUpperCase()}
+            </text>
 
             {/* Every shop is drawn and all but one are transparent. Keeping
                 them mounted is what lets the light cross-fade from town to
