@@ -17,17 +17,33 @@ Configure **one** of these in the Vercel project:
 Until one is set, every submission is refused and the visitor is told to email
 instead. That is deliberate: silent loss is worse than a visible failure.
 
-## Analytics (optional)
+## Analytics
+
+Two reporters, one call site in `components/analytics.tsx`.
+
+**Vercel Web Analytics** is always on and takes no configuration, because the
+site is deployed there. Switch it on once per project under Analytics in the
+Vercel dashboard; the package is already installed and mounted.
+
+**A self-hosted tag** is optional and runs alongside it:
 
 | Variable | Purpose |
 | --- | --- |
 | `NEXT_PUBLIC_ANALYTICS_SRC` | Script URL for Plausible, Fathom or Umami. |
 | `NEXT_PUBLIC_ANALYTICS_SITE` | The domain to report under. |
 
-With nothing set the site ships no tag at all. Named events already wired:
-`shop-hero-cta`, `shop-hero-earnings`, `shop-waitlist-submit`, `header-cta`,
-`adv-hero-build`, `adv-hero-contact`, `adv-tier-build`, `adv-waitlist-submit`,
-`flow-build`, `campaign-next`, `campaign-submit`.
+With those unset, no second tag ships. Named events already wired, and sent to
+both reporters: `shop-hero-cta`, `shop-hero-earnings`, `shop-waitlist-submit`,
+`header-cta`, `header-access`, `adv-hero-build`, `adv-hero-contact`,
+`adv-tier-build`, `adv-waitlist-submit`, `access-request`, `flow-build`,
+`tools-open-builder`, `tour-open-dashboard`, `tv-offer-cta`, plus
+`board-expand-<board>` per example board opened and `choose-<side>` on the
+sign-in split.
+
+Nothing yet reports a *completed* form. The submit buttons fire on click, which
+counts attempts rather than successes, so a run of delivery failures reads as a
+healthy funnel. Worth calling `track()` from the `result.ok` branch in each
+form.
 
 Any element can report a click by carrying `data-track="some-name"`.
 
