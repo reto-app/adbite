@@ -2599,6 +2599,24 @@ text.vs-small {
   max-width: 34ch;
 }
 
+.footer-social {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 20px;
+  color: var(--ash-dark);
+  font-size: 15px;
+}
+
+.footer-social svg {
+  width: 18px;
+  height: 18px;
+}
+
+.footer-social:hover {
+  color: var(--chalk);
+}
+
 .footer-links {
   display: flex;
   gap: 26px;
