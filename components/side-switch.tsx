@@ -1,24 +1,35 @@
 'use client';
 
-import { ArrowLeftRight } from 'lucide-react';
-import { setAccount, useAccount } from '@/lib/account';
+import { ArrowLeftRight, LogOut } from 'lucide-react';
+import { clearAccount, setAccount, useAccount } from '@/lib/account';
 
-/* Both halves of AdBite are worth seeing, and which one you are looking at is
-   a preference rather than a permission, so it is one button away. */
+/* Both halves of AdBite are worth seeing, and one account can stand on
+   either, so the other side is one button away. Sign-out sits beside it. */
 export function SideSwitch() {
-  const { ready, kind } = useAccount();
-  if (!ready || !kind) return null;
+  const { ready, kind, user } = useAccount();
+  if (!ready || !kind || !user) return null;
   const other = kind === 'advertiser' ? 'shop' : 'advertiser';
 
   return (
-    <button
-      type="button"
-      className="side-switch"
-      onClick={() => setAccount(other)}
-      title="Nothing is signed in. This just picks which workspace opens."
-    >
-      <ArrowLeftRight size={14} />
-      {other === 'shop' ? 'I run a shop' : 'I advertise'}
-    </button>
+    <>
+      <button
+        type="button"
+        className="side-switch"
+        onClick={() => void setAccount(other)}
+        title="Switch which workspace opens. Nothing on either side is lost."
+      >
+        <ArrowLeftRight size={14} />
+        {other === 'shop' ? 'I run a shop' : 'I advertise'}
+      </button>
+      <button
+        type="button"
+        className="side-switch"
+        onClick={() => void clearAccount()}
+        title={`Signed in as ${user.email}`}
+      >
+        <LogOut size={14} />
+        Sign out
+      </button>
+    </>
   );
 }

@@ -18,12 +18,14 @@
  * somebody asks for the examples. */
 
 import { useEffect, useState } from 'react';
-import type { FormatId } from '@/lib/boards';
+import { supabase } from '@/lib/supabase';
+import { FORMATS, type FormatId } from '@/lib/boards';
+import { DAYPARTS } from '@/lib/pricing';
 import type { AgeBand } from '@/lib/network';
 import { LIVE_VENUES, VENUES } from '@/lib/network';
 import { blendedRate, minutesFor as minutesForSpend, type Daypart } from '@/lib/pricing';
 
-const KEY = 'adbite.campaigns';
+const SAMPLES_KEY = 'adbite.samples';
 
 export type Campaign = {
   id: string;
@@ -81,64 +83,209 @@ export function campaignRate(campaign: Pick<Campaign, 'venues' | 'dayparts' | 'f
   return blendedRate(venuesOf(campaign), campaign.dayparts, campaign.format);
 }
 
-const listeners = new Set<() => void>();
+/* ---- the store ----------------------------------------------------------- */
 
-function read(): Campaign[] {
+type Row = {
+  id: string;
+  name: string;
+  created_at: string;
+  weekly_spend: number | string;
+  format: FormatId;
+  venues: string[];
+  ages: AgeBand[];
+  dayparts: Daypart[];
+  creative_name: string | null;
+  email: string | null;
+  note: string | null;
+  approvals?: Approval[];
+};
+
+type Approval = { shop_id: string; status: 'pending' | 'approved' | 'rejected'; decided_at: string | null };
+
+/* Tell the server something happened so the right people get a mail. The
+   rows are already written; a mail that fails is logged, never surfaced. */
+async function notify(body: Record<string, unknown>) {
   try {
-    const raw = window.localStorage.getItem(KEY);
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as Campaign[]) : [];
-  } catch {
-    return [];
+    const { data } = await supabase().auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return;
+    await fetch('/api/notify', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    });
+  } catch (failure) {
+    console.warn('notify failed', failure);
   }
 }
 
-function write(campaigns: Campaign[]) {
-  try {
-    window.localStorage.setItem(KEY, JSON.stringify(campaigns));
-  } catch {
-    // Artwork data URLs are the only thing here big enough to blow the quota,
-    // so drop them and keep the bookings rather than losing both.
-    try {
-      window.localStorage.setItem(
-        KEY,
-        JSON.stringify(campaigns.map((item) => ({ ...item, creativeSrc: null }))),
-      );
-    } catch {
-      /* storage is unavailable; the list lives for this page view only */
-    }
-  }
+/* Artwork previews built in this tab. A data URL can be megabytes and does
+   not belong in a row; uploads to real storage are a later phase. */
+const previews = new Map<string, string>();
+
+function fromRow(row: Row, mine: string[] | null): Campaign {
+  const approvals = row.approvals ?? [];
+  /* A shop reads its own decision. An advertiser reads the network's: live as
+     soon as any shop said yes, rejected only once every shop said no. */
+  const relevant = mine ? approvals.filter((a) => mine.includes(a.shop_id)) : approvals;
+  const approved = relevant.filter((a) => a.status === 'approved');
+  const rejected = relevant.length > 0 && relevant.every((a) => a.status === 'rejected');
+  const startedAt = approved.length
+    ? Math.min(...approved.map((a) => (a.decided_at ? Date.parse(a.decided_at) : Date.now())))
+    : null;
+  return {
+    id: row.id,
+    name: row.name,
+    createdAt: Date.parse(row.created_at),
+    weeklySpend: Number(row.weekly_spend),
+    format: row.format,
+    venues: row.venues ?? [],
+    ages: row.ages ?? [],
+    dayparts: row.dayparts ?? [],
+    creativeName: row.creative_name,
+    creativeSrc: previews.get(row.id) ?? null,
+    email: row.email,
+    note: row.note,
+    startedAt,
+    rejected,
+  };
+}
+
+type Cache = { ready: boolean; campaigns: Campaign[] };
+
+let cache: Cache = { ready: false, campaigns: [] };
+let loading: Promise<void> | null = null;
+const listeners = new Set<() => void>();
+
+function announce() {
   for (const listener of listeners) listener();
 }
 
-export function addCampaign(campaign: Omit<Campaign, 'id' | 'createdAt'>): Campaign {
-  const saved: Campaign = {
-    ...campaign,
-    id: `c${Date.now().toString(36)}`,
-    createdAt: Date.now(),
-  };
-  write([saved, ...read()]);
+async function myShopIds(userId: string): Promise<string[]> {
+  const { data } = await supabase().from('shops').select('id').eq('owner_id', userId);
+  return (data ?? []).map((row) => row.id as string);
+}
+
+async function load() {
+  const db = supabase();
+  const { data: auth } = await db.auth.getUser();
+  if (!auth.user) {
+    cache = { ready: true, campaigns: [] };
+    announce();
+    return;
+  }
+  const { data: account } = await db.from('accounts').select('role').eq('id', auth.user.id).maybeSingle();
+  let rows: Campaign[] = [];
+
+  if (account?.role === 'shop') {
+    const shops = await myShopIds(auth.user.id);
+    const { data } = await db
+      .from('campaigns')
+      .select('*, approvals(shop_id, status, decided_at)')
+      .order('created_at', { ascending: false });
+    rows = ((data ?? []) as Row[]).map((row) => fromRow(row, shops));
+  } else {
+    const { data } = await db
+      .from('campaigns')
+      .select('*, approvals(shop_id, status, decided_at)')
+      .eq('advertiser_id', auth.user.id)
+      .order('created_at', { ascending: false });
+    rows = ((data ?? []) as Row[]).map((row) => fromRow(row, null));
+  }
+
+  cache = { ready: true, campaigns: [...samplesOn(), ...rows] };
+  announce();
+}
+
+function ensureLoaded() {
+  if (!loading) loading = load();
+  return loading;
+}
+
+/** Drop the cache so the next reader fetches again (after sign-in, a switch
+    of sides, or a write). */
+export function reloadCampaigns() {
+  loading = null;
+  void ensureLoaded();
+}
+
+export async function addCampaign(campaign: Omit<Campaign, 'id' | 'createdAt'>): Promise<Campaign> {
+  const db = supabase();
+  const { data: auth } = await db.auth.getUser();
+  if (!auth.user) throw new Error('Sign in to book a campaign');
+
+  const { data: row, error } = await db
+    .from('campaigns')
+    .insert({
+      advertiser_id: auth.user.id,
+      name: campaign.name,
+      format: campaign.format,
+      venues: campaign.venues,
+      dayparts: campaign.dayparts,
+      ages: campaign.ages,
+      weekly_spend: campaign.weeklySpend,
+      creative_name: campaign.creativeName,
+      email: campaign.email,
+      note: campaign.note ?? null,
+    })
+    .select('*')
+    .single();
+  if (error || !row) throw new Error(error?.message ?? 'Could not save the campaign');
+  if (campaign.creativeSrc) previews.set(row.id, campaign.creativeSrc);
+
+  /* One decision per shop that is actually on the network behind a chosen
+     venue. Prospects have nobody to ask, so they get no row. */
+  const targets = campaign.venues.length ? campaign.venues : LIVE_VENUES.map((venue) => venue.id);
+  const { data: shops } = await db.from('shops').select('id').in('venue_id', targets);
+  if (shops?.length) {
+    await db.from('approvals').insert(shops.map((shop) => ({ campaign_id: row.id, shop_id: shop.id })));
+  }
+
+  reloadCampaigns();
+
+  const saved = fromRow(row as Row, null);
+  void notify({
+    event: 'booking',
+    campaignId: saved.id,
+    venues: venuesOf(saved).map((venue) => venue.name),
+    dayparts: campaign.dayparts.map((id) => DAYPARTS.find((part) => part.id === id)?.label ?? id),
+    minutes: campaignMinutes(saved),
+    format: FORMATS.find((f) => f.id === campaign.format)?.name ?? campaign.format,
+  });
   return saved;
 }
 
-export function removeCampaign(id: string) {
-  write(read().filter((campaign) => campaign.id !== id));
-}
-
-function patch(id: string, change: Partial<Campaign>) {
-  write(read().map((campaign) => (campaign.id === id ? { ...campaign, ...change } : campaign)));
+export async function removeCampaign(id: string) {
+  if (id.startsWith('sample-')) return;
+  await supabase().from('campaigns').delete().eq('id', id);
+  previews.delete(id);
+  reloadCampaigns();
 }
 
 /* The shop owner's decision, made on their side of the product and read on the
    advertiser's. Approving is what starts the clock: until a board is actually
    playing the spot there is nothing to report and nothing to bill. */
+async function decide(id: string, status: 'approved' | 'rejected') {
+  if (id.startsWith('sample-')) return;
+  const db = supabase();
+  const { data: auth } = await db.auth.getUser();
+  if (!auth.user) return;
+  const shops = await myShopIds(auth.user.id);
+  await db
+    .from('approvals')
+    .update({ status, decided_at: new Date().toISOString() })
+    .eq('campaign_id', id)
+    .in('shop_id', shops);
+  reloadCampaigns();
+  void notify({ event: 'decision', campaignId: id, approved: status === 'approved' });
+}
+
 export function approveCampaign(id: string) {
-  patch(id, { startedAt: Date.now(), rejected: false });
+  void decide(id, 'approved');
 }
 
 export function rejectCampaign(id: string) {
-  patch(id, { rejected: true, startedAt: null });
+  void decide(id, 'rejected');
 }
 
 /** `ready` stays false through the first paint so the prerender matches. */
@@ -149,13 +296,12 @@ export function useCampaigns(): { ready: boolean; campaigns: Campaign[] } {
   });
 
   useEffect(() => {
-    const sync = () => setState({ ready: true, campaigns: read() });
+    void ensureLoaded();
+    const sync = () => setState(cache);
     sync();
     listeners.add(sync);
-    window.addEventListener('storage', sync);
     return () => {
       listeners.delete(sync);
-      window.removeEventListener('storage', sync);
     };
   }, []);
 
@@ -238,18 +384,38 @@ const SAMPLES: Omit<Campaign, 'id' | 'createdAt'>[] = [
   },
 ];
 
-export function loadSamples() {
-  const existing = read().filter((campaign) => !campaign.sample);
-  const seeded = SAMPLES.map((sample, index) => ({
+function samplesOn(): Campaign[] {
+  try {
+    if (window.localStorage.getItem(SAMPLES_KEY) !== '1') return [];
+  } catch {
+    return [];
+  }
+  return SAMPLES.map((sample, index) => ({
     ...sample,
     id: `sample-${index}`,
     createdAt: (sample.startedAt ?? Date.now()) - 2 * DAY,
   }));
-  write([...seeded, ...existing]);
+}
+
+/* The examples are a per-browser convenience, never a row. */
+export function loadSamples() {
+  try {
+    window.localStorage.setItem(SAMPLES_KEY, '1');
+  } catch {
+    /* storage unavailable; nothing to show */
+  }
+  cache = { ...cache, campaigns: [...samplesOn(), ...cache.campaigns.filter((c) => !c.sample)] };
+  announce();
 }
 
 export function clearSamples() {
-  write(read().filter((campaign) => !campaign.sample));
+  try {
+    window.localStorage.removeItem(SAMPLES_KEY);
+  } catch {
+    /* nothing to clear */
+  }
+  cache = { ...cache, campaigns: cache.campaigns.filter((c) => !c.sample) };
+  announce();
 }
 
 export function hasSamples(campaigns: Campaign[]) {

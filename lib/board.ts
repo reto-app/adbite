@@ -7,14 +7,14 @@
  * items, the prices, the hours each board runs, and where on the screen the
  * shop is willing to let ads sit.
  *
- * It lives in this browser for the same reason campaigns do — there is no
- * server in the pilot — and it is seeded with a real-looking starter board so
- * the editor opens on something to edit rather than on an empty grid. */
+ * It lives in the `boards` table, one row per shop, and is seeded with a
+ * real-looking starter board when a shop owner first picks their side, so the
+ * editor opens on something to edit rather than on an empty grid. Saves are
+ * written through with a short debounce; the TV reads the same row. */
 
 import { useEffect, useState } from 'react';
 import { DEFAULT_AD_SHARE } from '@/lib/pricing';
-
-const KEY = 'adbite.board';
+import { supabase } from '@/lib/supabase';
 
 /* ---- when each board runs ------------------------------------------------
    These are the shop's own boards, not the ad rate card's dayparts. A shop
@@ -277,9 +277,21 @@ export function starterBoard(): Board {
   };
 }
 
-/* ---- the store ----------------------------------------------------------- */
+/* ---- the store -----------------------------------------------------------
+   The signed-in owner's shop and its board, cached for the tab. Edits land in
+   the cache at once and reach the table half a second after the last
+   keystroke, so typing a menu is not a write per character. */
 
+type Cache = { ready: boolean; shopId: string | null; board: Board };
+
+let cache: Cache = { ready: false, shopId: null, board: starterBoard() };
+let loading: Promise<void> | null = null;
+let flush: ReturnType<typeof setTimeout> | null = null;
 const listeners = new Set<() => void>();
+
+function announce() {
+  for (const listener of listeners) listener();
+}
 
 /* Boards saved before this stored a percentage instead of a place. Snap the
    old number to the nearest placement so an existing board opens where its
@@ -293,34 +305,68 @@ function migrated(saved: Board & { adShare?: number }): Board {
   return { ...saved, adPlacement: nearest.id };
 }
 
-function read(): Board | null {
-  try {
-    const raw = window.localStorage.getItem(KEY);
-    if (!raw) return null;
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return null;
-    return migrated(parsed as Board & { adShare?: number });
-  } catch {
-    return null;
+async function load() {
+  const db = supabase();
+  const { data: auth } = await db.auth.getUser();
+  if (!auth.user) {
+    cache = { ready: true, shopId: null, board: starterBoard() };
+    announce();
+    return;
   }
+  const { data: shop } = await db
+    .from('shops')
+    .select('id, boards(board)')
+    .eq('owner_id', auth.user.id)
+    .limit(1)
+    .maybeSingle();
+  const row = (shop as { id: string; boards: { board: Board }[] | { board: Board } | null } | null) ?? null;
+  const saved = row ? (Array.isArray(row.boards) ? row.boards[0]?.board : row.boards?.board) : null;
+  cache = {
+    ready: true,
+    shopId: row?.id ?? null,
+    board: saved ? migrated(saved as Board & { adShare?: number }) : starterBoard(),
+  };
+  announce();
+}
+
+function ensureLoaded() {
+  if (!loading) loading = load();
+  return loading;
+}
+
+/** Drop the cache so the next reader fetches again (after sign-in or out). */
+export function reloadBoard() {
+  loading = null;
+  cache = { ready: false, shopId: null, board: starterBoard() };
+  void ensureLoaded();
+}
+
+async function persist() {
+  const { shopId, board } = cache;
+  if (!shopId) return;
+  const db = supabase();
+  /* The uploaded clip is a data URL and can be tens of megabytes; it does not
+     belong in a row. It stays in the cache for this tab's preview only. */
+  const stored = { ...board, media: { ...board.media, src: null } };
+  await db
+    .from('boards')
+    .update({ board: stored, updated_at: new Date().toISOString() })
+    .eq('shop_id', shopId);
+  await db.rpc('bump_board_version', { p_shop_id: shopId });
+  await db
+    .from('shops')
+    .update({ name: board.shopName, ad_placement: board.adPlacement })
+    .eq('id', shopId);
 }
 
 export function saveBoard(board: Board) {
-  try {
-    window.localStorage.setItem(KEY, JSON.stringify(board));
-  } catch {
-    /* An uploaded clip is the only thing here big enough to blow the quota, so
-       drop it and keep the menu rather than losing both. */
-    try {
-      window.localStorage.setItem(
-        KEY,
-        JSON.stringify({ ...board, media: { ...board.media, src: null } }),
-      );
-    } catch {
-      /* storage is unavailable; the board lives for this page view only */
-    }
-  }
-  for (const listener of listeners) listener();
+  cache = { ...cache, board };
+  announce();
+  if (flush) clearTimeout(flush);
+  flush = setTimeout(() => {
+    flush = null;
+    void persist();
+  }, 500);
 }
 
 export function resetBoard() {
@@ -335,13 +381,12 @@ export function useBoard(): { ready: boolean; board: Board } {
   });
 
   useEffect(() => {
-    const sync = () => setState({ ready: true, board: read() ?? starterBoard() });
+    void ensureLoaded();
+    const sync = () => setState({ ready: cache.ready, board: cache.board });
     sync();
     listeners.add(sync);
-    window.addEventListener('storage', sync);
     return () => {
       listeners.delete(sync);
-      window.removeEventListener('storage', sync);
     };
   }, []);
 

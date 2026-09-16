@@ -117,18 +117,23 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
       setError(sent.message);
       return;
     }
-    addCampaign({
-      name: `${formatName(format)} · ${day.format(new Date())}`,
-      weeklySpend: spend,
-      format,
-      venues: placement.venues,
-      ages: placement.ages,
-      dayparts,
-      creativeName: creative?.name ?? null,
-      creativeSrc: creative?.src ?? null,
-      email: email.trim(),
-      startedAt: null,
-    });
+    try {
+      await addCampaign({
+        name: `${formatName(format)} · ${day.format(new Date())}`,
+        weeklySpend: spend,
+        format,
+        venues: placement.venues,
+        ages: placement.ages,
+        dayparts,
+        creativeName: creative?.name ?? null,
+        creativeSrc: creative?.src ?? null,
+        email: email.trim(),
+        startedAt: null,
+      });
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'Could not save the campaign');
+      return;
+    }
     onDone();
   };
 
