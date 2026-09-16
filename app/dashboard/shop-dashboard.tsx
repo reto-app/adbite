@@ -18,12 +18,15 @@ import { SideSwitch } from '@/components/side-switch';
 import { BoardCanvas } from '@/components/board/board-canvas';
 import { MenuEditor } from '@/components/board/menu-editor';
 import {
+  PLACEMENTS,
   SLOTS,
   THEMES,
   itemCount,
   newId,
+  placementById,
   resetBoard,
   saveBoard,
+  shareOf,
   useBoard,
   type Board,
   type SlotId,
@@ -76,9 +79,10 @@ export function ShopDashboard() {
 
   const set = (patch: Partial<Board>) => saveBoard({ ...board, ...patch });
 
-  /* Earnings move with the ad share, because that is the lever the shop
-     actually holds. Everything else about the week is the shop's own hours. */
-  const priced = { ...SHOP, adShare: board.adShare };
+  /* Earnings move with where the shop lets ads sit, because that is the lever
+     it actually holds. Everything else about the week is the shop's own hours.
+     The share behind each placement is pricing's business, not the shop's. */
+  const priced = { ...SHOP, adShare: shareOf(board.adPlacement) };
   const waiting = campaigns.filter(
     (campaign) => campaign.venues.includes(SHOP.id) && statusOf(campaign) === 'review',
   );
@@ -109,8 +113,8 @@ export function ShopDashboard() {
               <dd>{itemCount(board)}</dd>
             </div>
             <div>
-              <dt>Ads may use</dt>
-              <dd>{Math.round(board.adShare * 100)}%</dd>
+              <dt>Ads sit</dt>
+              <dd>{placementById(board.adPlacement).short}</dd>
             </div>
             <div>
               <dt>Waiting on you</dt>
@@ -403,30 +407,29 @@ function BoardTab({
         </div>
         <BoardCanvas board={board} slot={slot} />
 
-        <label className="share-slider">
-          <span className="share-head">
-            <b>How much of the screen ads may use</b>
-            <em>{Math.round(board.adShare * 100)}%</em>
-          </span>
-          <input
-            className="range-input"
-            type="range"
-            min={0}
-            max={50}
-            step={1}
-            value={Math.round(board.adShare * 100)}
-            style={{ '--fill': `${(board.adShare / 0.5) * 100}%` } as React.CSSProperties}
-            aria-label="Share of the screen ads may use"
-            onChange={(event) => onChange({ adShare: Number(event.target.value) / 100 })}
-          />
-          <span className="spend-scale">
-            <i>None this week</i>
-            <i>Half the board</i>
-          </span>
-        </label>
+        <fieldset className="place-pick">
+          <legend>Where ads sit on your screen</legend>
+          <div className="place-options">
+            {PLACEMENTS.map((place) => (
+              <button
+                key={place.id}
+                type="button"
+                className={board.adPlacement === place.id ? 'on' : undefined}
+                aria-pressed={board.adPlacement === place.id}
+                onClick={() => onChange({ adPlacement: place.id })}
+              >
+                <span className={`place-mini m-${place.id}`} aria-hidden="true">
+                  <i />
+                </span>
+                <b>{place.label}</b>
+                <i>{place.note}</i>
+              </button>
+            ))}
+          </div>
+        </fieldset>
         <p className="preview-note">
-          Nothing here is a contract. Drag it to zero for a week you want the whole screen, and
-          your earnings for that week go to zero with it. Every ad still waits for your yes.
+          Nothing here is a contract. Pick nowhere for a week you want the whole screen, and your
+          earnings for that week go to zero with it. Every ad still waits for your yes.
         </p>
       </div>
     </section>
@@ -536,8 +539,8 @@ function MoneyTab({ board, priced }: { board: Board; priced: typeof SHOP }) {
       <div className="section-head">
         <h2>What the screen pays you.</h2>
         <p>
-          Worked from your own hours and the share of the screen you are letting ads use. Move that
-          share on the board tab and every figure here moves with it.
+          Worked from your own hours and where you are letting ads sit. Move that on the board tab
+          and every figure here moves with it.
         </p>
       </div>
 
@@ -560,7 +563,7 @@ function MoneyTab({ board, priced }: { board: Board; priced: typeof SHOP }) {
         <article>
           <small>Ad minutes you are offering</small>
           <b>{count.format(stock.minutes)}</b>
-          <i>{Math.round(board.adShare * 100)}% of your open week</i>
+          <i>{placementById(board.adPlacement).short}, across your open week</i>
         </article>
       </div>
 

@@ -74,7 +74,7 @@ function AccessForm() {
         </label>
         <label htmlFor="access-where">
           Where you are
-          <input id="access-where" name="where" required placeholder="Provo, UT" />
+          <input id="access-where" name="where" required placeholder="Provo, Sandy, Logan…" />
         </label>
         <label htmlFor="access-email">
           Email

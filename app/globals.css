@@ -2202,12 +2202,69 @@ h3 {
   overflow: visible;
 }
 
+/* Utah, redrawn over itself at size. The offset shadow is the same device the
+   cards on this site use, so the state reads as a thing lifted off the map. */
+.nm-state-shadow {
+  fill: #0e0e0e;
+}
+
+.nm-state-face {
+  fill: var(--chalk);
+  stroke: #0e0e0e;
+  stroke-width: 2.4;
+  stroke-linejoin: round;
+}
+
+.nm-state-name {
+  fill: #0e0e0e;
+  font-family: var(--font-display), sans-serif;
+  font-size: 8.4px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+}
+
+.nm-band rect {
+  fill: #eef4f8;
+  stroke: #cdd9e2;
+  stroke-width: 1;
+}
+
+.nm-band.on rect {
+  fill: var(--paper-sky);
+  stroke: var(--sky-deep);
+}
+
+.nm-band-name,
+.nm-band-count {
+  fill: #64798a;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.nm-band-name {
+  font-size: 3.9px;
+}
+
+.nm-band-count {
+  font-size: 4.4px;
+}
+
+.nm-band.on .nm-band-name,
+.nm-band.on .nm-band-count {
+  fill: var(--sky-deep);
+}
+
 .nm-pin circle {
   fill: #9db4c4;
 }
 
 .nm-pin.on circle {
   fill: var(--sky-deep);
+}
+
+.nm-leader {
+  stroke: var(--sky-deep);
+  stroke-width: 1.2;
 }
 
 .nm-ping {
@@ -7141,35 +7198,108 @@ text.vs-small {
   font-weight: 500;
 }
 
-.share-slider {
-  display: block;
-  padding: 12px 14px 9px;
+/* ---- where ads sit -------------------------------------------------------
+   Four places, not a percentage. Each option carries a diagram of the board
+   with its slice lit, so the choice is made by looking rather than by doing
+   arithmetic about a third of a screen. */
+
+.place-pick {
+  margin: 0;
+  padding: 12px 14px 13px;
   border: 2px solid var(--board);
   border-radius: 13px;
   background: var(--chalk);
 }
 
-.share-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-.share-head b {
+.place-pick legend {
+  padding: 0;
   font-family: var(--font-display), sans-serif;
   font-size: 14px;
   letter-spacing: -0.02em;
 }
 
-.share-head em {
-  font-style: normal;
+.place-options {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.place-options button {
+  display: grid;
+  justify-items: start;
+  align-content: start;
+  gap: 6px;
+  padding: 9px 10px 10px;
+  text-align: left;
+  border: 2px solid var(--rule);
+  border-radius: 11px;
+  background: var(--paper);
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+
+.place-options button:hover {
+  border-color: var(--board);
+}
+
+.place-options button.on {
+  border-color: var(--board);
+  background: var(--paper-sky);
+}
+
+.place-options b {
   font-family: var(--font-display), sans-serif;
-  font-weight: 800;
-  font-size: 22px;
-  letter-spacing: -0.04em;
-  color: var(--money);
+  font-size: 12.5px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.place-options i {
+  font-style: normal;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--ash);
+}
+
+.place-mini {
+  position: relative;
+  display: block;
+  width: 38px;
+  height: 22px;
+  border: 1.5px solid var(--board);
+  border-radius: 4px;
+  background: var(--chalk);
+  overflow: hidden;
+}
+
+.place-mini i {
+  position: absolute;
+  background: var(--sky-deep);
+}
+
+.m-banner i {
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  height: 5px;
+}
+
+.m-rail i {
+  top: 2px;
+  right: 2px;
+  bottom: 2px;
+  width: 11px;
+}
+
+.m-rotation i {
+  inset: 2px;
+}
+
+@media (max-width: 900px) {
+  .place-options {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .preview-note {
@@ -7232,10 +7362,18 @@ text.vs-small {
   --bd-ad: rgba(244, 241, 228, 0.08);
 }
 
+/* The ad sits where the shop put it, so the canvas changes axis rather than
+   changing a width: a rail is a row, a strip is a column. */
+.board-canvas.place-banner {
+  flex-direction: column;
+}
+
 .board-menu {
+  flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   padding: 3cqw 3cqw 2.4cqw;
 }
 
@@ -7407,16 +7545,24 @@ text.vs-small {
 }
 
 .board-ad {
-  flex: 0 0 auto;
   display: grid;
   place-items: center;
-  border-left: 1px solid var(--bd-rule);
   background: var(--bd-ad);
   background-image: repeating-linear-gradient(
     -45deg,
     transparent 0 1.4cqw,
     var(--bd-rule) 1.4cqw 1.5cqw
   );
+}
+
+.place-rail > .board-ad {
+  flex: 0 0 33.33%;
+  border-left: 1px solid var(--bd-rule);
+}
+
+.place-banner > .board-ad {
+  flex: 0 0 18%;
+  border-top: 1px solid var(--bd-rule);
 }
 
 .board-ad-label {
@@ -7438,6 +7584,23 @@ text.vs-small {
   font-style: normal;
   font-size: 1.05cqw;
   color: var(--bd-dim);
+}
+
+/* A full-screen turn has nowhere on the board to be drawn, so it is said in a
+   line of its own. Dashed and unfilled, so it cannot be mistaken for the solid
+   strip the bottom-banner placement actually puts there. */
+.board-ad-turn {
+  flex: 0 0 auto;
+  order: 1;
+  margin: 1.2cqw 0 0;
+  padding: 0.7cqw;
+  border: 1px dashed var(--bd-rule);
+  border-radius: 0.8cqw;
+  text-align: center;
+  color: var(--bd-dim);
+  font-size: 1.1cqw;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .board-media {

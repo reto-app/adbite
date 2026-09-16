@@ -4,8 +4,8 @@
  *
  * AdBite sells a slice of a menu board, which means the shop has to have a
  * menu board worth reading in the first place. This is that: the sections, the
- * items, the prices, the hours each board runs, and how much of the screen the
- * shop is willing to let ads use.
+ * items, the prices, the hours each board runs, and where on the screen the
+ * shop is willing to let ads sit.
  *
  * It lives in this browser for the same reason campaigns do — there is no
  * server in the pilot — and it is seeded with a real-looking starter board so
@@ -32,6 +32,63 @@ export const SLOTS: { id: SlotId; label: string; window: string; note: string }[
 
 export function slotById(id: SlotId) {
   return SLOTS.find((slot) => slot.id === id) ?? SLOTS[1];
+}
+
+/* ---- where the ads sit ---------------------------------------------------
+   A shop picks a place on its screen, not a percentage. "A fifth of the
+   board" is not a thing anyone can picture standing in their own shop, but
+   "a strip along the bottom" is, and it is the same decision. The share each
+   placement works out to lives here beside it and is read by lib/pricing.ts,
+   so the shop never has to hold a number in their head to be paid correctly. */
+
+export type PlacementId = 'none' | 'banner' | 'rail' | 'rotation';
+
+export const PLACEMENTS: {
+  id: PlacementId;
+  label: string;
+  /** For the tight spaces: a dashboard stat, a money-tab caption. */
+  short: string;
+  note: string;
+  /** Share of screen time this placement hands to ads. */
+  share: number;
+}[] = [
+  {
+    id: 'none',
+    label: 'Nowhere this week',
+    short: 'Nowhere',
+    note: 'The whole screen stays yours. Nothing is booked, and nothing is paid.',
+    share: 0,
+  },
+  {
+    id: 'banner',
+    label: 'A strip along the bottom',
+    short: 'Bottom strip',
+    note: 'A band under your menu. Everything you wrote stays readable.',
+    share: 0.18,
+  },
+  {
+    id: 'rail',
+    label: 'A rail down the right',
+    short: 'Right rail',
+    note: 'The right third, top to bottom. Your menu keeps the rest of the board.',
+    share: DEFAULT_AD_SHARE,
+  },
+  {
+    id: 'rotation',
+    label: 'Between your boards',
+    short: 'Between boards',
+    note: 'The full screen for one turn of the rotation, then your menu is back.',
+    share: 0.42,
+  },
+];
+
+export function placementById(id: PlacementId) {
+  return PLACEMENTS.find((place) => place.id === id) ?? PLACEMENTS[2];
+}
+
+/** What the pricing code needs. Nothing renders this. */
+export function shareOf(id: PlacementId) {
+  return placementById(id).share;
 }
 
 /* ---- how the board looks ------------------------------------------------- */
@@ -83,8 +140,8 @@ export type Board = {
   shopName: string;
   tagline: string;
   theme: ThemeId;
-  /** Share of the screen ads may use, 0 to 0.5. Zero means none this week. */
-  adShare: number;
+  /** Where on the screen ads may sit. 'none' means not this week. */
+  adPlacement: PlacementId;
   slots: Record<SlotId, MenuSection[]>;
   reviews: { on: boolean; items: Review[] };
   /** A clip of the shop's own food, played between boards. */
@@ -106,9 +163,9 @@ export function emptySection(): MenuSection {
 }
 
 /* ---- the starter board ---------------------------------------------------
-   Bao Pao Wow's real menu, because the one shop on the network is the one a
-   shop owner reading this will recognise, and an editor that opens on
-   Lorem Ipsum teaches nobody what the tool does. */
+   Bao Pao Wow's real menu, because a shop owner reading this will recognise a
+   board off their own street, and an editor that opens on Lorem Ipsum teaches
+   nobody what the tool does. */
 
 function item(name: string, note: string, price: string, badge: Badge = 'none'): MenuItem {
   return { id: newId('i'), name, note, price, badge };
@@ -119,7 +176,7 @@ export function starterBoard(): Board {
     shopName: 'Bao Pao Wow',
     tagline: 'Filipino steamed buns · 660 N Freedom Blvd',
     theme: 'chalk',
-    adShare: DEFAULT_AD_SHARE,
+    adPlacement: 'rail',
     slots: {
       morning: [
         {
@@ -224,13 +281,25 @@ export function starterBoard(): Board {
 
 const listeners = new Set<() => void>();
 
+/* Boards saved before this stored a percentage instead of a place. Snap the
+   old number to the nearest placement so an existing board opens where its
+   owner left it rather than back on the default. */
+function migrated(saved: Board & { adShare?: number }): Board {
+  if (saved.adPlacement) return saved;
+  const share = typeof saved.adShare === 'number' ? saved.adShare : DEFAULT_AD_SHARE;
+  const nearest = PLACEMENTS.reduce((best, place) =>
+    Math.abs(place.share - share) < Math.abs(best.share - share) ? place : best,
+  );
+  return { ...saved, adPlacement: nearest.id };
+}
+
 function read(): Board | null {
   try {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return null;
-    return parsed as Board;
+    return migrated(parsed as Board & { adShare?: number });
   } catch {
     return null;
   }

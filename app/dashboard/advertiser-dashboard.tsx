@@ -460,10 +460,11 @@ export function AdvertiserDashboard() {
               <Bite className="bite" />
               <h2>No campaigns yet.</h2>
               <p>
-                {LIVE_VENUES.length} board is playing ads today, and it holds{' '}
-                {count.format(inventory(LIVE_VENUES).minutes)} minutes of ad time a week. Another{' '}
-                {VENUES.length - LIVE_VENUES.length} shops across Provo and Orem are being
-                installed and can be booked ahead.
+                AdBite is going in across Salt Lake, Utah and Cache counties.{' '}
+                {LIVE_VENUES.length} {LIVE_VENUES.length === 1 ? 'board is' : 'boards are'} playing
+                ads today, holding {count.format(inventory(LIVE_VENUES).minutes)} minutes of ad time
+                a week, and another {VENUES.length - LIVE_VENUES.length} shops are being installed
+                and can be booked ahead.
               </p>
               <div className="dash-empty-actions">
                 <button type="button" className="button primary" onClick={() => setCreating(true)}>

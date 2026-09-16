@@ -34,7 +34,7 @@ export const ACCOUNTS: {
     id: 'shop',
     label: 'I run a shop',
     blurb:
-      'Design the board your customers read, decide how much of it ads may use, approve every one of them, and see what the screen pays you.',
+      'Design the board your customers read, decide where on it ads may sit, approve every one of them, and see what the screen pays you.',
     action: 'Open your board',
   },
 ];

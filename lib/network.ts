@@ -1,8 +1,11 @@
 /* The AdBite screen network.
  *
- * One real shop, because that is what the pilot actually is. Bao Pao Wow is
- * fact: address, coordinates, hours and board are all real, and it carries
- * `status: 'live'`.
+ * The pilot sells Salt Lake, Utah and Cache counties, and the boards go in a
+ * few at a time. Only the shops carrying `status: 'live'` are actually
+ * running; everything the site says about inventory, earnings and how many
+ * screens are up is counted off that flag, so the copy grows with the network
+ * instead of having to be rewritten. Bao Pao Wow is fact: address,
+ * coordinates, hours and board are all real.
  *
  * Everything else in VENUES is a stand-in. Those shops carry
  * `status: 'prospect'` and exist so the campaign builder can be exercised the

@@ -94,7 +94,7 @@ function AdvertiseForm() {
         <label htmlFor="ad-business">Business type
           <input id="ad-business" name="business" required placeholder="Florist, dentist, gym…" /></label>
         <label htmlFor="ad-where">Where you are
-          <input id="ad-where" name="where" required placeholder="Provo, UT" /></label>
+          <input id="ad-where" name="where" required placeholder="Provo, Sandy, Logan…" /></label>
         <label htmlFor="ad-budget">Weekly budget
           <select id="ad-budget" name="budget" defaultValue="">
             <option disabled value="">Choose a range</option>
@@ -140,7 +140,7 @@ export function AdvertisersPage() {
       <section className="ad-hero wrap">
         <div>
           <h1>Show up where your neighbors <em>already look.<Bite className="bite"/></em></h1>
-          <p className="hero-lede">Buy a slice of the menu board at a shop in your neighborhood. Your ad plays while someone is standing at the counter, already deciding what to spend money on. Pick the city, the area and the hours, from {cents.format(RATE_FLOOR)} a minute.</p>
+          <p className="hero-lede">Buy a slice of the menu board at a shop in your neighborhood. Your ad plays while someone is standing at the counter, already deciding what to spend money on. Pick the county, the area and the hours across Salt Lake, Utah and Cache, from {cents.format(RATE_FLOOR)} a minute.</p>
           <div className="hero-actions">
             <Link href="/dashboard" className="button primary" data-track="adv-hero-build">Build your campaign <ArrowRight size={17}/></Link>
             <a className="text-link" href="#advertise" data-track="adv-hero-contact">Or have us set it up</a>
@@ -155,7 +155,7 @@ export function AdvertisersPage() {
 
     <section className="boards-section"><div className="wrap"><div className="section-head"><h2>See it running.</h2><p>Two boards on the network. Your spot sits inside the one thing everyone in the room is already reading, at the exact moment they are deciding what to spend money on.</p></div><BoardReel only={['rosas', 'roost']}/></div></section>
 
-    <section id="network" className="network"><div className="wrap"><div className="section-head network-head"><h2>Book one block, or the whole map.</h2><p>Every shop on AdBite is a counter someone is already standing at. The pilot board is in Provo and holds {count.format(inventory([SHOP]).minutes)} minutes of ad time a week. No media buyer, no minimum, no billboard contract.</p></div><NetworkMap/></div></section>
+    <section id="network" className="network"><div className="wrap"><div className="section-head network-head"><h2>Book one block, or the whole county.</h2><p>AdBite is opening along the Wasatch Front: <b>Salt Lake County</b>, <b>Utah County</b> and <b>Cache County</b>, and nowhere else yet. Every shop on it is a counter someone is already standing at, and every board holds about {count.format(inventory([SHOP]).minutes)} minutes of ad time a week. Take one shop near your door, a neighborhood, or all three counties at once. No media buyer, no minimum, no billboard contract.</p></div><NetworkMap/></div></section>
 
     <section id="packages" className="packages"><div className="wrap">
       <div className="section-head"><h2>Four shapes. Priced on two things.</h2><p>How much of the board your ad takes, and <b>when</b> it runs. A strip under the menu is the cheapest thing we sell. Blanking the whole board costs the most, because while it runs the shop&rsquo;s own menu is gone. Peak is lunch and dinner, when there is a queue; the afternoon is about half.</p></div>

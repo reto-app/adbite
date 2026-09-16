@@ -1,7 +1,7 @@
 'use client';
 
 import { Star } from 'lucide-react';
-import { SLOTS, type Board, type SlotId } from '@/lib/board';
+import { SLOTS, placementById, type Board, type SlotId } from '@/lib/board';
 
 /* The shop's board, drawn as it will appear on the wall.
  *
@@ -28,14 +28,15 @@ export function BoardCanvas({
   className?: string;
 }) {
   const sections = board.slots[slot] ?? [];
-  const share = Math.max(0, Math.min(0.5, board.adShare));
-  const adWidth = share * 100;
+  const place = placementById(board.adPlacement);
   const reviews = board.reviews.on ? board.reviews.items.filter((r) => r.quote.trim()) : [];
   const review = reviews[0];
 
   return (
-    <div className={`board-canvas theme-${board.theme}${className ? ` ${className}` : ''}`}>
-      <div className="board-menu" style={{ width: `${100 - adWidth}%` }}>
+    <div
+      className={`board-canvas theme-${board.theme} place-${place.id}${className ? ` ${className}` : ''}`}
+    >
+      <div className="board-menu">
         <header className="board-head">
           <b>{board.shopName || 'Your shop'}</b>
           {board.tagline && <span>{board.tagline}</span>}
@@ -71,6 +72,10 @@ export function BoardCanvas({
           {sections.length === 0 && <p className="board-blank">Nothing on this board yet.</p>}
         </div>
 
+        {place.id === 'rotation' && showAdLabel && (
+          <p className="board-ad-turn">Ads take a full turn between your boards</p>
+        )}
+
         {review && (
           <footer className="board-review">
             <span className="board-stars" aria-label={`${review.stars} out of 5`}>
@@ -87,12 +92,16 @@ export function BoardCanvas({
         )}
       </div>
 
-      {share > 0 && (
-        <aside className="board-ad" style={{ width: `${adWidth}%` }}>
+      {/* The rail and the strip are places on the board, so they are drawn on
+          it. A full-screen turn is not: it happens between boards, so it is
+          said in a line under the menu instead. Blanking the preview to show
+          it would hide the very thing being edited. */}
+      {(place.id === 'rail' || place.id === 'banner') && (
+        <aside className="board-ad">
           {showAdLabel && (
             <span className="board-ad-label">
               <b>Ad space</b>
-              <i>{Math.round(share * 100)}% of the screen</i>
+              <i>{place.label}</i>
             </span>
           )}
         </aside>

@@ -10,9 +10,9 @@ import { PILOT_CITY, VENUES } from '@/lib/network';
 import { money, weeklyEarnings } from '@/lib/pricing';
 
 export const metadata: Metadata = {
-  title: { absolute: 'About AdBite · One metro, a handful of shops' },
+  title: { absolute: 'About AdBite · Three Utah counties, a handful of shops' },
   description:
-    'AdBite is a local screen network in pilot: one metro, one live board in Provo, and advertisers who want to show up with care.',
+    'AdBite is a local screen network in pilot across Salt Lake, Utah and Cache counties, built for independent shops and the advertisers who want to show up with care.',
   alternates: { canonical: `${ORIGIN}/about` },
 };
 
@@ -31,11 +31,11 @@ export default function AboutPage() {
 
     <section className="simple-hero wrap">
       <h1>Local screens should support the places that hold a neighborhood together.</h1>
-      <p>AdBite is starting small: one metro pilot, one board live above a counter in {PILOT_CITY}, and advertisers who want to show up with more care than a random feed placement.</p>
+      <p>AdBite is starting small and close to home: boards going in above counters across Salt Lake, Utah and Cache counties, the first of them in {PILOT_CITY}, and advertisers who want to show up with more care than a random feed placement.</p>
     </section>
 
     <section className="values wrap">
-      <article><span><MapPin/></span><h3>One metro at a time</h3><p>We are testing the model locally first, so the shops and advertisers on the network can actually feel connected.</p></article>
+      <article><span><MapPin/></span><h3>Three counties at a time</h3><p>Salt Lake, Utah and Cache, and nothing beyond them yet. We are testing the model locally first, so the shops and advertisers on the network can actually feel connected.</p></article>
       <article><span><Store/></span><h3>Built for independents</h3><p>Restaurants, barbers, salons, cafés, and other small businesses, not big chains with a corporate playbook.</p></article>
       <article><span><Heart/></span><h3>Respect for the room</h3><p>Shop owners approve every ad, and the screen stays theirs. AdBite simply helps it earn.</p></article>
     </section>
@@ -45,15 +45,15 @@ export default function AboutPage() {
       <div className="about-facts">
         <div>
           <dt>Stage</dt>
-          <dd>Pilot. One shop, one screen, live since {SHOP.since}.</dd>
+          <dd>Pilot. Boards going in across Salt Lake, Utah and Cache counties, the first live since {SHOP.since}.</dd>
         </div>
         <div>
-          <dt>Where</dt>
+          <dt>Where it started</dt>
           <dd>{SHOP.name}, {SHOP.street}, {SHOP.city}.</dd>
         </div>
         <div>
           <dt>What a shop earns</dt>
-          <dd>From about {money.format(weeklyEarnings(SHOP))} a week on that board, more when the larger ad formats sell.</dd>
+          <dd>From about {money.format(weeklyEarnings(SHOP))} a week per board, more when the larger ad formats sell, and more again on a second screen.</dd>
         </div>
         <div>
           <dt>What we charge advertisers</dt>

@@ -63,8 +63,9 @@ export function BoardShowcase() {
 
         <p className="showcase-note">
           Every item, price and section on that screen is typed in a browser and pushed to the TV.
-          No design software, no waiting on anyone, no call-out fee. The striped block is the slice
-          you are letting ads use, and you set how wide it is &mdash; down to none at all.
+          No design software, no waiting on anyone, no call-out fee. The striped block is where you
+          are letting ads sit, and you pick the spot: a strip under the menu, a rail down the right,
+          a full turn between boards, or nowhere at all.
         </p>
 
         <Link className="button invert" href="/dashboard" data-track="tools-open-builder">
