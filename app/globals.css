@@ -2366,11 +2366,11 @@ h3 {
 }
 
 .nm-state-name {
-  fill: #0e0e0e;
+  fill: #cbd7e0;
   font-family: var(--font-display), sans-serif;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 800;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.12em;
 }
 
 /* No card behind a county, just its name under the shops in it. The boxes
@@ -2388,35 +2388,33 @@ h3 {
   fill: var(--sky-deep);
 }
 
-.nm-band.on .nm-band-name,
-.nm-band.on .nm-band-count {
+/* Only the shop whose turn it is is visible. The rest are drawn and fully
+   transparent, so the light cross-fades from town to town and the markers can
+   sit on their true coordinates however much they overlap: on the Wasatch
+   Front they overlap a lot, and no two are ever lit at once. */
+.nm-pin {
   fill: var(--sky-deep);
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  transform: scale(0.45);
+  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.2, 1.2, 0.4, 1);
 }
 
-.nm-pin circle {
-  fill: #9db4c4;
+.nm-pin.on {
+  opacity: 1;
+  transform: scale(1);
 }
 
-.nm-pin.on circle {
-  fill: var(--sky-deep);
-}
-
-/* The shops drop into their county one after another once the map is looked
-   at, rather than being there from the start. Scaling from the dot's own
-   centre needs fill-box; the default would scale it from the SVG's origin and
-   fling it across the country. */
 @media (prefers-reduced-motion: no-preference) {
-  .nm.seen .nm-pin {
-    transform-box: fill-box;
-    transform-origin: 50% 50%;
-    animation: nmDrop 0.44s cubic-bezier(0.18, 1.25, 0.4, 1) backwards;
-    animation-delay: calc(var(--n, 0) * 55ms);
+  .nm-pin.on {
+    animation: nmBeat 1.3s ease-in-out infinite 0.4s;
   }
 }
 
-@keyframes nmDrop {
-  from { opacity: 0; transform: scale(0.1); }
-  to { opacity: 1; transform: scale(1); }
+@keyframes nmBeat {
+  0%, 100% { transform: scale(1); }
+  42% { transform: scale(1.22); }
 }
 
 .nm-leader {
@@ -2424,46 +2422,11 @@ h3 {
   stroke-width: 1.2;
 }
 
-/* The shop whose turn it is pulses: a ring off the dot and a beat in the dot
-   itself, twice per turn rather than once, because a single slow expand over
-   2.6s reads as a fade rather than as something alive. Exact geography was
-   never going to carry this map; the pulse is what tells you which shop the
-   list is talking about. */
-.nm-ping {
-  fill: none;
-  stroke: var(--sky-deep);
-  stroke-width: 2.2;
-  transform-box: fill-box;
-  transform-origin: 50% 50%;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .nm-ping {
-    animation: nmPing 1.3s ease-out infinite;
-  }
-
-  .nm-pin.on circle:not(.nm-ping) {
-    transform-box: fill-box;
-    transform-origin: 50% 50%;
-    animation: nmBeat 1.3s ease-in-out infinite;
-  }
-}
-
-/* With motion turned down the ring still marks the spot, it just holds. */
-@media (prefers-reduced-motion: reduce) {
-  .nm-ping {
-    opacity: 0.35;
-  }
-}
-
-@keyframes nmPing {
-  from { transform: scale(0.5); opacity: 0.65; }
-  to { transform: scale(2.9); opacity: 0; }
-}
-
-@keyframes nmBeat {
-  0%, 100% { transform: scale(1); }
-  42% { transform: scale(1.2); }
+/* The label glides down the front with the marker instead of cutting to it.
+   An SVG transform attribute is the CSS transform property, so this works on
+   the group without the position having to move into a style. */
+.nm-callout {
+  transition: transform 0.4s cubic-bezier(0.3, 0.9, 0.3, 1);
 }
 
 .nm-callout rect,
