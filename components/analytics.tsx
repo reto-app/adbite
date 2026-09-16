@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { Analytics as VercelAnalytics, track as vercelTrack } from '@vercel/analytics/react';
 
 /* Page views and a handful of intentional events, so the site can be reasoned
    about instead of guessed at. There was no instrumentation of any kind before
@@ -8,12 +9,18 @@ import { useEffect } from 'react';
    which of the nine homepage sections lost them, or whether the advertiser
    page converted at all.
  *
- * Cookieless and aggregate on purpose: no profiles, no cross-site tracking,
- * which is what the privacy page promises. Point PUBLIC_ANALYTICS_SRC at a
- * Plausible, Fathom or Umami script and it starts reporting; with nothing set
- * it stays quiet rather than shipping a broken tag.
+ * Two reporters, one call site. Vercel Web Analytics is always on and needs no
+ * configuration, because the site is deployed there. The self-hosted tag is
+ * optional: point NEXT_PUBLIC_ANALYTICS_SRC at a Plausible, Fathom or Umami
+ * script and it starts reporting alongside, and with nothing set it stays
+ * quiet rather than shipping a broken tag.
  *
- * Any element can report a click by carrying data-track="some-name". */
+ * Cookieless and aggregate on purpose: no profiles, no cross-site tracking,
+ * which is what the privacy page promises.
+ *
+ * Any element can report a click by carrying data-track="some-name", and it
+ * reaches both reporters. Navigation is a real document load (see
+ * components/nav.tsx), so page views need no route wiring on either side. */
 
 const SRC = process.env.NEXT_PUBLIC_ANALYTICS_SRC;
 const SITE = process.env.NEXT_PUBLIC_ANALYTICS_SITE;
@@ -24,12 +31,17 @@ declare global {
   }
 }
 
-/** Report a named event. Safe to call whether or not analytics loaded. */
+/** Report a named event to both. Safe to call whether or not either loaded. */
 export function track(event: string, props?: Record<string, string>) {
+  try {
+    vercelTrack(event, props);
+  } catch {
+    /* never let a metric break a form submit */
+  }
   try {
     window.plausible?.(event, props ? { props } : undefined);
   } catch {
-    /* never let a metric break a form submit */
+    /* as above */
   }
 }
 
@@ -56,5 +68,5 @@ export function Analytics() {
     return () => document.removeEventListener('click', onClick);
   }, []);
 
-  return null;
+  return <VercelAnalytics />;
 }
