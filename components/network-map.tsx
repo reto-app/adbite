@@ -21,36 +21,43 @@ import { useEffect, useRef, useState } from 'react';
 
 type CountyId = 'cache' | 'saltlake' | 'utah';
 
-/* The enlarged state, and the three fields stacked inside it north to south.
-   `y` is a field's top edge in the SVG's own units. */
-const UTAH = 'M38.1 22.6 H89.2 V47 H123.2 V144.6 H38.1 Z';
+/* The enlarged state, and where each county sits on it.
+   The shape is Utah at about four times size, drawn over its own place on the
+   country: the two corner steps are the Wyoming notch, which is what makes a
+   plain rectangle read as the state. */
+const UTAH = 'M30 20 H90.8 V49.1 H131.4 V165.4 H30 Z';
 
-const FIELD_X = 42;
-const FIELD_W = 77;
-const FIELD_H = 27;
-
-const COUNTIES: { id: CountyId; label: string; y: number }[] = [
-  { id: 'cache', label: 'Cache County', y: 52 },
-  { id: 'saltlake', label: 'Salt Lake County', y: 82.5 },
-  { id: 'utah', label: 'Utah County', y: 113 },
+/* Counties are placed down the Wasatch Front, north to south, the way they
+   actually run. The gaps between them are stretched: Salt Lake and Utah
+   counties share a border, and at any honest spacing their shops would be one
+   clump. `at` is the middle of the cluster, and the name sits under it. */
+const COUNTIES: { id: CountyId; label: string; at: [number, number] }[] = [
+  /* Cache sits above the Wyoming notch, where the state is narrower, which is
+     why its cluster is the four-shop one and keeps to the left of it. */
+  { id: 'cache', label: 'Cache County', at: [76, 46] },
+  { id: 'saltlake', label: 'Salt Lake County', at: [70, 92] },
+  { id: 'utah', label: 'Utah County', at: [80, 134] },
 ];
 
-/* Where the shops sit inside a field, as offsets from its top-left corner.
-   Placed by hand rather than generated: they have to miss the county name in
-   the top left and the count in the top right, and still look thrown. */
+/** How far under the cluster its county name sits. */
+const NAME_DROP = 24;
+
+/* Shops scattered around the middle of their county, as offsets from it.
+   Placed by hand rather than generated: a ring looks arranged and a random
+   seed keeps producing two dots on top of each other. */
 const SCATTER: Record<number, [number, number][]> = {
   4: [
-    [10, 19],
-    [26, 15],
-    [46, 21],
-    [62, 9],
+    [-10, -3],
+    [-1, -9],
+    [8, 2],
+    [-2, 9],
   ],
   5: [
-    [8, 20],
-    [22, 15],
-    [38, 21],
-    [57, 8],
-    [67, 17],
+    [-11, -2],
+    [-3, -10],
+    [4, 4],
+    [11, -6],
+    [-1, 12],
   ],
 };
 
@@ -81,10 +88,10 @@ const PLACED = COUNTIES.flatMap((county) => {
     return {
       ...shop,
       countyLabel: county.label,
-      at: [FIELD_X + dx, county.y + dy] as [number, number],
-      /* The name label sits off the state's right edge, level with the county,
-         so it never lands on top of another county's shops. */
-      labelY: county.y + FIELD_H / 2,
+      at: [county.at[0] + dx, county.at[1] + dy] as [number, number],
+      /* The name label is parked off the state's right edge, level with the
+         county, so the leader never crosses another county's shops. */
+      labelY: county.at[1],
     };
   });
 });
@@ -180,8 +187,9 @@ export function NetworkMap({ note = DEFAULT_NOTE }: { note?: string } = {}) {
 
       <figure className="network-figure" ref={figure}>
         <p className="visually-hidden">
-          A map of the United States with Utah drawn large over it, split into the three counties
-          AdBite is opening in. Showing {here.name}, {here.kind} in {here.city}, {here.countyLabel}.
+          A map of the United States with Utah drawn large over it, the shops marked in the three
+          counties AdBite is opening in. Showing {here.name}, {here.kind} in {here.city},{' '}
+          {here.countyLabel}.
         </p>
         <svg className={`nm${seen ? ' seen' : ''}`} viewBox="0 0 320 200" aria-hidden="true">
           <defs>
@@ -201,29 +209,23 @@ export function NetworkMap({ note = DEFAULT_NOTE }: { note?: string } = {}) {
           <g className="nm-state">
             <path className="nm-state-shadow" d={UTAH} transform="translate(4 4)" />
             <path className="nm-state-face" d={UTAH} />
-            <text className="nm-state-name" x="43" y="40">
+            <text className="nm-state-name" x="35" y="30">
               UTAH
             </text>
 
-            {COUNTIES.map((county) => {
-              const n = PLACED.filter((shop) => shop.county === county.id).length;
-              return (
-                <g key={county.id} className={county.id === here.county ? 'nm-band on' : 'nm-band'}>
-                  <rect x={FIELD_X} y={county.y} width={FIELD_W} height={FIELD_H} rx="5" />
-                  <text className="nm-band-name" x={FIELD_X + 4} y={county.y + 8}>
-                    {county.label.toUpperCase()}
-                  </text>
-                  <text
-                    className="nm-band-count"
-                    x={FIELD_X + FIELD_W - 4}
-                    y={county.y + 8}
-                    textAnchor="end"
-                  >
-                    {n}
-                  </text>
-                </g>
-              );
-            })}
+            {COUNTIES.map((county) => (
+              <text
+                key={county.id}
+                className={
+                  county.id === here.county ? 'nm-county-name on' : 'nm-county-name'
+                }
+                x={county.at[0]}
+                y={county.at[1] + NAME_DROP}
+                textAnchor="middle"
+              >
+                {county.label.toUpperCase()}
+              </text>
+            ))}
 
             {PLACED.map((shop, i) => (
               <g
@@ -240,8 +242,8 @@ export function NetworkMap({ note = DEFAULT_NOTE }: { note?: string } = {}) {
           </g>
 
           {/* the name, parked off the state's edge and level with its county */}
-          <line className="nm-leader" x1={here.at[0]} y1={here.at[1]} x2="127" y2={here.labelY} />
-          <g className="nm-callout" transform={`translate(127 ${here.labelY})`}>
+          <line className="nm-leader" x1={here.at[0]} y1={here.at[1]} x2="141" y2={here.labelY} />
+          <g className="nm-callout" transform={`translate(141 ${here.labelY})`}>
             <path d="M0 -4l5 4l-5 4z" />
             <rect x="5" y="-9.5" width={here.name.length * 5.1 + 14} height="19" rx="5" />
             <text className="nm-callout-name" x="12" y="3.4">

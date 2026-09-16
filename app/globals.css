@@ -2368,35 +2368,24 @@ h3 {
 .nm-state-name {
   fill: #0e0e0e;
   font-family: var(--font-display), sans-serif;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.07em;
 }
 
-.nm-band rect {
-  fill: #eef4f8;
-  stroke: #cdd9e2;
-  stroke-width: 1;
-}
-
-.nm-band.on rect {
-  fill: var(--paper-sky);
-  stroke: var(--sky-deep);
-}
-
-.nm-band-name,
-.nm-band-count {
-  fill: #64798a;
+/* No card behind a county, just its name under the shops in it. The boxes
+   that used to be here read as rows in a table, which is the wrong idea for
+   three places on a map. */
+.nm-county-name {
+  fill: #8095a6;
+  font-size: 4.8px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
+  transition: fill 0.2s ease;
 }
 
-.nm-band-name {
-  font-size: 4.4px;
-}
-
-.nm-band-count {
-  font-size: 5px;
+.nm-county-name.on {
+  fill: var(--sky-deep);
 }
 
 .nm-band.on .nm-band-name,
@@ -2435,18 +2424,46 @@ h3 {
   stroke-width: 1.2;
 }
 
+/* The shop whose turn it is pulses: a ring off the dot and a beat in the dot
+   itself, twice per turn rather than once, because a single slow expand over
+   2.6s reads as a fade rather than as something alive. Exact geography was
+   never going to carry this map; the pulse is what tells you which shop the
+   list is talking about. */
 .nm-ping {
   fill: none;
   stroke: var(--sky-deep);
-  stroke-width: 2;
+  stroke-width: 2.2;
   transform-box: fill-box;
   transform-origin: 50% 50%;
-  animation: nmPing 2.6s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .nm-ping {
+    animation: nmPing 1.3s ease-out infinite;
+  }
+
+  .nm-pin.on circle:not(.nm-ping) {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    animation: nmBeat 1.3s ease-in-out infinite;
+  }
+}
+
+/* With motion turned down the ring still marks the spot, it just holds. */
+@media (prefers-reduced-motion: reduce) {
+  .nm-ping {
+    opacity: 0.35;
+  }
 }
 
 @keyframes nmPing {
-  from { transform: scale(0.55); opacity: 0.6; }
-  to { transform: scale(2.8); opacity: 0; }
+  from { transform: scale(0.5); opacity: 0.65; }
+  to { transform: scale(2.9); opacity: 0; }
+}
+
+@keyframes nmBeat {
+  0%, 100% { transform: scale(1); }
+  42% { transform: scale(1.2); }
 }
 
 .nm-callout rect,
