@@ -1,5 +1,65 @@
 # AdBite setup
 
+## Supabase (required: accounts, boards, campaigns)
+
+Project `adbite` (ref `uvvjndrdetvvvyrmwhpu`, Oregon), in the AdBite org.
+`supabase/migrations` is the schema; apply with `supabase db push`. The repo is
+linked to the project (`supabase link`); the database password is in
+`.env.local` on the machine that created it.
+
+Set in the Vercel project **and** in `.env.local`:
+
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://uvvjndrdetvvvyrmwhpu.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | The anon key. Safe in the browser; row-level security does the gating. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server only, for `api/` functions in later phases. Never `NEXT_PUBLIC_`. |
+
+Sign-in is a magic link. Auth is configured with `site_url`
+`https://adbite-local.vercel.app` and an allow-list covering `adbite.site`,
+`www.adbite.site`, and `localhost:3000`; add any new domain to the allow-list
+(Authentication → URL Configuration) or its links will bounce to the site root.
+
+Auth mail goes out through Resend (SMTP `smtp.resend.com:465`, user `resend`,
+password = the API key, sender `hello@adbite.site`), configured on the
+project on 2026-09-16. The sign-in template is AdBite's own; regenerate and
+push it after editing `lib/email/templates.ts`:
+
+```bash
+npx tsx scripts/email-preview.ts --auth > /tmp/auth.json
+curl -X PATCH https://api.supabase.com/v1/projects/uvvjndrdetvvvyrmwhpu/config/auth \
+  -H "Authorization: Bearer $(cat ~/.supabase/access-token)" \
+  -H "Content-Type: application/json" --data-binary @/tmp/auth.json
+```
+
+(Template edits are refused until custom SMTP is set, which it is.)
+
+## Mail the product sends
+
+`lib/email/` is every mail as data plus one layout; `api/notify.ts` sends
+them through Resend after a booking or a shop's decision, called by the
+browser with the user's session. `npx tsx scripts/email-preview.ts` renders
+them all to `out/email/` for a look. Domain `adbite.site` is verified in Resend.
+
+| Variable | Purpose |
+| --- | --- |
+| `RESEND_API_KEY` | Sends everything: product mail, lead mail, and Supabase auth mail via SMTP. |
+| `MAIL_FROM` | `AdBite <hello@adbite.site>` |
+| `MAIL_REPLY_TO` | `support@adbite.site`, which every mail also names in its footer. |
+
+Addresses: `info@adbite.site` is sales and everything before an account
+exists; `support@adbite.site` is everything after. Both come from `lib/site.ts`.
+
+**Vercel functions must export a named method** (`export async function
+POST(request: Request)`). A default export is the old `(req, res)` signature
+and its returned `Response` is silently dropped, which is why `/api/lead`
+answered nothing until 2026-09-16.
+
+To place a shop on the network, set `shops.venue_id` to its id in
+`lib/network.ts` (Bao Pao Wow is `baopaowow`). Bookings only create an
+approval row for shops that have one; the rest of `VENUES` are prospects.
+
+
 ## Lead delivery (required before launch)
 
 Both waitlist forms and the campaign builder POST to `/api/lead`. That endpoint

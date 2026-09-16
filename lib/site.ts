@@ -6,8 +6,12 @@
  * together if the domain moves. */
 
 export const ORIGIN = 'https://adbite.site';
+/** Sales and everything before an account exists. A person reads it. */
 export const MAIL = 'info@adbite.site';
 export const MAILTO = `mailto:${MAIL}`;
+/** Once you are in: sign-in trouble, a board that will not update, a bill. */
+export const SUPPORT_MAIL = 'support@adbite.site';
+export const SUPPORT_MAILTO = `mailto:${SUPPORT_MAIL}`;
 
 /** The company page. The only place the site sends anyone off it. */
 export const LINKEDIN = 'https://linkedin.com/company/adbitelocal';

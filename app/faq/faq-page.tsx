@@ -6,7 +6,7 @@ import { ArrowRight, ChevronDown } from 'lucide-react';
 import { Bite } from '@/components/brand';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
-import { MAIL, MAILTO } from '@/lib/site';
+import { MAIL, MAILTO, SUPPORT_MAIL, SUPPORT_MAILTO } from '@/lib/site';
 import { VENUES } from '@/lib/network';
 import { cents, money, rateFor, weeklyCeiling, weeklyEarnings } from '@/lib/pricing';
 
@@ -26,7 +26,7 @@ const faqs: [string, string][] = [
   ['What if I am worried about my brand image?', 'You set the tone as much as the ads do. Tell us the kinds of businesses that fit your shop and we match placements to them, and any creative you would rather not run can be deferred or rejected outright, with no explanation owed. Plenty of shops go further and frame the screen as a point of pride: a small line reading “[your shop] supports local business” turns the ad slot into something your regulars read as generosity rather than advertising.'],
   ['What kinds of ads can run?', 'Four formats: a bottom banner that leaves the menu visible, a side rail down the right of a wide board, a full-screen spot for one turn of the rotation, and a short muted video in that same slot. Every format is subject to owner approval, and the ones that take more of the board cost the advertiser more.'],
   ['What do advertisers see in reporting?', 'How many times the ad played and the total minutes it was on screen, split between peak and off-peak, along with the venues included. No impressions, no reach estimates, no modelled numbers.'],
-  ['Can I sign up right now?', `Not yet, and we would rather say so than take your card. AdBite is running on a small number of screens across Salt Lake, Utah and Cache counties while we get the pilot right, so we are not opening accounts for volume. You can still price a campaign and see your artwork on a real board without an account; when you want to go further, the request form goes straight to ${MAIL} and a person answers it.`],
+  ['Can I sign up right now?', `Yes. Sign in at the dashboard with your email and we send you a link; there is no password. AdBite is still running on a small number of screens across Salt Lake, Utah and Cache counties, so a booking is reviewed by the shop before it runs and a person at ${MAIL} is never far away. If a sign-in link does not arrive, write to ${SUPPORT_MAIL}.`],
 ];
 
 export function FaqPage() {
@@ -43,7 +43,7 @@ export function FaqPage() {
 
     <section className="faq-head wrap">
       <h1>Friendly details. No fine-print feeling.</h1>
-      <p>We’re building AdBite to be straightforward for both shops and advertisers. If something here is unclear, that is our problem, not yours: write to <a href={MAILTO}>{MAIL}</a> and we will fix the wording.</p>
+      <p>We’re building AdBite to be straightforward for both shops and advertisers. If something here is unclear, that is our problem, not yours: write to <a href={SUPPORT_MAILTO}>{SUPPORT_MAIL}</a> and we will fix the wording.</p>
     </section>
 
     <section className="faq-list wrap">

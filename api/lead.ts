@@ -37,10 +37,9 @@ function text(lead: Lead) {
     .join('\n');
 }
 
-export default async function handler(request: Request): Promise<Response> {
-  if (request.method !== 'POST') {
-    return json(405, { message: 'Send this as a POST.' });
-  }
+/* A named method export: Vercel's Node runtime drops the return value of a
+   default export, which is why this endpoint answered nothing for months. */
+export async function POST(request: Request): Promise<Response> {
 
   let lead: Lead;
   try {

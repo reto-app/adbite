@@ -1,5 +1,5 @@
 import { Link } from '@/components/nav';
-import { LINKEDIN } from '@/lib/site';
+import { LINKEDIN, SUPPORT_MAIL, SUPPORT_MAILTO } from '@/lib/site';
 import { Bite, Wordmark } from './brand';
 
 type FooterLink = { href: string; label: string };
@@ -55,6 +55,7 @@ export function SiteFooter({ links }: { links: FooterLink[] }) {
         <nav className="footer-legal" aria-label="Legal">
           <Link href="/privacy">Privacy</Link>
           <Link href="/terms">Pilot terms</Link>
+          <a href={SUPPORT_MAILTO}>{SUPPORT_MAIL}</a>
         </nav>
         <span>Pilot stage. Screen shots on this page are concept mockups.</span>
       </div>

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
-import { MAIL, MAILTO, ORIGIN } from '@/lib/site';
+import { MAILTO, ORIGIN, SUPPORT_MAIL, SUPPORT_MAILTO } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: { absolute: 'AdBite privacy · What we collect and why' },
@@ -29,17 +29,20 @@ export default function PrivacyPage() {
       <h2>Where it goes</h2>
       <p>Straight to AdBite, so a person can reply to you. We do not sell it, rent it, or pass it to advertisers or shops without asking you first. If we cannot deliver your submission we tell you so on the page rather than quietly dropping it.</p>
 
-      <h2>What stays in your browser</h2>
-      <p>Campaigns you build are saved in your own browser&rsquo;s local storage, including any artwork you upload to preview. That never leaves your device unless you submit the booking. Clearing your site data removes it, and so does the delete button on any campaign.</p>
+      <h2>Your account</h2>
+      <p>Signing in takes your email address and nothing else; we send a link rather than storing a password. What you make while signed in, a shop&rsquo;s menu board, the ads a business books and the shop&rsquo;s decision on each, is stored with Supabase in the United States so it reaches your screens and is there on your next device. Artwork you upload for a preview stays in your browser until a booking is placed.</p>
+
+      <h2>Mail we send</h2>
+      <p>Sign-in links, a note when a booking arrives for your shop, and a note when a shop has decided on your ad. Those go through Resend. No newsletters and nothing you did not ask for by using the product.</p>
 
       <h2>Analytics</h2>
       <p>We count page views and which buttons get used, so we can tell which parts of this site are confusing. It is aggregate and cookieless: no profiles, no cross-site tracking, no advertising pixels.</p>
 
       <h2>Maps</h2>
-      <p>The shop map loads tiles from OpenStreetMap, which means your browser makes a request to their servers and they see your IP address. That is the only third party this site talks to.</p>
+      <p>The shop map loads tiles from OpenStreetMap, which means your browser makes a request to their servers and they see your IP address. Besides Supabase and Resend above, that is the only third party this site talks to.</p>
 
       <h2>Having it removed</h2>
-      <p>Write to <a href={MAILTO}>{MAIL}</a> and ask. We will delete what we hold and confirm when it is done. You do not need to give a reason.</p>
+      <p>Write to <a href={SUPPORT_MAILTO}>{SUPPORT_MAIL}</a> and ask. We will delete what we hold and confirm when it is done. You do not need to give a reason.</p>
     </section>
 
     <SiteFooter links={[

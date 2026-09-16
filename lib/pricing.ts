@@ -179,6 +179,12 @@ export function maxSpend(
    worked out from, and no component should render anything but the result. */
 
 /** What a shop takes home in a week, quoted on the cheapest format. */
+/** A shop's cut of one booking's weekly spend, split evenly across the boards
+    it named. Shop-facing: the share itself stays private. */
+export function shopEarningsFromSpend(spend: number, boardsInBooking: number) {
+  return (spend / Math.max(1, boardsInBooking)) * SHOP_SHARE;
+}
+
 export function weeklyEarnings(venue: Priceable) {
   return inventory([venue], ALL_DAYPARTS, BASELINE_FORMAT).value * SHOP_SHARE;
 }
