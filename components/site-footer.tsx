@@ -1,5 +1,9 @@
+'use client';
+
 import { Link } from '@/components/nav';
 import { LINKEDIN, SUPPORT_MAIL, SUPPORT_MAILTO } from '@/lib/site';
+import { useCopy } from '@/lib/lang';
+import { SHARED } from '@/lib/copy/shared';
 import { Bite, Wordmark } from './brand';
 
 type FooterLink = { href: string; label: string };
@@ -16,6 +20,7 @@ function LinkedInMark() {
 }
 
 export function SiteFooter({ links }: { links: FooterLink[] }) {
+  const t = useCopy(SHARED);
   const render = (link: FooterLink) =>
     link.href.startsWith('/') ? (
       <Link key={link.href} href={link.href}>
@@ -32,10 +37,10 @@ export function SiteFooter({ links }: { links: FooterLink[] }) {
       <Bite className="bite" />
       <div className="wrap footer-inner">
         <div className="footer-brand">
-          <Link href="/" aria-label="AdBite home">
+          <Link href="/" aria-label={t.header.home}>
             <Wordmark className="footer-word" />
           </Link>
-          <p>Local ads on screens people already watch.</p>
+          <p>{t.footer.tagline}</p>
           <a
             className="footer-social"
             href={LINKEDIN}
@@ -53,11 +58,11 @@ export function SiteFooter({ links }: { links: FooterLink[] }) {
       <div className="wrap footer-base">
         <span>© {new Date().getFullYear()} AdBite</span>
         <nav className="footer-legal" aria-label="Legal">
-          <Link href="/privacy">Privacy</Link>
-          <Link href="/terms">Pilot terms</Link>
+          <Link href="/privacy">{t.footer.privacy}</Link>
+          <Link href="/terms">{t.footer.terms}</Link>
           <a href={SUPPORT_MAILTO}>{SUPPORT_MAIL}</a>
         </nav>
-        <span>Pilot stage. Screen shots on this page are concept mockups.</span>
+        <span>{t.footer.stage}</span>
       </div>
     </footer>
   );

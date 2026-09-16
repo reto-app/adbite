@@ -8,7 +8,7 @@
  * row is nobody's until this moment, so row-level security has no owner to
  * let through. */
 
-import { json, service, userFrom } from '../../lib/server/db.js';
+import { json, lowerKeys, service, userFrom } from '../../lib/server/db.js';
 
 export const config = { runtime: 'nodejs' };
 
@@ -17,13 +17,14 @@ export async function POST(request: Request): Promise<Response> {
   const user = await userFrom(request, db);
   if (!user) return json(401, { message: 'Sign in first' });
 
-  let body: { code?: string; name?: string };
+  let fields: Record<string, unknown>;
   try {
-    body = (await request.json()) as typeof body;
+    fields = lowerKeys(await request.json());
   } catch {
     return json(400, { message: 'Unreadable request' });
   }
-  const code = (body.code ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const name = typeof fields.name === 'string' ? fields.name : undefined;
+  const code = String(fields.code ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
   if (code.length !== 6) return json(400, { message: 'A pairing code is six letters and numbers.' });
 
   const { data: shop } = await db.from('shops').select('id, name').eq('owner_id', user.id).limit(1).maybeSingle();
@@ -35,7 +36,7 @@ export async function POST(request: Request): Promise<Response> {
 
   const { error } = await db
     .from('devices')
-    .update({ shop_id: shop.id, pair_code: null, name: body.name?.trim() || `${shop.name} TV` })
+    .update({ shop_id: shop.id, pair_code: null, name: name?.trim() || `${shop.name} TV` })
     .eq('id', device.id);
   if (error) return json(500, { message: error.message });
 

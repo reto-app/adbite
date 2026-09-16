@@ -1,7 +1,10 @@
 'use client';
 
 import { Link, usePath } from '@/components/nav';
+import { useCopy } from '@/lib/lang';
+import { SHARED } from '@/lib/copy/shared';
 import { AccountButton } from './account-button';
+import { LangSwitch } from './lang-switch';
 import { Wordmark } from './brand';
 
 type NavItem = { href: string; label: string };
@@ -19,11 +22,12 @@ export function SiteHeader({
   aside?: { href: string; label: string };
 }) {
   const path = usePath();
+  const t = useCopy(SHARED);
 
   return (
     <header className="site-header">
       <div className="header-inner">
-        <Link href="/" className="brand" aria-label="AdBite home">
+        <Link href="/" className="brand" aria-label={t.header.home}>
           <Wordmark className="brand-word" />
         </Link>
         <nav aria-label="Primary">
@@ -53,6 +57,7 @@ export function SiteHeader({
             </Link>
           )}
           <AccountButton />
+          <LangSwitch />
         </div>
       </div>
     </header>

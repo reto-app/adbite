@@ -38,6 +38,16 @@ export function pairCode() {
   return code;
 }
 
+/* A BrightScript associative array is case-insensitive, so FormatJson on a
+   Roku emits `deviceid` where the channel wrote `deviceId`. Device endpoints
+   read their fields through this rather than pretending otherwise. */
+export function lowerKeys(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object') return {};
+  const out: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(value as Record<string, unknown>)) out[key.toLowerCase()] = item;
+  return out;
+}
+
 export function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 }

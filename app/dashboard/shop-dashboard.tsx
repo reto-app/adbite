@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Check,
   Clapperboard,
@@ -24,7 +24,6 @@ import {
   THEMES,
   itemCount,
   newId,
-  placementById,
   resetBoard,
   saveBoard,
   shareOf,
@@ -53,22 +52,37 @@ import {
 } from '@/lib/campaigns';
 import { FORMATS } from '@/lib/boards';
 import { POLL_MINUTES, isOnline, pairDevice, renameDevice, useDevices, type Device } from '@/lib/devices';
+import { localeOf, useCopy, useLang } from '@/lib/lang';
+import { SHARED } from '@/lib/copy/shared';
+import { SHOP as COPY } from '@/lib/copy/shop';
 
 const SHOP = LIVE_VENUES[0];
-const day = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 
-const NAV = [
-  { href: '/advertisers', label: 'For advertisers' },
-  { href: '/', label: 'For shops' },
-  { href: '/faq', label: 'FAQ' },
-];
-
+/* The nav and the tabs read their words from lib/copy/shop.ts; the ids and
+   icons live here. */
 const TABS = [
-  { id: 'board', label: 'Your board', icon: LayoutTemplate },
-  { id: 'ads', label: 'Ads waiting', icon: Check },
-  { id: 'money', label: 'What it pays', icon: Wallet },
-  { id: 'tvs', label: 'Your TVs', icon: Tv },
+  { id: 'board', icon: LayoutTemplate },
+  { id: 'ads', icon: Check },
+  { id: 'money', icon: Wallet },
+  { id: 'tvs', icon: Tv },
 ] as const;
+
+function useNav() {
+  const t = useCopy(SHARED);
+  return [
+    { href: '/advertisers', label: t.nav.forAdvertisers },
+    { href: '/', label: t.nav.forShops },
+    { href: '/faq', label: t.nav.faq },
+  ];
+}
+
+/** "Sep 15" or "15 sept", depending on the page's language. */
+function useDay(options: Intl.DateTimeFormatOptions) {
+  const { lang } = useLang();
+  return useMemo(() => new Intl.DateTimeFormat(localeOf(lang), options), [lang, options]);
+}
+const DAY: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+const WHEN: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' };
 
 type TabId = (typeof TABS)[number]['id'];
 
@@ -79,6 +93,9 @@ export function ShopDashboard() {
   const { campaigns } = useCampaigns();
   const [tab, setTab] = useState<TabId>('board');
   const [slot, setSlot] = useState<SlotId>('midday');
+  const t = useCopy(COPY);
+  const shared = useCopy(SHARED);
+  const NAV = useNav();
 
   const set = (patch: Partial<Board>) => saveBoard({ ...board, ...patch });
 
@@ -106,30 +123,30 @@ export function ShopDashboard() {
         <div className="wrap dash-head-inner">
           <div>
             <span className="eyebrow">
-              <span className="pulse" /> {board.shopName || 'Your shop'}
+              <span className="pulse" /> {board.shopName || shared.board.yourShop}
             </span>
-            <h1>Your screen</h1>
+            <h1>{t.head.yourScreen}</h1>
           </div>
           <dl className="dash-totals">
             <div>
-              <dt>On the board</dt>
+              <dt>{t.head.onTheBoard}</dt>
               <dd>{itemCount(board)}</dd>
             </div>
             <div>
-              <dt>Ads sit</dt>
-              <dd>{placementById(board.adPlacement).short}</dd>
+              <dt>{t.head.adsSit}</dt>
+              <dd>{shared.placements[board.adPlacement].short}</dd>
             </div>
             <div>
-              <dt>Waiting on you</dt>
+              <dt>{t.head.waitingOnYou}</dt>
               <dd>{waiting.length}</dd>
             </div>
             <div>
-              <dt>You are paid</dt>
-              <dd className="money">{money.format(weeklyEarnings(priced))} / wk</dd>
+              <dt>{t.head.youArePaid}</dt>
+              <dd className="money">{money.format(weeklyEarnings(priced))} {t.head.perWeek}</dd>
             </div>
           </dl>
           <SideSwitch />
-          <nav className="tabs head-tabs" aria-label="Shop workspace">
+          <nav className="tabs head-tabs" aria-label={t.head.workspace}>
             {TABS.map((item) => (
               <button
                 key={item.id}
@@ -138,7 +155,7 @@ export function ShopDashboard() {
                 aria-current={tab === item.id}
                 onClick={() => setTab(item.id)}
               >
-                <item.icon size={14} /> {item.label}
+                <item.icon size={14} /> {t.tabs[item.id]}
                 {item.id === 'ads' && waiting.length > 0 && <i className="tab-dot" />}
               </button>
             ))}
@@ -169,16 +186,18 @@ function BoardTab({
   onSlot: (slot: SlotId) => void;
   onChange: (patch: Partial<Board>) => void;
 }) {
+  const t = useCopy(COPY);
+  const shared = useCopy(SHARED);
   const [clipError, setClipError] = useState('');
 
   const takeClip = (file: File | undefined) => {
     if (!file) return;
     if (!file.type.startsWith('video/')) {
-      setClipError('That file isn’t a video. An MP4 of your kitchen is ideal.');
+      setClipError(t.clip.notVideo);
       return;
     }
     if (file.size > MAX_CLIP) {
-      setClipError('That clip is over 8 MB. Trim it or export it smaller.');
+      setClipError(t.clip.tooBig);
       return;
     }
     const reader = new FileReader();
@@ -193,7 +212,7 @@ function BoardTab({
   return (
     <section className="shop-body">
       <div className="shop-edit">
-        <div className="slot-tabs" role="tablist" aria-label="Which board">
+        <div className="slot-tabs" role="tablist" aria-label={t.editor.whichBoard}>
           {SLOTS.map((item) => (
             <button
               key={item.id}
@@ -203,8 +222,8 @@ function BoardTab({
               className={slot === item.id ? 'on' : undefined}
               onClick={() => onSlot(item.id)}
             >
-              <b>{item.label}</b>
-              <i>{item.window}</i>
+              <b>{shared.slots[item.id].label}</b>
+              <i>{shared.slots[item.id].window}</i>
             </button>
           ))}
         </div>
@@ -218,21 +237,21 @@ function BoardTab({
 
           <section className="shop-panel">
             <div className="prefs-head">
-              <h3>The shop</h3>
-              <span className="prefs-hint">What sits along the top of every board</span>
+              <h3>{t.shop.title}</h3>
+              <span className="prefs-hint">{t.shop.hint}</span>
             </div>
             <label className="shop-field">
-              Name
+              {t.shop.name}
               <input
                 value={board.shopName}
                 onChange={(event) => onChange({ shopName: event.target.value })}
               />
             </label>
             <label className="shop-field">
-              Line underneath
+              {t.shop.tagline}
               <input
                 value={board.tagline}
-                placeholder="What you sell, and where you are"
+                placeholder={t.shop.taglinePlaceholder}
                 onChange={(event) => onChange({ tagline: event.target.value })}
               />
             </label>
@@ -240,8 +259,8 @@ function BoardTab({
 
           <section className="shop-panel">
             <div className="prefs-head">
-              <h3>How it looks</h3>
-              <span className="prefs-hint">Four grounds. Nothing else to design</span>
+              <h3>{t.look.title}</h3>
+              <span className="prefs-hint">{t.look.hint}</span>
             </div>
             <div className="theme-row">
               {THEMES.map((theme) => (
@@ -253,8 +272,8 @@ function BoardTab({
                   onClick={() => onChange({ theme: theme.id as ThemeId })}
                 >
                   <span className="theme-swatch" aria-hidden="true" />
-                  <b>{theme.label}</b>
-                  <i>{theme.note}</i>
+                  <b>{shared.themes[theme.id].label}</b>
+                  <i>{shared.themes[theme.id].note}</i>
                 </button>
               ))}
             </div>
@@ -263,12 +282,12 @@ function BoardTab({
           <section className="shop-panel">
             <div className="prefs-head">
               <h3>
-                <Star size={15} /> Your reviews, on the wall
+                <Star size={15} /> {t.reviews.title}
               </h3>
               <span className="shop-switch">
                 <input
                   type="checkbox"
-                  aria-label="Show your reviews on the board"
+                  aria-label={t.reviews.toggle}
                   checked={board.reviews.on}
                   onChange={(event) =>
                     onChange({ reviews: { ...board.reviews, on: event.target.checked } })
@@ -283,8 +302,8 @@ function BoardTab({
                   <div className="review-row" key={review.id}>
                     <input
                       value={review.quote}
-                      aria-label="Review"
-                      placeholder="What they said"
+                      aria-label={t.reviews.review}
+                      placeholder={t.reviews.quotePlaceholder}
                       onChange={(event) =>
                         onChange({
                           reviews: {
@@ -299,8 +318,8 @@ function BoardTab({
                     <input
                       className="review-who"
                       value={review.author}
-                      aria-label="Who said it"
-                      placeholder="Name"
+                      aria-label={t.reviews.who}
+                      placeholder={t.reviews.namePlaceholder}
                       onChange={(event) =>
                         onChange({
                           reviews: {
@@ -315,7 +334,7 @@ function BoardTab({
                     <button
                       type="button"
                       className="edit-drop"
-                      aria-label="Remove this review"
+                      aria-label={t.reviews.remove}
                       onClick={() =>
                         onChange({
                           reviews: {
@@ -344,12 +363,9 @@ function BoardTab({
                     })
                   }
                 >
-                  Add a review
+                  {t.reviews.add}
                 </button>
-                <p className="prefs-note">
-                  Paste your own from Google or Yelp. They run between boards, to a room that is
-                  already standing in your shop.
-                </p>
+                <p className="prefs-note">{t.reviews.note}</p>
               </>
             )}
           </section>
@@ -357,12 +373,12 @@ function BoardTab({
           <section className="shop-panel">
             <div className="prefs-head">
               <h3>
-                <Clapperboard size={15} /> Play your own food
+                <Clapperboard size={15} /> {t.clip.title}
               </h3>
               <span className="shop-switch">
                 <input
                   type="checkbox"
-                  aria-label="Play your own clip between boards"
+                  aria-label={t.clip.toggle}
                   checked={board.media.on}
                   onChange={(event) =>
                     onChange({ media: { ...board.media, on: event.target.checked } })
@@ -375,8 +391,8 @@ function BoardTab({
               <>
                 <label className="clip-drop">
                   <Upload size={16} />
-                  <b>{board.media.name ?? 'Choose a clip'}</b>
-                  <span>MP4, up to 8 MB. Muted, on a loop, between boards</span>
+                  <b>{board.media.name ?? t.clip.choose}</b>
+                  <span>{t.clip.spec}</span>
                   <input
                     type="file"
                     accept="video/*"
@@ -397,7 +413,7 @@ function BoardTab({
           </section>
 
           <button type="button" className="edit-add section" onClick={resetBoard}>
-            <RotateCcw size={14} /> Start again from the example board
+            <RotateCcw size={14} /> {t.reset}
           </button>
         </div>
       </div>
@@ -405,14 +421,14 @@ function BoardTab({
       <div className="shop-preview">
         <div className="preview-head">
           <span>
-            On the wall · {SLOTS.find((s) => s.id === slot)?.label}
+            {t.preview.onTheWall} · {shared.slots[slot].label}
           </span>
-          <i>Updates as you type</i>
+          <i>{t.preview.updates}</i>
         </div>
         <BoardCanvas board={board} slot={slot} />
 
         <fieldset className="place-pick">
-          <legend>Where ads sit on your screen</legend>
+          <legend>{t.preview.where}</legend>
           <div className="place-options">
             {PLACEMENTS.map((place) => (
               <button
@@ -425,16 +441,13 @@ function BoardTab({
                 <span className={`place-mini m-${place.id}`} aria-hidden="true">
                   <i />
                 </span>
-                <b>{place.label}</b>
-                <i>{place.note}</i>
+                <b>{shared.placements[place.id].label}</b>
+                <i>{shared.placements[place.id].note}</i>
               </button>
             ))}
           </div>
         </fieldset>
-        <p className="preview-note">
-          Nothing here is a contract. Pick nowhere for a week you want the whole screen, and your
-          earnings for that week go to zero with it. Every ad still waits for your yes.
-        </p>
+        <p className="preview-note">{t.preview.note}</p>
       </div>
     </section>
   );
@@ -443,23 +456,22 @@ function BoardTab({
 /* ---- the approval queue -------------------------------------------------- */
 
 function AdsTab({ waiting, campaigns }: { waiting: Campaign[]; campaigns: Campaign[] }) {
+  const t = useCopy(COPY).queue;
+  const shared = useCopy(SHARED);
+  const day = useDay(DAY);
   const mine = campaigns.filter((campaign) => campaign.venues.includes(SHOP.id));
   const decided = mine.filter((campaign) => statusOf(campaign) !== 'review');
 
   return (
     <section className="shop-queue wrap">
       <div className="section-head">
-        <h2>Nothing plays until you say so.</h2>
-        <p>
-          Every creative booked onto your board waits here. Reject anything that does not suit your
-          shop, your customers or your values. No explanation is owed to anyone.
-        </p>
+        <h2>{t.title}</h2>
+        <p>{t.lede}</p>
       </div>
 
       {waiting.length === 0 ? (
         <p className="queue-empty">
-          Nothing is waiting on you. When an advertiser books your board, their artwork lands here
-          first. {mine.length === 0 && 'Load the sample campaigns from the advertiser side to see how this reads.'}
+          {t.empty} {mine.length === 0 && t.emptySamples}
         </p>
       ) : (
         <div className="queue-grid">
@@ -469,40 +481,40 @@ function AdsTab({ waiting, campaigns }: { waiting: Campaign[]; campaigns: Campai
               <article className="queue-card" key={campaign.id}>
                 <div className="queue-head">
                   <b>{campaign.name}</b>
-                  <span>Booked {day.format(new Date(campaign.createdAt))}</span>
+                  <span>{t.booked(day.format(new Date(campaign.createdAt)))}</span>
                 </div>
                 <dl className="queue-facts">
                   <div>
-                    <dt>Format</dt>
-                    <dd>{format?.name ?? campaign.format}</dd>
+                    <dt>{t.format}</dt>
+                    <dd>{format ? shared.formats[format.id].name : campaign.format}</dd>
                   </div>
                   <div>
-                    <dt>Takes</dt>
-                    <dd>{format?.spec}</dd>
+                    <dt>{t.takes}</dt>
+                    <dd>{format ? shared.formats[format.id].spec : ''}</dd>
                   </div>
                   <div>
-                    <dt>From</dt>
-                    <dd>{campaign.email ?? 'an advertiser'}</dd>
+                    <dt>{t.from}</dt>
+                    <dd>{campaign.email ?? t.anAdvertiser}</dd>
                   </div>
                 </dl>
                 {campaign.note && <p className="queue-note">{campaign.note}</p>}
                 <div className="queue-art">
                   {campaign.creativeSrc ? (
-                    <img src={campaign.creativeSrc} alt={campaign.creativeName ?? 'The creative'} />
+                    <img src={campaign.creativeSrc} alt={campaign.creativeName ?? t.theCreative} />
                   ) : (
-                    <span>{campaign.creativeName ?? 'Artwork on file'}</span>
+                    <span>{campaign.creativeName ?? t.onFile}</span>
                   )}
                 </div>
                 <div className="queue-actions">
                   <button type="button" onClick={() => rejectCampaign(campaign.id)}>
-                    <X size={15} /> Reject
+                    <X size={15} /> {t.reject}
                   </button>
                   <button
                     type="button"
                     className="yes"
                     onClick={() => approveCampaign(campaign.id)}
                   >
-                    <Check size={15} /> Approve
+                    <Check size={15} /> {t.approve}
                   </button>
                 </div>
               </article>
@@ -513,15 +525,15 @@ function AdsTab({ waiting, campaigns }: { waiting: Campaign[]; campaigns: Campai
 
       {decided.length > 0 && (
         <div className="queue-decided">
-          <h3>Already decided</h3>
+          <h3>{t.decided}</h3>
           <ul>
             {decided.map((campaign) => (
               <li key={campaign.id}>
                 <b>{campaign.name}</b>
                 {statusOf(campaign) === 'live' ? (
-                  <span className="status live">On your screen</span>
+                  <span className="status live">{t.onScreen}</span>
                 ) : (
-                  <span className="status gone">Rejected</span>
+                  <span className="status gone">{t.rejected}</span>
                 )}
               </li>
             ))}
@@ -535,44 +547,43 @@ function AdsTab({ waiting, campaigns }: { waiting: Campaign[]; campaigns: Campai
 /* ---- what the screen pays ------------------------------------------------ */
 
 function MoneyTab({ board, priced }: { board: Board; priced: typeof SHOP }) {
+  const t = useCopy(COPY).money;
+  const shared = useCopy(SHARED);
   const week = weeklyEarnings(priced);
   const stock = inventory([priced]);
 
   return (
     <section className="shop-money wrap">
       <div className="section-head">
-        <h2>What the screen pays you.</h2>
-        <p>
-          Worked from your own hours and where you are letting ads sit. Move that on the board tab
-          and every figure here moves with it.
-        </p>
+        <h2>{t.title}</h2>
+        <p>{t.lede}</p>
       </div>
 
       <div className="stat-grid">
         <article>
-          <small>Paid each week</small>
+          <small>{t.week}</small>
           <b className="money">{money.format(week)}</b>
-          <i>On the cheapest format, so it is a floor</i>
+          <i>{t.weekNote}</i>
         </article>
         <article>
-          <small>A month</small>
+          <small>{t.month}</small>
           <b className="money">{money.format(monthlyEarnings(priced))}</b>
-          <i>Paid once a month, itemised by spot</i>
+          <i>{t.monthNote}</i>
         </article>
         <article>
-          <small>A year at this pace</small>
+          <small>{t.year}</small>
           <b className="money">{money.format(yearlyEarnings(priced))}</b>
           <i>{SHOP.hours}</i>
         </article>
         <article>
-          <small>Ad minutes you are offering</small>
+          <small>{t.minutes}</small>
           <b>{count.format(stock.minutes)}</b>
-          <i>{placementById(board.adPlacement).short}, across your open week</i>
+          <i>{t.minutesNote(shared.placements[board.adPlacement].short)}</i>
         </article>
       </div>
 
       <div className="money-split">
-        <h3>Where it comes from</h3>
+        <h3>{t.where}</h3>
         {DAYPARTS.map((part) => {
           const pay = daypartEarnings(priced, part.id);
           const most = Math.max(
@@ -582,11 +593,11 @@ function MoneyTab({ board, priced }: { board: Board; priced: typeof SHOP }) {
           return (
             <div className={`money-row ${part.tier}`} key={part.id}>
               <span className="money-when">
-                <b>{part.label}</b>
-                <i>{part.window}</i>
+                <b>{shared.dayparts[part.id].label}</b>
+                <i>{shared.dayparts[part.id].window}</i>
               </span>
               <span className={`rate-tier ${part.tier}`}>
-                {part.tier === 'peak' ? 'Peak' : 'Off-peak'}
+                {shared.tier[part.tier]}
               </span>
               <span className="money-bar">
                 <i style={{ width: `${Math.max(2, (pay / most) * 100)}%` }} />
@@ -595,21 +606,14 @@ function MoneyTab({ board, priced }: { board: Board; priced: typeof SHOP }) {
             </div>
           );
         })}
-        <p className="prefs-note">
-          Busy hours are worth more and are paid as such. These are your earnings, quoted on the
-          cheapest format we sell, so a week where the bigger formats go pays more than this.
-        </p>
+        <p className="prefs-note">{t.note}</p>
       </div>
 
       <aside className="money-aside">
         <Sparkles size={18} />
         <div>
-          <b>The screen earns either way.</b>
-          <p>
-            The board tools are yours whether or not a single ad sells this week. Design it, change
-            it at lunch, put your reviews on it. The ads are the part that pays; the board is the
-            part that works.
-          </p>
+          <b>{t.eitherWay}</b>
+          <p>{t.eitherWayText}</p>
         </div>
       </aside>
     </section>
@@ -622,6 +626,7 @@ function MoneyTab({ board, priced }: { board: Board; priced: typeof SHOP }) {
    which build is it running. The ten-minute figure is the poll interval and
    is the honest answer to "when will my change show up". */
 function TvTab() {
+  const t = useCopy(COPY).tvs;
   const { ready, devices } = useDevices();
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
@@ -648,18 +653,14 @@ function TvTab() {
   return (
     <section className="shop-queue wrap">
       <div className="section-head">
-        <h2>Your TVs.</h2>
-        <p>
-          Open the AdBite Board channel on a Roku and it shows a six-character code. Type it here
-          and that screen is yours. Every TV checks for changes every {POLL_MINUTES} minutes, so a
-          menu edit or an approved ad takes up to {POLL_MINUTES} minutes to reach the wall.
-        </p>
+        <h2>{t.title}</h2>
+        <p>{t.lede(POLL_MINUTES)}</p>
       </div>
 
       <form className="access-form tv-pair" onSubmit={pair}>
         <div className="form-grid">
           <label htmlFor="tv-code">
-            Code on the TV
+            {t.code}
             <input
               id="tv-code"
               value={code}
@@ -672,23 +673,23 @@ function TvTab() {
             />
           </label>
           <label htmlFor="tv-name">
-            Call it
-            <input id="tv-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Counter TV" />
+            {t.callIt}
+            <input id="tv-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t.callItPlaceholder} />
           </label>
         </div>
         <button className="button primary" type="submit" disabled={busy || code.replace(/[^A-Z0-9]/g, '').length < 6}>
-          {busy ? 'Pairing…' : 'Pair this TV'}
+          {busy ? t.pairing : t.pair}
         </button>
         {error && (
           <p className="form-warn" role="alert">
             {error}
           </p>
         )}
-        {paired && <p className="form-note">Paired. Your board is on it within a minute.</p>}
+        {paired && <p className="form-note">{t.paired}</p>}
       </form>
 
       {ready && devices.length === 0 ? (
-        <p className="queue-empty">No TVs yet. Pair the first one above.</p>
+        <p className="queue-empty">{t.none}</p>
       ) : (
         <div className="queue-grid">
           {devices.map((device) => (
@@ -700,9 +701,9 @@ function TvTab() {
   );
 }
 
-const when = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-
 function TvCard({ device }: { device: Device }) {
+  const t = useCopy(COPY).tvs;
+  const when = useDay(WHEN);
   const online = isOnline(device);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(device.name);
@@ -721,24 +722,24 @@ function TvCard({ device }: { device: Device }) {
             <input value={draft} onChange={(e) => setDraft(e.target.value)} autoFocus />
           </form>
         ) : (
-          <b onDoubleClick={() => setEditing(true)} title="Double-click to rename">
+          <b onDoubleClick={() => setEditing(true)} title={t.rename}>
             {device.name}
           </b>
         )}
-        <span className={online ? 'tv-on' : 'tv-off'}>{online ? 'On the wall' : 'Not checking in'}</span>
+        <span className={online ? 'tv-on' : 'tv-off'}>{online ? t.onTheWall : t.notCheckingIn}</span>
       </div>
       <dl className="queue-facts">
         <div>
-          <dt>Last checked in</dt>
-          <dd>{device.lastSeen ? when.format(new Date(device.lastSeen)) : 'Never'}</dd>
+          <dt>{t.lastSeen}</dt>
+          <dd>{device.lastSeen ? when.format(new Date(device.lastSeen)) : t.never}</dd>
         </div>
         <div>
-          <dt>Shows</dt>
-          <dd>{device.screen === 'reel' ? 'Ads only (second screen)' : 'Your menu and ads'}</dd>
+          <dt>{t.shows}</dt>
+          <dd>{device.screen === 'reel' ? t.adsOnly : t.menuAndAds}</dd>
         </div>
         <div>
-          <dt>Channel</dt>
-          <dd>{device.channelVersion ?? 'unknown'}</dd>
+          <dt>{t.channel}</dt>
+          <dd>{device.channelVersion ?? t.unknown}</dd>
         </div>
       </dl>
     </article>

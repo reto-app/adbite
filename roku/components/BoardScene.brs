@@ -350,6 +350,10 @@ function onKeyEvent(key as String, press as Boolean) as Boolean
 
     if key = "options" or key = "info"
         m.diagnostics.visible = not m.diagnostics.visible
+        ' A spot playing over the overlay would hide it: the video plane is
+        ' above the graphics plane on every Roku. So the rotation pauses for
+        ' as long as somebody is reading.
+        m.ads.hold = m.diagnostics.visible
         refreshDiagnostics()
         return true
     end if

@@ -2,6 +2,8 @@
 
 import { Link, usePath } from '@/components/nav';
 import { MonitorPlay } from 'lucide-react';
+import { useCopy } from '@/lib/lang';
+import { SHARED } from '@/lib/copy/shared';
 
 /* The header's right-hand slot.
  *
@@ -10,11 +12,12 @@ import { MonitorPlay } from 'lucide-react';
  * lead to a login nobody could complete. */
 export function AccountButton() {
   const pathname = usePath();
+  const t = useCopy(SHARED);
   const next = pathname && pathname !== '/signin' ? `?next=${encodeURIComponent(pathname)}` : '';
 
   return (
     <Link className="signin-link" href={`/signin${next}`} data-track="header-access">
-      <MonitorPlay size={15} /> Get on a board
+      <MonitorPlay size={15} /> {t.header.getOnABoard}
     </Link>
   );
 }

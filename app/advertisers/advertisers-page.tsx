@@ -16,6 +16,9 @@ import { MAILTO } from '@/lib/site';
 import { field, submitLead } from '@/lib/leads';
 import { FORMATS } from '@/lib/boards';
 import { VENUES } from '@/lib/network';
+import { useCopy, useLang } from '@/lib/lang';
+import { ADVERTISERS } from '@/lib/copy/advertisers';
+import { SHARED } from '@/lib/copy/shared';
 import {
   DAYPARTS,
   RATE_FLOOR,
@@ -29,40 +32,21 @@ import {
 
 /* Icon and tone per format. The formats themselves, and their specs, come from
    lib/boards.ts so the marketing page and the builder cannot disagree about
-   how many there are: this page used to sell three while the product shipped
-   four, and the missing one was the side rail. */
-const LOOK: Record<string, { icon: React.ReactNode; tone: string; sell: string; note: string }> = {
-  banner: {
-    icon: <Monitor />, tone: 'peach',
-    sell: 'A strip under the menu, in view the whole time someone is deciding what to order.',
-    note: 'The least of the board, so the least to pay.',
-  },
-  rail: {
-    icon: <Columns3 />, tone: 'green',
-    sell: 'The right third, top to bottom. Holds the screen continuously without ever hiding the menu.',
-    note: 'More of the board than a strip, and priced for it.',
-  },
-  full: {
-    icon: <Store />, tone: 'dark',
-    sell: 'The whole board for your turn in the rotation. Nothing else on it.',
-    note: 'The menu is gone while it runs, which is what you are paying for.',
-  },
-  video: {
-    icon: <Play />, tone: 'blue',
-    sell: 'Fifteen muted seconds in the full-screen slot. Motion in a room where nothing else moves.',
-    note: 'Billed per play, not per minute. You buy a count of runs.',
-  },
+   how many there are; the selling lines are in lib/copy/advertisers.ts. */
+const LOOK: Record<string, { icon: React.ReactNode; tone: string }> = {
+  banner: { icon: <Monitor />, tone: 'peach' },
+  rail: { icon: <Columns3 />, tone: 'green' },
+  full: { icon: <Store />, tone: 'dark' },
+  video: { icon: <Play />, tone: 'blue' },
 };
 
-const ads = [
-  { label: 'Now playing · Bottom banner', brand: 'Iron Rose Gym', detail: 'First class free · two doors down', color: 'coral' },
-  { label: 'Now playing · Full screen', brand: 'Freedom Cycles', detail: 'Free tune-up · two blocks north', color: 'sun' },
-  { label: 'Now playing · Short video', brand: 'Ninth Street Books', detail: '10% off with your receipt', color: 'blue' },
-];
-
+const AD_COLORS = ['coral', 'sun', 'blue'];
 const SHOP = VENUES[0];
 
 function AdvertiseForm() {
+  const t = useCopy(ADVERTISERS).advertise.form;
+  const shared = useCopy(SHARED);
+  const { lang } = useLang();
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
@@ -78,6 +62,7 @@ function AdvertiseForm() {
         const result = await submitLead({
           kind: 'advertiser',
           email: field(data, 'email'),
+          lang,
           detail: {
             business: field(data, 'business'),
             where: field(data, 'where'),
@@ -91,61 +76,67 @@ function AdvertiseForm() {
       }}
     >
       <div className="form-grid">
-        <label htmlFor="ad-business">Business type
-          <input id="ad-business" name="business" required placeholder="Florist, dentist, gym…" /></label>
-        <label htmlFor="ad-where">Where you are
-          <input id="ad-where" name="where" required placeholder="Provo, Sandy, Logan…" /></label>
-        <label htmlFor="ad-budget">Weekly budget
+        <label htmlFor="ad-business">{t.business}
+          <input id="ad-business" name="business" required placeholder={t.businessPlaceholder} /></label>
+        <label htmlFor="ad-where">{t.where}
+          <input id="ad-where" name="where" required placeholder={t.wherePlaceholder} /></label>
+        <label htmlFor="ad-budget">{t.budget}
           <select id="ad-budget" name="budget" defaultValue="">
-            <option disabled value="">Choose a range</option>
+            <option disabled value="">{t.budgetPlaceholder}</option>
             <option>$25–$60</option><option>$60–$150</option><option>$150+</option>
           </select></label>
-        <label htmlFor="ad-message">What you would say
-          <input id="ad-message" name="message" placeholder="Free tune-up, two blocks north" /></label>
-        <label className="form-wide" htmlFor="ad-email">Your email
-          <input id="ad-email" name="email" type="email" required autoComplete="email" placeholder="you@yourbusiness.com" /></label>
+        <label htmlFor="ad-message">{t.message}
+          <input id="ad-message" name="message" placeholder={t.messagePlaceholder} /></label>
+        <label className="form-wide" htmlFor="ad-email">{t.email}
+          <input id="ad-email" name="email" type="email" required autoComplete="email" placeholder={t.emailPlaceholder} /></label>
       </div>
       <button type="submit" className="button primary" data-track="adv-waitlist-submit" disabled={sending || sent}>
-        {sent ? 'Thanks, we’ll be in touch' : sending ? 'Sending…' : 'Get me on the pilot'}
+        {sent ? t.thanks : sending ? shared.form.sending : t.submit}
       </button>
-      {sent && <p className="form-note"><Check size={16}/> We’ll come back with the boards that suit you and what a week on them costs.</p>}
-      {error && <p className="form-warn" role="alert">{error} <a href={MAILTO}>Email us instead</a>.</p>}
+      {sent && <p className="form-note"><Check size={16}/> {t.note}</p>}
+      {error && <p className="form-warn" role="alert">{error} <a href={MAILTO}>{shared.form.emailUsInstead}</a>.</p>}
     </form>
   );
 }
 
 export function AdvertisersPage() {
+  const t = useCopy(ADVERTISERS);
+  const shared = useCopy(SHARED);
+  const ads = t.ads.map((ad, i) => ({ ...ad, color: AD_COLORS[i] }));
   const [activeAd, setActiveAd] = useState(0);
   useEffect(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduced) return;
     const timer = window.setInterval(() => setActiveAd(a => (a + 1) % ads.length), 3600);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [ads.length]);
+
+  const minutes = count.format(inventory([SHOP]).minutes);
+  const [n0, n1, n2, n3, n4, n5, n6] = t.network.lede(minutes);
 
   return <main className="advertiser-page">
     <SiteHeader
       nav={[
-        { href: '#flow', label: 'How it works' },
-        { href: '#packages', label: 'Rates' },
-        { href: '#reporting', label: 'Reporting' },
-        { href: '/faq', label: 'FAQ' },
+        { href: '#flow', label: t.nav.flow },
+        { href: '#packages', label: t.nav.packages },
+        { href: '#reporting', label: t.nav.reporting },
+        { href: '/faq', label: shared.nav.faq },
       ]}
-      cta={{ href: '/dashboard', label: 'Build a campaign' }}
-      aside={{ href: '/', label: 'I’m a shop owner' }}
+      cta={{ href: '/dashboard', label: shared.header.buildCampaign }}
+      aside={{ href: '/', label: shared.header.imAShopOwner }}
     />
 
     <div className="hero-band">
       <SkyShapes />
       <section className="ad-hero wrap">
         <div>
-          <h1>Show up where your neighbors <em>already look.<Bite className="bite"/></em></h1>
-          <p className="hero-lede">Buy a slice of the menu board at a shop in your neighborhood. Your ad plays while someone is standing at the counter, already deciding what to spend money on. Pick the county, the area and the hours across Salt Lake, Utah and Cache, from {cents.format(RATE_FLOOR)} a minute.</p>
+          <h1>{t.hero.title1}<em>{t.hero.title2}<Bite className="bite"/></em></h1>
+          <p className="hero-lede">{t.hero.lede(cents.format(RATE_FLOOR))}</p>
           <div className="hero-actions">
-            <Link href="/dashboard" className="button primary" data-track="adv-hero-build">Build your campaign <ArrowRight size={17}/></Link>
-            <a className="text-link" href="#advertise" data-track="adv-hero-contact">Or have us set it up</a>
+            <Link href="/dashboard" className="button primary" data-track="adv-hero-build">{t.hero.build} <ArrowRight size={17}/></Link>
+            <a className="text-link" href="#advertise" data-track="adv-hero-contact">{t.hero.orContact}</a>
           </div>
-          <p className="hero-foot">No account needed, and none to create: we are in pilot and not open for volume yet. Price it, put your artwork on a real board, then send it to us when you want it to run.</p>
+          <p className="hero-foot">{t.hero.foot}</p>
         </div>
         <ShopScene ads={ads} activeAd={activeAd} onSelectAd={setActiveAd} shop={NORTH_PARK_NOODLE} />
       </section>
@@ -153,63 +144,61 @@ export function AdvertisersPage() {
 
     <AdvertiserFlow />
 
-    <section className="boards-section"><div className="wrap"><div className="section-head"><h2>See it running.</h2><p>Two boards on the network. Your spot sits inside the one thing everyone in the room is already reading, at the exact moment they are deciding what to spend money on.</p></div><BoardReel only={['rosas', 'roost']}/></div></section>
+    <section className="boards-section"><div className="wrap"><div className="section-head"><h2>{t.boards.title}</h2><p>{t.boards.lede}</p></div><BoardReel only={['rosas', 'roost']}/></div></section>
 
-    <section id="network" className="network"><div className="wrap"><div className="section-head network-head"><h2>Book one block, or the whole county.</h2><p>Shops are joining the network every day, and booking one gives you access to one of the most intimate marketing experiences available: your ad on the counter your neighbours are already standing at. <b>Salt Lake County</b>, <b>Utah County</b> and <b>Cache County</b> are open now, every board holding about {count.format(inventory([SHOP]).minutes)} minutes of ad time a week. Take one shop near your door, a neighborhood, or all three counties at once.</p></div><NetworkMap/></div></section>
+    <section id="network" className="network"><div className="wrap"><div className="section-head network-head"><h2>{t.network.title}</h2><p>{n0}<b>{n1}</b>{n2}<b>{n3}</b>{n4}<b>{n5}</b>{n6}</p></div><NetworkMap/></div></section>
 
     <section id="packages" className="packages"><div className="wrap">
-      <div className="section-head"><h2>Four shapes. Priced on two things.</h2><p>How much of the board your ad takes, and <b>when</b> it runs. A strip under the menu is the cheapest thing we sell. Blanking the whole board costs the most, because while it runs the shop&rsquo;s own menu is gone. Peak is lunch and dinner, when there is a queue; the afternoon is about half.</p></div>
+      <div className="section-head"><h2>{t.packages.title}</h2><p>{t.packages.ledeBefore}<b>{t.packages.ledeWhen}</b>{t.packages.ledeAfter}</p></div>
 
       <div className="rate-band">
         {DAYPARTS.map((part) => (
           <article key={part.id} className={`rate-slab ${part.tier}`}>
-            <span className="rate-slab-head">{part.tier === 'peak' ? <Sun size={16}/> : <Cloud size={16}/>}<b>{part.label}</b><i>{part.window}</i></span>
-            <strong className="money">{cents.format(rateFor('banner', part.id))}<small> / min</small></strong>
-            <span className="rate-slab-foot">{part.tier === 'peak' ? 'Peak' : 'Off-peak'} · from, for a bottom banner · {count.format(weeklyMinutes(SHOP, part.id))} min free</span>
+            <span className="rate-slab-head">{part.tier === 'peak' ? <Sun size={16}/> : <Cloud size={16}/>}<b>{shared.dayparts[part.id].label}</b><i>{shared.dayparts[part.id].window}</i></span>
+            <strong className="money">{cents.format(rateFor('banner', part.id))}<small> {t.packages.perMin}</small></strong>
+            <span className="rate-slab-foot">{t.packages.slabFoot(shared.tier[part.tier], count.format(weeklyMinutes(SHOP, part.id)))}</span>
           </article>
         ))}
       </div>
 
       <div className="tier-grid">{FORMATS.map(format => {
         const look = LOOK[format.id];
+        const words = t.packages.look[format.id];
         const perPlay = unitOf(format.id) === 'play';
         return <article key={format.id} className={`tier ${look.tone}`}>
           <div className="tier-icon">{look.icon}</div>
-          <h3>{format.name}</h3>
-          <p>{look.sell}</p>
+          <h3>{shared.formats[format.id].name}</h3>
+          <p>{words.sell}</p>
           <div className="tier-price">
             <b className="money">{cents.format(rateFor(format.id, 'lunch'))}</b>
-            <span>peak, per {perPlay ? 'play' : 'minute'}</span>
-            <span className="tier-off">{cents.format(rateFor(format.id, 'afternoon'))} off-peak</span>
+            <span>{t.packages.peakPer(perPlay ? shared.unit.play : shared.unit.minute)}</span>
+            <span className="tier-off">{t.packages.offPeak(cents.format(rateFor(format.id, 'afternoon')))}</span>
           </div>
           <ul>
-            <li><Check size={15}/>{look.note}</li>
-            <li><Check size={15}/>{format.spec}</li>
-            <li><Check size={15}/>{perPlay ? 'You pay for plays that ran' : 'You pay for minutes shown'}</li>
+            <li><Check size={15}/>{words.note}</li>
+            <li><Check size={15}/>{shared.formats[format.id].spec}</li>
+            <li><Check size={15}/>{perPlay ? t.packages.payPlays : t.packages.payMinutes}</li>
           </ul>
-          <Link href="/dashboard" data-track="adv-tier-build">Build one <ArrowRight size={15}/></Link>
+          <Link href="/dashboard" data-track="adv-tier-build">{t.packages.buildOne} <ArrowRight size={15}/></Link>
         </article>;
       })}</div>
 
-      <p className="packages-foot">
-        Every price above is what you pay. There is no auction, no bidding against a national brand
-        for the shop on your corner, and no rate that moves because of who else showed up that week.
-      </p>
+      <p className="packages-foot">{t.packages.foot}</p>
     </div></section>
 
     <section id="reporting" className="reporting-band"><div className="wrap">
-      <div className="section-head"><span className="eyebrow light">The dashboard, not a drawing of it</span><h2>Know exactly where your money went.</h2><p>Every screen below is the real builder and the real report, captured from the product. You can open the <Link href="/dashboard">dashboard</Link> and build a campaign right now, without an account.</p></div>
+      <div className="section-head"><span className="eyebrow light">{t.reporting.eyebrow}</span><h2>{t.reporting.title}</h2><p>{t.reporting.ledeBefore}<Link href="/dashboard">{t.reporting.ledeLink}</Link>{t.reporting.ledeAfter}</p></div>
       <DashboardReel/>
-      <p className="tour-foot">AdBite bills on two things and reports both: how many times your ad played, and the minutes it was on screen, split peak and off-peak, per shop. Anything worked out rather than counted &mdash; heads past the board, cost per thousand &mdash; is labelled as such on the screen it appears on. There are no impressions here, and no reach estimates dressed up as measurements.</p>
+      <p className="tour-foot">{t.reporting.foot}</p>
     </div></section>
 
-    <section id="advertise" className="advertise wrap"><SkyShapes /><div className="advertise-copy"><span className="eyebrow">Pilot access</span><h2>Want to advertise?</h2><p>Put your details in and we will get you onto the pilot. A person reads it, finds the boards that suit what you sell, and writes back with what is open and what it would cost.</p></div><AdvertiseForm/></section>
+    <section id="advertise" className="advertise wrap"><SkyShapes /><div className="advertise-copy"><span className="eyebrow">{t.advertise.eyebrow}</span><h2>{t.advertise.title}</h2><p>{t.advertise.lede}</p></div><AdvertiseForm/></section>
 
     <SiteFooter links={[
-      { href: '/', label: 'For shops' },
-      { href: '/about', label: 'About' },
-      { href: '/faq', label: 'FAQ' },
-      { href: MAILTO, label: 'Contact' },
+      { href: '/', label: shared.nav.forShops },
+      { href: '/about', label: shared.nav.about },
+      { href: '/faq', label: shared.nav.faq },
+      { href: MAILTO, label: shared.nav.contact },
     ]}/>
   </main>;
 }

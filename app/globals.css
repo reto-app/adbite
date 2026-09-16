@@ -3290,6 +3290,60 @@ text.vs-small {
   margin-left: 0;
 }
 
+/* ---- EN | ES ------------------------------------------------------------
+   Two segments in a pill, the current one filled. Drawn for the dark header
+   by default; `.light` is for the sign-in card, which sits on paper. */
+.lang-switch {
+  display: inline-flex;
+  flex: 0 0 auto;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.lang-switch button {
+  min-width: 34px;
+  padding: 4px 9px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.lang-switch button:hover {
+  color: var(--chalk);
+}
+
+.lang-switch button.on {
+  background: var(--chalk);
+  color: var(--board);
+}
+
+.lang-switch.light {
+  border-color: var(--rule);
+  background: var(--paper);
+}
+
+.lang-switch.light button {
+  color: var(--ash);
+}
+
+.lang-switch.light button:hover {
+  color: var(--ink);
+}
+
+.lang-switch.light button.on {
+  background: var(--board);
+  color: var(--chalk);
+}
+
 .signin-link {
   display: inline-flex;
   align-items: center;
@@ -3415,8 +3469,16 @@ text.vs-small {
 .signin-word {
   display: block;
   width: 104px;
-  margin-bottom: 34px;
   color: var(--chalk);
+}
+
+/* The mark on the left, EN | ES on the right, on the dark half of the card. */
+.signin-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 34px;
 }
 
 .signin-brand h1 {

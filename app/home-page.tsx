@@ -29,6 +29,9 @@ import { Link } from '@/components/nav';
 import { VENUES } from '@/lib/network';
 import { MAILTO } from '@/lib/site';
 import { field, submitLead } from '@/lib/leads';
+import { useCopy, useLang } from '@/lib/lang';
+import { HOME } from '@/lib/copy/home';
+import { SHARED } from '@/lib/copy/shared';
 import {
   OFF_DAYPARTS,
   PEAK_DAYPARTS,
@@ -43,26 +46,25 @@ import {
 } from '@/lib/pricing';
 
 /* The businesses that buy a counter screen are the ones close enough to walk
-   to. Every example on the site is one of those, and says so. */
-const ads = [
-  { label: 'Now playing · Bottom banner', brand: 'Rosewood Barbers', detail: 'Walk-ins till seven · next door', color: 'coral' },
-  { label: 'Now playing · Full screen', brand: 'North Park Dental', detail: 'New patient checkups this week', color: 'sun' },
-  { label: 'Now playing · Short video', brand: 'Mia’s Flower Bar', detail: 'Bright stems · corner of 700 North', color: 'blue' },
+   to. Every example on the site is one of those, and says so. The words are
+   in lib/copy/home.ts; the colours belong to the scene. */
+const AD_COLORS = ['coral', 'sun', 'blue'];
+
+const FEATURE_ICONS = [
+  <SlidersHorizontal size={20} key="share" />,
+  <Check size={20} key="approve" />,
+  <Radio size={20} key="check" />,
+  <Wallet size={20} key="pay" />,
 ];
 
-const steps = [
-  ['01', 'Connect your screen', 'We help set up your existing TV or menu board.'],
-  ['02', 'Advertisers book', 'Local businesses buy minutes on your screen, by the week.'],
-  ['03', 'You approve', 'Review each creative. Approve or reject—nothing runs without you.'],
-  ['04', 'Content stays yours', 'Ads take about a third of the screen. Your menu keeps the rest.'],
-  ['05', 'Get paid', 'Your earnings land monthly, itemised by spot. No invoicing, no chasing.'],
-];
-
-const features = [
-  [<SlidersHorizontal size={20} key="i"/>, 'Your ad share', 'Set how much of the screen ads can use, down to none at all this week. The rest is always your own content.'],
-  [<Check size={20} key="i"/>, 'Approval queue', 'Every creative waits for your yes. Reject anything that does not suit your shop, with no explanation owed.'],
-  [<Radio size={20} key="i"/>, 'Screen check', 'We watch that your board is up and playing. If it drops off, you hear it from us first.'],
-  [<Wallet size={20} key="i"/>, 'Earnings, itemised', 'See what each spot paid and what is owed, then take your payment once a month.'],
+/* The screen is worth running even in a week when no ad sells, and this is the
+   half of the product that makes that true. It used to be one line in the
+   features grid and a link to a Menu Designer that did not exist. */
+const TOOL_ICONS = [
+  <LayoutTemplate size={22} key="design" />,
+  <Clapperboard size={22} key="clip" />,
+  <Star size={22} key="reviews" />,
+  <CalendarClock size={22} key="hours" />,
 ];
 
 const SHOP = VENUES[0];
@@ -72,21 +74,10 @@ const sum = (parts: typeof PEAK_DAYPARTS, each: (id: (typeof parts)[number]['id'
 const PEAK_PAY = sum(PEAK_DAYPARTS, (id) => daypartEarnings(SHOP, id));
 const OFF_PAY = sum(OFF_DAYPARTS, (id) => daypartEarnings(SHOP, id));
 
-/* The screen is worth running even in a week when no ad sells, and this is the
-   half of the product that makes that true. It used to be one line in the
-   features grid and a link to a Menu Designer that did not exist. */
-const tools = [
-  [<LayoutTemplate size={22} key="i"/>, 'Design the board itself',
-   'Drag your items around, set your prices, push it to the screen.'],
-  [<Clapperboard size={22} key="i"/>, 'Play your own food',
-   'Drop in video of the grill. A board that moves holds a queue.'],
-  [<Star size={22} key="i"/>, 'Put your reviews on the wall',
-   'Your best Google and Yelp lines, running between courses.'],
-  [<CalendarClock size={22} key="i"/>, 'Different menu, different hour',
-   'Breakfast, lunch, then the late board. Set it once.'],
-];
-
 function JoinForm() {
+  const t = useCopy(HOME).join.form;
+  const shared = useCopy(SHARED);
+  const { lang } = useLang();
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
@@ -102,6 +93,7 @@ function JoinForm() {
         const result = await submitLead({
           kind: 'shop',
           email: field(data, 'email'),
+          lang,
           detail: {
             shop: field(data, 'shop'),
             type: field(data, 'type'),
@@ -115,114 +107,115 @@ function JoinForm() {
       }}
     >
       <div className="form-grid">
-        <label htmlFor="join-shop">Shop name
-          <input id="join-shop" name="shop" required placeholder="Sunny Side Café" /></label>
-        <label htmlFor="join-type">Shop type
+        <label htmlFor="join-shop">{t.shop}
+          <input id="join-shop" name="shop" required placeholder={t.shopPlaceholder} /></label>
+        <label htmlFor="join-type">{t.type}
           <select id="join-type" name="type" defaultValue="">
-            <option value="" disabled>Select type</option>
-            <option>Restaurant</option><option>Barber</option>
-            <option>Salon / cosmetics</option><option>Café</option>
-            <option>Other independent shop</option>
+            <option value="" disabled>{t.typePlaceholder}</option>
+            {t.types.map((type) => <option key={type}>{type}</option>)}
           </select></label>
-        <label htmlFor="join-city">City
-          <input id="join-city" name="city" required placeholder="Provo, UT" /></label>
-        <label htmlFor="join-screens"># of screens
+        <label htmlFor="join-city">{t.city}
+          <input id="join-city" name="city" required placeholder={t.cityPlaceholder} /></label>
+        <label htmlFor="join-screens">{t.screens}
           <select id="join-screens" name="screens" defaultValue="">
-            <option value="" disabled>Choose</option>
-            <option>1</option><option>2–3</option><option>4+</option>
+            <option value="" disabled>{t.screensPlaceholder}</option>
+            {t.screenOptions.map((option) => <option key={option}>{option}</option>)}
           </select></label>
-        <label className="form-wide" htmlFor="join-email">Your email
+        <label className="form-wide" htmlFor="join-email">{t.email}
           <input id="join-email" name="email" type="email" required autoComplete="email"
-            placeholder="you@yourshop.com" /></label>
+            placeholder={t.emailPlaceholder} /></label>
       </div>
       <button className="button primary" type="submit" data-track="shop-waitlist-submit" disabled={sending || sent}>
-        {sent ? 'You’re on the list' : sending ? 'Sending…' : 'Join the shop waitlist'}
+        {sent ? t.onList : sending ? shared.form.sending : t.submit}
       </button>
-      {sent && <p className="form-note"><Check size={16}/> Thanks. We’ll write from AdBite when we reach your city, and we will not pass your details to anyone.</p>}
-      {error && <p className="form-warn" role="alert">{error} <a href={MAILTO}>Email us instead</a>.</p>}
-      {!sent && !error && <p className="form-note quiet">No contract, no hardware to buy, and you can leave whenever you like.</p>}
+      {sent && <p className="form-note"><Check size={16}/> {t.thanks}</p>}
+      {error && <p className="form-warn" role="alert">{error} <a href={MAILTO}>{shared.form.emailUsInstead}</a>.</p>}
+      {!sent && !error && <p className="form-note quiet">{t.quiet}</p>}
     </form>
   );
 }
 
 export function HomePage() {
+  const t = useCopy(HOME);
+  const shared = useCopy(SHARED);
+  const ads = t.ads.map((ad, i) => ({ ...ad, color: AD_COLORS[i] }));
   const [activeAd, setActiveAd] = useState(0);
   useEffect(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduced) return;
     const timer = window.setInterval(() => setActiveAd(a => (a + 1) % ads.length), 3600);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [ads.length]);
 
   return <main>
     <SiteHeader
       nav={[
-        { href: '#how', label: 'How it works' },
-        { href: '#earnings', label: 'Earnings' },
-        { href: '#tools', label: 'Menu tools' },
-        { href: '/faq', label: 'FAQ' },
+        { href: '#how', label: t.nav.how },
+        { href: '#earnings', label: t.nav.earnings },
+        { href: '#tools', label: t.nav.tools },
+        { href: '/faq', label: shared.nav.faq },
       ]}
-      cta={{ href: '#join', label: 'Join the waitlist' }}
-      aside={{ href: '/advertisers', label: 'I’m an advertiser' }}
+      cta={{ href: '#join', label: shared.header.joinWaitlist }}
+      aside={{ href: '/advertisers', label: shared.header.imAnAdvertiser }}
     />
 
     <div className="hero-band">
       <SkyShapes />
       <section className="hero wrap">
         <div className="hero-copy">
-          <h1>Your TV already runs your menu.<br/><em>Let it pay you, too.<Bite className="bite"/></em></h1>
-          <p className="hero-lede">AdBite turns a slice of your screen into ad space for the businesses on your block. You approve every ad, you get paid every month, and the TV you already run starts paying for itself.</p>
+          <h1>{t.hero.title1}<br/><em>{t.hero.title2}<Bite className="bite"/></em></h1>
+          <p className="hero-lede">{t.hero.lede}</p>
           <div className="hero-actions">
-            <a className="button primary" href="#join" data-track="shop-hero-cta">Get your shop on AdBite <ArrowRight size={17}/></a>
-            <a className="text-link" href="#earnings" data-track="shop-hero-earnings">See what a screen earns</a>
+            <a className="button primary" href="#join" data-track="shop-hero-cta">{t.hero.cta} <ArrowRight size={17}/></a>
+            <a className="text-link" href="#earnings" data-track="shop-hero-earnings">{t.hero.earnings}</a>
           </div>
         </div>
         <ShopScene ads={ads} activeAd={activeAd} onSelectAd={setActiveAd} />
       </section>
     </div>
 
-    <section id="how" className="section wrap"><div className="section-head"><h2>Five steps, then it runs itself.</h2><p>From the TV you already own to money in the account. Nothing here asks you to sell an ad, sign a contract, or hand over your screen.</p></div><div className="steps">{steps.map(([number, title, text]) => <article className="step" key={number}><span>{number}</span><h3>{title}</h3><p>{text}</p></article>)}</div></section>
+    <section id="how" className="section wrap"><div className="section-head"><h2>{t.how.title}</h2><p>{t.how.lede}</p></div><div className="steps">{t.how.steps.map(([title, text], i) => <article className="step" key={title}><span>{String(i + 1).padStart(2, '0')}</span><h3>{title}</h3><p>{text}</p></article>)}</div></section>
 
-    <section className="formats"><div className="wrap"><div className="section-head format-head"><h2>Four ways an ad can show up.</h2><p>Every format leaves your own content in place, and every format is subject to your approval.</p></div><FormatGrid/></div></section>
+    <section className="formats"><div className="wrap"><div className="section-head format-head"><h2>{t.formats.title}</h2><p>{t.formats.lede}</p></div><FormatGrid/></div></section>
 
-    <section className="boards-section"><div className="wrap"><div className="section-head"><h2>What it will look like.</h2><p>Four AdBite boards. Watch where the ad sits, and how much of the screen stays the shop&rsquo;s.</p></div><BoardReel/></div></section>
+    <section className="boards-section"><div className="wrap"><div className="section-head"><h2>{t.boards.title}</h2><p>{t.boards.lede}</p></div><BoardReel/></div></section>
 
-    <section className="approval wrap"><div className="approval-art"><div className="approval-card"><div className="review-head"><span className="review-tag">In review</span><span>Queued today</span></div><div className="mini-ad"><div className="mini-brand"><i>RB</i><span>Rosewood Barbers<em>4th &amp; Pine · next door</em></span></div><b>Walk-ins till seven</b><p>Fades, beard trims, hot-towel finish. No appointment, no wait list.</p><span className="mini-offer">$5 off your first cut</span></div><dl className="review-details"><dt>Format</dt><dd>Full-screen spot</dd><dt>Length</dt><dd>15 seconds</dd><dt>Rotation</dt><dd>6 turns an hour</dd><dt>Runs</dt><dd>Mon 15 Sep &ndash; Sun 21 Sep</dd></dl><div className="approval-actions"><button type="button"><X size={16}/> Reject</button><button type="button"><Check size={16}/> Approve</button></div></div><div className="approval-badge"><BadgeCheck size={20}/><span><b>Your call</b>Every ad gets your okay</span></div></div><div className="approval-copy"><h2>Nothing runs without your approval.</h2><p>Every creative arrives in a quick review queue. If it doesn’t match your shop, your customers, or your values, reject it. No explanation needed.</p><ul><li><Check size={17}/> See the ad before it’s scheduled</li><li><Check size={17}/> Approve or reject in one tap</li><li><Check size={17}/> Choose where on your screen ads sit</li></ul></div></section>
+    <section className="approval wrap"><div className="approval-art"><div className="approval-card"><div className="review-head"><span className="review-tag">{t.approval.inReview}</span><span>{t.approval.queued}</span></div><div className="mini-ad"><div className="mini-brand"><i>RB</i><span>{t.approval.brand}<em>{t.approval.where}</em></span></div><b>{t.approval.headline}</b><p>{t.approval.body}</p><span className="mini-offer">{t.approval.offer}</span></div><dl className="review-details"><dt>{t.approval.format}</dt><dd>{t.approval.formatValue}</dd><dt>{t.approval.length}</dt><dd>{t.approval.lengthValue}</dd><dt>{t.approval.rotation}</dt><dd>{t.approval.rotationValue}</dd><dt>{t.approval.runs}</dt><dd>{t.approval.runsValue}</dd></dl><div className="approval-actions"><button type="button"><X size={16}/> {t.approval.reject}</button><button type="button"><Check size={16}/> {t.approval.approve}</button></div></div><div className="approval-badge"><BadgeCheck size={20}/><span><b>{t.approval.yourCall}</b>{t.approval.everyAd}</span></div></div><div className="approval-copy"><h2>{t.approval.title}</h2><p>{t.approval.lede}</p><ul>{t.approval.points.map((point) => <li key={point}><Check size={17}/> {point}</li>)}</ul></div></section>
 
     <section id="earnings" className="numbers-band"><div className="wrap numbers-inner">
       <div>
-        <h2>A little screen time.<br/>A meaningful extra.</h2>
-        <p className="band-note">Worked from a board like the ones going in now: open {SHOP.hours}, with about a third of the screen sold as ads. Your own hours change the number, and a second screen doubles it.</p>
+        <h2>{t.earnings.title1}<br/>{t.earnings.title2}</h2>
+        <p className="band-note">{t.earnings.note(SHOP.hours)}</p>
         <ul className="band-points">
-          <li><Check size={16}/> Your busy hours are worth more, and are paid as such</li>
-          <li><Check size={16}/> Up to {money.format(weeklyCeiling(SHOP))} a week when the bigger formats sell</li>
-          <li><Check size={16}/> Paid monthly, itemised by spot</li>
-          <li><Check size={16}/> Turn ads off entirely any week you like</li>
+          <li><Check size={16}/> {t.earnings.points.busy}</li>
+          <li><Check size={16}/> {t.earnings.points.upTo(money.format(weeklyCeiling(SHOP)))}</li>
+          <li><Check size={16}/> {t.earnings.points.monthly}</li>
+          <li><Check size={16}/> {t.earnings.points.off}</li>
         </ul>
       </div>
       <div className="calculator">
-        <div className="calc-row"><span>Ad minutes on your board, each week</span><b>{count.format(inventory([SHOP]).minutes)}</b></div>
-        <div className="calc-row"><span>Your busy hours · lunch and evening</span><b>{money.format(PEAK_PAY)}</b></div>
-        <div className="calc-row"><span>The quiet middle · afternoons</span><b>{money.format(OFF_PAY)}</b></div>
-        <div className="calc-total"><span>You are paid</span><strong className="money">{money.format(weeklyEarnings(SHOP))} <small>/ week</small></strong></div>
-        <div className="calc-foot"><span>{money.format(monthlyEarnings(SHOP))} / month</span><span>About {money.format(yearlyEarnings(SHOP))} / year</span></div>
+        <div className="calc-row"><span>{t.earnings.calc.minutes}</span><b>{count.format(inventory([SHOP]).minutes)}</b></div>
+        <div className="calc-row"><span>{t.earnings.calc.busy}</span><b>{money.format(PEAK_PAY)}</b></div>
+        <div className="calc-row"><span>{t.earnings.calc.quiet}</span><b>{money.format(OFF_PAY)}</b></div>
+        <div className="calc-total"><span>{t.earnings.calc.paid}</span><strong className="money">{money.format(weeklyEarnings(SHOP))} <small>{t.earnings.calc.perWeek}</small></strong></div>
+        <div className="calc-foot"><span>{t.earnings.calc.perMonth(money.format(monthlyEarnings(SHOP)))}</span><span>{t.earnings.calc.perYear(money.format(yearlyEarnings(SHOP)))}</span></div>
       </div>
     </div></section>
 
-    <section id="features" className="features"><div className="wrap"><div className="section-head"><h2>And the controls that keep it yours.</h2><p>AdBite is the board software and the ad side together, so the tools that pay you are the same ones you use to run your menu. These are the levers on the paying half.</p></div><div className="feature-grid">{features.map(([icon, title, text]) => <article className="feature" key={title as string}><span>{icon}</span><h3>{title}</h3><p>{text}</p></article>)}</div></div></section>
+    <section id="features" className="features"><div className="wrap"><div className="section-head"><h2>{t.features.title}</h2><p>{t.features.lede}</p></div><div className="feature-grid">{t.features.items.map(([title, text], i) => <article className="feature" key={title}><span>{FEATURE_ICONS[i]}</span><h3>{title}</h3><p>{text}</p></article>)}</div></div></section>
 
     <section id="tools" className="levelup">
       <div className="wrap">
         <div className="section-head">
-          <span className="eyebrow light">The other half of AdBite</span>
-          <h2>Level up your menu.</h2>
-          <p>Ads are the part that pays. These are the tools that make the screen worth having in a week when nothing sells, and they come with it.</p>
+          <span className="eyebrow light">{t.tools.eyebrow}</span>
+          <h2>{t.tools.title}</h2>
+          <p>{t.tools.lede}</p>
         </div>
         <BoardShowcase/>
         <div className="tool-grid">
-          {tools.map(([icon, title, text]) => (
-            <article className="tool" key={title as string}>
-              <span>{icon}</span>
+          {t.tools.items.map(([title, text], i) => (
+            <article className="tool" key={title}>
+              <span>{TOOL_ICONS[i]}</span>
               <h3>{title}</h3>
               <p>{text}</p>
             </article>
@@ -231,23 +224,23 @@ export function HomePage() {
         <aside className="tv-offer">
           <span className="tv-icon"><Truck size={26}/></span>
           <div>
-            <h3>No screen yet? We will bring one.</h3>
-            <p>You do not need to buy a TV to start. We can supply the screen, mount it where your customers actually look, run the cable and set the board up on it. Tell us about your counter and we will tell you what it takes.</p>
+            <h3>{t.tools.tv.title}</h3>
+            <p>{t.tools.tv.text}</p>
           </div>
-          <a className="button invert" href="#join" data-track="tv-offer-cta">Ask about a screen <ArrowRight size={16}/></a>
+          <a className="button invert" href="#join" data-track="tv-offer-cta">{t.tools.tv.cta} <ArrowRight size={16}/></a>
         </aside>
       </div>
     </section>
 
-    <section className="venues wrap"><div className="section-head"><h2>For the places people return to.</h2></div><div className="venue-copy"><article><VenueScene kind="restaurant"/><h3>Restaurants</h3><p>Make your menu board work a little harder between orders.</p></article><article><VenueScene kind="barber"/><h3>Barbers</h3><p>Turn waiting-room watching into a local opportunity.</p></article><article><VenueScene kind="salon"/><h3>Salons &amp; cosmetics</h3><p>Keep your look and feel while earning from your screen.</p></article><article><VenueScene kind="cafe"/><h3>Caf&eacute;s &amp; more</h3><p>Any independent shop with a TV is welcome.</p></article></div></section>
+    <section className="venues wrap"><div className="section-head"><h2>{t.venues.title}</h2></div><div className="venue-copy"><article><VenueScene kind="restaurant"/><h3>{t.venues.restaurant[0]}</h3><p>{t.venues.restaurant[1]}</p></article><article><VenueScene kind="barber"/><h3>{t.venues.barber[0]}</h3><p>{t.venues.barber[1]}</p></article><article><VenueScene kind="salon"/><h3>{t.venues.salon[0]}</h3><p>{t.venues.salon[1]}</p></article><article><VenueScene kind="cafe"/><h3>{t.venues.cafe[0]}</h3><p>{t.venues.cafe[1]}</p></article></div></section>
 
-    <section id="join" className="join wrap"><SkyShapes /><div className="join-copy"><span className="eyebrow">Pilot opening soon</span><h2>Let your screen earn a little extra.</h2><p>Tell us about your shop. We’ll reach out when AdBite is ready in your area.</p><div className="menu-designer"><MonitorPlay size={22}/><div><b>Already thinking about your screen?</b><p>See what the board tools can do in <a href="#tools">Level up your menu</a>, or look at the ad side from the buyer&rsquo;s chair in the <Link href="/dashboard">campaign builder</Link>.</p></div></div></div><JoinForm/></section>
+    <section id="join" className="join wrap"><SkyShapes /><div className="join-copy"><span className="eyebrow">{t.join.eyebrow}</span><h2>{t.join.title}</h2><p>{t.join.lede}</p><div className="menu-designer"><MonitorPlay size={22}/><div><b>{t.join.thinking}</b><p>{t.join.thinkingBefore}<a href="#tools">{t.join.thinkingLink1}</a>{t.join.thinkingMiddle}<Link href="/dashboard">{t.join.thinkingLink2}</Link>{t.join.thinkingAfter}</p></div></div></div><JoinForm/></section>
 
     <SiteFooter links={[
-      { href: '/about', label: 'About' },
-      { href: '/faq', label: 'FAQ' },
-      { href: '/advertisers', label: 'For advertisers' },
-      { href: MAILTO, label: 'Contact' },
+      { href: '/about', label: shared.nav.about },
+      { href: '/faq', label: shared.nav.faq },
+      { href: '/advertisers', label: shared.nav.forAdvertisers },
+      { href: MAILTO, label: shared.nav.contact },
     ]}/>
   </main>;
 }

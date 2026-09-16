@@ -54,8 +54,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    /* `lang` is rewritten by the script below before anything paints, from
+       the visitor's saved choice or their browser's language, so a Spanish
+       reader is never handed an English document even for a frame. React
+       is told not to mind the mismatch; lib/lang.ts keeps it in step from
+       then on. */
+    <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${outfit.variable} antialiased`}>
+        <script
+          // oxlint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var l=localStorage.getItem('adbite.lang');if(l!=='en'&&l!=='es')l=/^es/i.test(navigator.language)?'es':'en';document.documentElement.lang=l}catch(e){}",
+          }}
+        />
         {children}
         <Analytics />
         <IdleMotion />

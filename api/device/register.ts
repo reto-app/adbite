@@ -8,17 +8,18 @@
  * its hash is stored. The pair code is what the shop owner types into the
  * dashboard to claim the screen. */
 
-import { json, pairCode, secret, service, sha256 } from '../../lib/server/db.js';
+import { json, lowerKeys, pairCode, secret, service, sha256 } from '../../lib/server/db.js';
 
 export const config = { runtime: 'nodejs' };
 
 export async function POST(request: Request): Promise<Response> {
-  let body: { channelVersion?: string } = {};
+  let fields: Record<string, unknown> = {};
   try {
-    body = (await request.json()) as typeof body;
+    fields = lowerKeys(await request.json());
   } catch {
     /* an empty body is fine */
   }
+  const channelVersion = typeof fields.channelversion === 'string' ? fields.channelversion : null;
 
   const db = service();
   const plain = secret();
@@ -28,7 +29,7 @@ export async function POST(request: Request): Promise<Response> {
     const code = pairCode();
     const { data, error } = await db
       .from('devices')
-      .insert({ pair_code: code, secret_hash: sha256(plain), channel_version: body.channelVersion ?? null, last_seen: new Date().toISOString() })
+      .insert({ pair_code: code, secret_hash: sha256(plain), channel_version: channelVersion, last_seen: new Date().toISOString() })
       .select('id')
       .single();
     if (data) return json(200, { deviceId: data.id, secret: plain, pairCode: code });

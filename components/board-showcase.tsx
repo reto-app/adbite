@@ -5,6 +5,9 @@ import { ArrowRight } from 'lucide-react';
 import { Link } from '@/components/nav';
 import { BoardCanvas } from '@/components/board/board-canvas';
 import { SLOTS, THEMES, starterBoard, type SlotId, type ThemeId } from '@/lib/board';
+import { useCopy } from '@/lib/lang';
+import { HOME } from '@/lib/copy/home';
+import { SHARED } from '@/lib/copy/shared';
 
 /* The board designer, on the marketing page, running the real component.
  *
@@ -16,6 +19,8 @@ export function BoardShowcase() {
   const [board] = useState(starterBoard);
   const [slot, setSlot] = useState<SlotId>('midday');
   const [theme, setTheme] = useState<ThemeId>('chalk');
+  const t = useCopy(HOME).tools.showcase;
+  const shared = useCopy(SHARED);
 
   return (
     <div className="showcase">
@@ -25,7 +30,7 @@ export function BoardShowcase() {
 
       <div className="showcase-controls">
         <div className="showcase-set">
-          <span className="showcase-label">Different menu, different hour</span>
+          <span className="showcase-label">{t.hour}</span>
           <div className="showcase-chips">
             {SLOTS.map((item) => (
               <button
@@ -35,15 +40,15 @@ export function BoardShowcase() {
                 aria-pressed={slot === item.id}
                 onClick={() => setSlot(item.id)}
               >
-                <b>{item.label}</b>
-                <i>{item.window}</i>
+                <b>{shared.slots[item.id].label}</b>
+                <i>{shared.slots[item.id].window}</i>
               </button>
             ))}
           </div>
         </div>
 
         <div className="showcase-set">
-          <span className="showcase-label">And a ground that suits the room</span>
+          <span className="showcase-label">{t.ground}</span>
           <div className="showcase-chips themes">
             {THEMES.map((item) => (
               <button
@@ -51,25 +56,20 @@ export function BoardShowcase() {
                 type="button"
                 className={`swatch-chip theme-${item.id}${theme === item.id ? ' on' : ''}`}
                 aria-pressed={theme === item.id}
-                aria-label={item.label}
+                aria-label={shared.themes[item.id].label}
                 onClick={() => setTheme(item.id)}
               >
                 <span className="theme-swatch" aria-hidden="true" />
-                <b>{item.label}</b>
+                <b>{shared.themes[item.id].label}</b>
               </button>
             ))}
           </div>
         </div>
 
-        <p className="showcase-note">
-          Every item, price and section on that screen is typed in a browser and pushed to the TV.
-          No design software, no waiting on anyone, no call-out fee. The striped block is where you
-          are letting ads sit, and you pick the spot: a strip under the menu, a rail down the right,
-          a full turn between boards, or nowhere at all.
-        </p>
+        <p className="showcase-note">{t.note}</p>
 
         <Link className="button invert" href="/dashboard" data-track="tools-open-builder">
-          Design a board now <ArrowRight size={16} />
+          {t.cta} <ArrowRight size={16} />
         </Link>
       </div>
     </div>

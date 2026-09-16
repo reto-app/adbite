@@ -7,15 +7,21 @@ import { AdvertiserDashboard } from '@/app/dashboard/advertiser-dashboard';
 import { ShopDashboard } from '@/app/dashboard/shop-dashboard';
 import { ACCOUNTS, setAccount, signIn, useAccount } from '@/lib/account';
 import { SUPPORT_MAIL, SUPPORT_MAILTO } from '@/lib/site';
+import { useCopy } from '@/lib/lang';
+import { SHARED } from '@/lib/copy/shared';
 
-const NAV = [
-  { href: '/advertisers', label: 'For advertisers' },
-  { href: '/', label: 'For shops' },
-  { href: '/faq', label: 'FAQ' },
-];
+function useNav() {
+  const t = useCopy(SHARED);
+  return [
+    { href: '/advertisers', label: t.nav.forAdvertisers },
+    { href: '/', label: t.nav.forShops },
+    { href: '/faq', label: t.nav.faq },
+  ];
+}
 
 /* The door. An email address and a link in the mail; no password. */
 function SignInPanel() {
+  const t = useCopy(SHARED);
   const [sent, setSent] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
@@ -26,22 +32,16 @@ function SignInPanel() {
         <span className="access-tick">
           <Check size={22} />
         </span>
-        <h1>Check your mail.</h1>
-        <p>
-          We sent a sign-in link to <b>{sent}</b>. Open it on this device and you land back here,
-          signed in. The link is good for an hour.
-        </p>
+        <h1>{t.door.checkMail}</h1>
+        <p>{t.door.sentTo(sent)}</p>
       </section>
     );
   }
 
   return (
     <section className="choose-side wrap">
-      <h1>Sign in to your dashboard</h1>
-      <p>
-        Type the email you use for your business and we will send a link. No password to make up
-        or forget.
-      </p>
+      <h1>{t.door.title}</h1>
+      <p>{t.door.lede}</p>
       <form
         className="access-form"
         onSubmit={async (event) => {
@@ -57,26 +57,26 @@ function SignInPanel() {
         }}
       >
         <label htmlFor="signin-email">
-          Email
+          {t.door.email}
           <input
             id="signin-email"
             name="email"
             type="email"
             required
             autoComplete="email"
-            placeholder="you@yourbusiness.com"
+            placeholder={t.door.emailPlaceholder}
           />
         </label>
         <button className="button primary" type="submit" disabled={sending}>
-          {sending ? 'Sending…' : 'Send me a sign-in link'} <ArrowRight size={17} />
+          {sending ? t.form.sending : t.door.send} <ArrowRight size={17} />
         </button>
         {error && (
           <p className="form-warn" role="alert">
-            {error} <a href={SUPPORT_MAILTO}>Email support instead</a>.
+            {error} <a href={SUPPORT_MAILTO}>{t.form.emailSupportInstead}</a>.
           </p>
         )}
         <p className="form-note quiet">
-          <Mail size={14} /> Trouble getting in? Write to <a href={SUPPORT_MAILTO}>{SUPPORT_MAIL}</a>.
+          <Mail size={14} /> {t.door.trouble} <a href={SUPPORT_MAILTO}>{SUPPORT_MAIL}</a>.
         </p>
       </form>
     </section>
@@ -92,6 +92,8 @@ function SignInPanel() {
  * advertiser is buying. */
 export function DashboardPage() {
   const { ready, kind, user } = useAccount();
+  const t = useCopy(SHARED);
+  const NAV = useNav();
 
   if (!ready) {
     return (
@@ -118,11 +120,8 @@ export function DashboardPage() {
     <main className="campaign-page choose">
       <SiteHeader nav={NAV} />
       <section className="choose-side wrap">
-        <h1>Which side of the board are you on?</h1>
-        <p>
-          This picks which workspace opens for {user.email}. You can swap it whenever you like;
-          nothing you make on either side is lost.
-        </p>
+        <h1>{t.choose.title}</h1>
+        <p>{t.choose.lede(user.email)}</p>
         <div className="choose-grid">
           {ACCOUNTS.map((account) => (
             <button
@@ -132,10 +131,10 @@ export function DashboardPage() {
               data-track={`choose-${account.id}`}
               onClick={() => void setAccount(account.id)}
             >
-              <b>{account.label}</b>
-              <span>{account.blurb}</span>
+              <b>{t.accounts[account.id].label}</b>
+              <span>{t.accounts[account.id].blurb}</span>
               <i>
-                {account.action} <ArrowRight size={15} />
+                {t.accounts[account.id].action} <ArrowRight size={15} />
               </i>
             </button>
           ))}

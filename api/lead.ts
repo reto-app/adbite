@@ -19,10 +19,33 @@ type Lead = {
   kind?: string;
   email?: string;
   page?: string;
+  lang?: string;
   detail?: Record<string, unknown>;
 };
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/* The four things this endpoint can say to a visitor, in the language the
+   form was read in. The lead itself is forwarded as typed; only the reply
+   is translated. */
+const SAY = {
+  en: {
+    unreadable: 'That request was not readable. Please try again.',
+    badEmail: 'That email address does not look right. Check it and resend.',
+    failed: 'We could not file that just now. Please email info@adbite.site instead.',
+    closed: 'Our signup is not accepting entries right now. Please email info@adbite.site.',
+  },
+  es: {
+    unreadable: 'No pudimos leer esa solicitud. Inténtalo de nuevo.',
+    badEmail: 'Ese correo no parece correcto. Revísalo y vuelve a enviar.',
+    failed: 'No pudimos registrar eso ahora mismo. Escríbenos a info@adbite.site.',
+    closed: 'El registro no está aceptando solicitudes por ahora. Escríbenos a info@adbite.site.',
+  },
+};
+
+function sayIn(lang: unknown) {
+  return lang === 'es' ? SAY.es : SAY.en;
+}
 
 function text(lead: Lead) {
   const rows = Object.entries(lead.detail ?? {})
@@ -45,12 +68,13 @@ export async function POST(request: Request): Promise<Response> {
   try {
     lead = (await request.json()) as Lead;
   } catch {
-    return json(400, { message: 'That request was not readable. Please try again.' });
+    return json(400, { message: SAY.en.unreadable });
   }
+  const say = sayIn(lead.lang);
 
   const email = (lead.email ?? '').trim();
   if (!EMAIL.test(email)) {
-    return json(400, { message: 'That email address does not look right. Check it and resend.' });
+    return json(400, { message: say.badEmail });
   }
 
   const body = text({ ...lead, email });
@@ -89,13 +113,13 @@ export async function POST(request: Request): Promise<Response> {
   } catch (error) {
     console.error('lead delivery failed', error);
     return json(502, {
-      message: 'We could not file that just now. Please email info@adbite.site instead.',
+      message: say.failed,
     });
   }
 
   console.error('lead received but no delivery route configured', body);
   return json(503, {
-    message: 'Our signup is not accepting entries right now. Please email info@adbite.site.',
+    message: say.closed,
   });
 }
 

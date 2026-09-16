@@ -105,6 +105,11 @@ function baseOf(url as String) as String
 end function
 
 function readJsonFile(path as String) as Dynamic
+    ' ReadAsciiFile prints its own error when the file is absent, which is the
+    ' normal case for cachefs: on a fresh install, so ask first.
+    fs = CreateObject("roFileSystem")
+    if not fs.Exists(path) then return invalid
+
     raw = ReadAsciiFile(path)
     if raw = invalid or raw = "" then return invalid
 
@@ -284,6 +289,7 @@ sub syncWithServer(syncUrl as String, packaged as Dynamic)
         return
     end if
     pruneAssets(response)
+    reportCache()
 
     response.syncUrl = syncUrl
     writeJsonFile("cachefs:/board.json", response)
@@ -345,6 +351,10 @@ end function
 
 ' ---- HTTP -------------------------------------------------------------------
 
+' NOTE: a BrightScript associative array is case-insensitive, so FormatJson
+' writes every key in lower case: what leaves here is `deviceid`, never
+' `deviceId`. The device endpoints read their fields case-insensitively for
+' exactly this reason; do not "fix" the casing on one side alone.
 function postJson(url as String, body as Object, timeoutMs as Integer) as Dynamic
     xfer = CreateObject("roUrlTransfer")
     port = CreateObject("roMessagePort")
@@ -354,10 +364,23 @@ function postJson(url as String, body as Object, timeoutMs as Integer) as Dynami
     xfer.InitClientCertificates()
     xfer.AddHeader("Content-Type", "application/json")
     xfer.AddHeader("Accept", "application/json")
-    xfer.EnableEncodings(true)
+    ' roUrlTransfer sends `Expect: 100-continue` on a POST and then waits for a
+    ' go-ahead the edge never sends, so the headers arrive and the body does
+    ' not: the server reads it as a request with no fields. An empty Expect
+    ' header removes it.
+    xfer.AddHeader("Expect", "")
+    ' No EnableEncodings on a POST: with it on, the body arrives empty at the
+    ' server on this firmware, which reads as "no deviceId" rather than as an
+    ' error. Responses here are small enough that the compression is no loss.
     xfer.RetainBodyOnError(true)
 
-    if not xfer.AsyncPostFromString(FormatJson(body))
+    payload = FormatJson(body)
+    if payload = "" or payload = invalid
+        m.top.error = "Could not encode the request body"
+        return invalid
+    end if
+
+    if not xfer.AsyncPostFromString(payload)
         m.top.error = "Could not start a request to " + url
         return invalid
     end if
@@ -478,6 +501,35 @@ function download(url as String, local as String, expected as Integer) as Boolea
     end if
     return true
 end function
+
+' What the spots are costing this device, printed on every board change. The
+' overlay shows the same figures, but a TV whose remote is in a drawer (or
+' whose "Control by mobile apps" setting blocks ECP) can only be read here.
+sub reportCache()
+    fs = CreateObject("roFileSystem")
+    used = 0
+    count = 0
+    files = fs.Find("cachefs:/", "^a-")
+    if files <> invalid
+        for each name in files
+            stat = fs.Stat("cachefs:/" + name)
+            if stat <> invalid and stat.size <> invalid
+                used = used + stat.size
+                count = count + 1
+            end if
+        end for
+    end if
+
+    line = "[adbite] cache: " + count.ToStr() + " file(s), " + Int(used / 1048576).ToStr() + " MB"
+    info = fs.GetVolumeInfo("cachefs:")
+    if info <> invalid and info.blocks <> invalid and info.blocksize <> invalid
+        total = info.blocks * info.blocksize / 1048576
+        free = 0
+        if info.freeblocks <> invalid then free = info.freeblocks * info.blocksize / 1048576
+        line = line + "; volume " + Int(free).ToStr() + " MB free of " + Int(total).ToStr() + " MB"
+    end if
+    print line
+end sub
 
 ' Files no current board names are dropped, so the cache stays the size of
 ' one board's worth of spots.

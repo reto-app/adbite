@@ -13,28 +13,28 @@
  * what the dashboard's "online" light reads. */
 
 import { compose, serialize, type Spot } from '../../lib/compose.js';
-import { json, service, sha256 } from '../../lib/server/db.js';
+import { json, lowerKeys, service, sha256 } from '../../lib/server/db.js';
 
 export const config = { runtime: 'nodejs' };
 
 const POLL_MINUTES = 10;
 
 type Play = { id: string; at?: string; seconds?: number };
-type Body = {
-  deviceId?: string;
-  secret?: string;
-  etag?: string;
-  channelVersion?: string;
-  plays?: Play[];
-};
 
 export async function POST(request: Request): Promise<Response> {
-  let body: Body;
+  let fields: Record<string, unknown>;
   try {
-    body = (await request.json()) as Body;
+    fields = lowerKeys(await request.json());
   } catch {
     return json(400, { message: 'Unreadable request' });
   }
+  const body = {
+    deviceId: typeof fields.deviceid === 'string' ? fields.deviceid : '',
+    secret: typeof fields.secret === 'string' ? fields.secret : '',
+    etag: typeof fields.etag === 'string' ? fields.etag : '',
+    channelVersion: typeof fields.channelversion === 'string' ? fields.channelversion : '',
+    plays: (Array.isArray(fields.plays) ? fields.plays : []) as Play[],
+  };
   if (!body.deviceId || !body.secret) return json(401, { message: 'deviceId and secret are required' });
 
   const db = service();
@@ -54,7 +54,7 @@ export async function POST(request: Request): Promise<Response> {
   if (body.channelVersion) heartbeat.channel_version = body.channelVersion;
 
   /* Plays first, so a board that fails to compose still keeps the log. */
-  const plays = (body.plays ?? []).filter((p) => p && typeof p.id === 'string' && p.id.length === 36).slice(0, 2000);
+  const plays = body.plays.filter((p) => p && typeof p.id === 'string' && p.id.length === 36).slice(0, 2000);
   if (plays.length) {
     await db.from('plays').insert(
       plays.map((p) => ({

@@ -53,6 +53,19 @@ sub init()
     m.timer.observeField("fire", "advance")
 end sub
 
+' The wall is handed back to the menu while something on top of it needs to
+' be read. The rotation picks up where it left off when the hold lifts.
+sub onHold()
+    if m.top.hold
+        m.timer.control = "stop"
+        hideFull()
+        if not m.slotless and m.slotPoster.opacity = 0 then m.placeholder.visible = true
+    else if m.ads <> invalid and m.ads.count() > 0
+        m.placeholder.visible = false
+        advance()
+    end if
+end sub
+
 sub reload()
     config = m.top.config
     if config = invalid or config.board = invalid then return
@@ -105,7 +118,7 @@ end sub
 ' ---- the rotation ---------------------------------------------------------
 
 sub advance()
-    if m.ads.count() = 0 then return
+    if m.ads.count() = 0 or m.top.hold then return
 
     ' A full-screen spot hands the wall back to the menu for one interval
     ' before the next takeover. Otherwise a board whose only booking is a

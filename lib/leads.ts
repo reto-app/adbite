@@ -9,12 +9,16 @@
  * not work instead of showing them a success state that is a lie. */
 
 import { MAIL } from '@/lib/site';
+import type { Lang } from '@/lib/lang';
 
 export type LeadKind = 'shop' | 'advertiser' | 'campaign';
 
 export type Lead = {
   kind: LeadKind;
   email: string;
+  /** The language the form was read in, so the reply and any error come
+      back in it. Optional so the campaign builder's older call sites hold. */
+  lang?: Lang;
   /** Whatever the specific form collected. Shapes differ per form. */
   detail: Record<string, unknown>;
 };
@@ -27,9 +31,13 @@ export function field(data: FormData, name: string): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-const FALLBACK = `We could not send that just now. Please email ${MAIL} and we will pick it up from there.`;
+const FALLBACK: Record<Lang, string> = {
+  en: `We could not send that just now. Please email ${MAIL} and we will pick it up from there.`,
+  es: `No pudimos enviar eso ahora mismo. Escríbenos a ${MAIL} y lo seguimos desde ahí.`,
+};
 
 export async function submitLead(lead: Lead): Promise<LeadResult> {
+  const fallback = FALLBACK[lead.lang ?? 'en'];
   try {
     const response = await fetch('/api/lead', {
       method: 'POST',
@@ -40,9 +48,9 @@ export async function submitLead(lead: Lead): Promise<LeadResult> {
     if (response.ok) return { ok: true };
 
     const body = (await response.json().catch(() => null)) as { message?: string } | null;
-    return { ok: false, message: body?.message ?? FALLBACK };
+    return { ok: false, message: body?.message ?? fallback };
   } catch {
-    return { ok: false, message: FALLBACK };
+    return { ok: false, message: fallback };
   }
 }
 
@@ -51,6 +59,9 @@ export function mailFallback(lead: Lead) {
   const lines = Object.entries(lead.detail)
     .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : String(value)}`)
     .join('\n');
-  const subject = lead.kind === 'shop' ? 'Shop waitlist' : 'Advertiser enquiry';
+  const subject =
+    lead.lang === 'es'
+      ? lead.kind === 'shop' ? 'Lista de espera para negocios' : 'Consulta de anunciante'
+      : lead.kind === 'shop' ? 'Shop waitlist' : 'Advertiser enquiry';
   return `mailto:${MAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines)}`;
 }

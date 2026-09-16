@@ -10,6 +10,9 @@ import {
   type MenuSection,
   type SlotId,
 } from '@/lib/board';
+import { useCopy } from '@/lib/lang';
+import { SHARED } from '@/lib/copy/shared';
+import { SHOP } from '@/lib/copy/shop';
 
 /* The menu, as a list you can rearrange.
  *
@@ -35,6 +38,8 @@ export function MenuEditor({
   slot: SlotId;
   onChange: (sections: MenuSection[]) => void;
 }) {
+  const t = useCopy(SHOP).editor;
+  const shared = useCopy(SHARED);
   const sections = board.slots[slot] ?? [];
   /* [sectionIndex, itemIndex] of the row being dragged. */
   const [held, setHeld] = useState<[number, number] | null>(null);
@@ -57,14 +62,14 @@ export function MenuEditor({
           <div className="edit-section-head">
             <input
               value={section.title}
-              aria-label="Section name"
-              placeholder="Section name"
+              aria-label={t.sectionName}
+              placeholder={t.sectionName}
               onChange={(event) => setSection(si, { title: event.target.value })}
             />
             <div className="edit-section-tools">
               <button
                 type="button"
-                aria-label="Move section up"
+                aria-label={t.moveUp}
                 disabled={si === 0}
                 onClick={() => onChange(move(sections, si, si - 1))}
               >
@@ -72,7 +77,7 @@ export function MenuEditor({
               </button>
               <button
                 type="button"
-                aria-label="Move section down"
+                aria-label={t.moveDown}
                 disabled={si === sections.length - 1}
                 onClick={() => onChange(move(sections, si, si + 1))}
               >
@@ -81,7 +86,7 @@ export function MenuEditor({
               <button
                 type="button"
                 className="edit-drop"
-                aria-label={`Delete the ${section.title || 'untitled'} section`}
+                aria-label={t.deleteSection(section.title)}
                 onClick={() => onChange(sections.filter((_, i) => i !== si))}
               >
                 <Trash2 size={14} />
@@ -113,7 +118,7 @@ export function MenuEditor({
                 <button
                   type="button"
                   className="edit-grip"
-                  aria-label={`Reorder ${entry.name || 'this item'}. Use the arrow keys.`}
+                  aria-label={t.reorder(entry.name)}
                   draggable
                   onDragStart={() => setHeld([si, ii])}
                   onDragEnd={() => setHeld(null)}
@@ -134,15 +139,15 @@ export function MenuEditor({
                 <input
                   className="edit-name"
                   value={entry.name}
-                  placeholder="Item"
-                  aria-label="Item name"
+                  placeholder={t.item}
+                  aria-label={t.itemName}
                   onChange={(event) => setItem(si, ii, { name: event.target.value })}
                 />
                 <input
                   className="edit-note"
                   value={entry.note}
-                  placeholder="Short description"
-                  aria-label="Item description"
+                  placeholder={t.description}
+                  aria-label={t.itemDescription}
                   onChange={(event) => setItem(si, ii, { note: event.target.value })}
                 />
                 <input
@@ -150,27 +155,27 @@ export function MenuEditor({
                   value={entry.price}
                   placeholder="0"
                   inputMode="decimal"
-                  aria-label="Price"
+                  aria-label={t.price}
                   onChange={(event) => setItem(si, ii, { price: event.target.value })}
                 />
                 <select
                   className="edit-badge"
                   value={entry.badge}
-                  aria-label="Tag"
+                  aria-label={t.tag}
                   onChange={(event) =>
                     setItem(si, ii, { badge: event.target.value as (typeof BADGES)[number]['id'] })
                   }
                 >
                   {BADGES.map((badge) => (
                     <option key={badge.id} value={badge.id}>
-                      {badge.label}
+                      {shared.badges[badge.id]}
                     </option>
                   ))}
                 </select>
                 <button
                   type="button"
                   className="edit-drop"
-                  aria-label={`Remove ${entry.name || 'this item'}`}
+                  aria-label={t.remove(entry.name)}
                   onClick={() =>
                     setSection(si, { items: section.items.filter((_, i) => i !== ii) })
                   }
@@ -186,7 +191,7 @@ export function MenuEditor({
             className="edit-add"
             onClick={() => setSection(si, { items: [...section.items, emptyItem()] })}
           >
-            <Plus size={14} /> Add an item
+            <Plus size={14} /> {t.addItem}
           </button>
         </section>
       ))}
@@ -196,7 +201,7 @@ export function MenuEditor({
         className="edit-add section"
         onClick={() => onChange([...sections, emptySection()])}
       >
-        <Plus size={15} /> Add a section
+        <Plus size={15} /> {t.addSection}
       </button>
     </div>
   );

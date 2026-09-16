@@ -2,32 +2,20 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Maximize2, X } from 'lucide-react';
+import { useCopy } from '@/lib/lang';
+import { SHARED } from '@/lib/copy/shared';
 
+/* The four example boards. Their notes are in lib/copy/shared.ts under
+   `reel`, keyed by these ids. */
 const boards = [
-  {
-    id: 'rosas',
-    name: 'Rosas Taqueria',
-    note: 'The ad runs as a strip along the bottom. The whole menu stays above it.',
-  },
-  {
-    id: 'roost',
-    name: 'The Roost Shop',
-    note: 'Ads take the right third of the board. Chicken mains and sides keep the rest.',
-  },
-  {
-    id: 'forno',
-    name: 'Forno Nove',
-    note: 'Two screens on one wall. Only the right one breaks for a short local spot.',
-  },
-  {
-    id: 'meridian',
-    name: 'Meridian Café',
-    note: 'A tall board behind the counter, with the ad slot at the foot.',
-    portrait: true,
-  },
-];
+  { id: 'rosas', name: 'Rosas Taqueria' },
+  { id: 'roost', name: 'The Roost Shop' },
+  { id: 'forno', name: 'Forno Nove' },
+  { id: 'meridian', name: 'Meridian Café', portrait: true },
+] as const;
 
 type Board = (typeof boards)[number];
+type BoardId = Board['id'];
 
 /* Four boards you can open.
  *
@@ -53,6 +41,8 @@ export function BoardReel({ only }: { only?: string[] } = {}) {
     opener.current = null;
     setOpen(null);
   };
+  const t = useCopy(SHARED).reel;
+  const noteOf = (id: BoardId) => t[id];
   const shown = only ? boards.filter((board) => only.includes(board.id)) : boards;
 
   useEffect(() => {
@@ -123,7 +113,7 @@ export function BoardReel({ only }: { only?: string[] } = {}) {
               type="button"
               className="reel-screen"
               data-track={`board-expand-${board.id}`}
-              aria-label={`Expand the ${board.name} board`}
+              aria-label={t.expand(board.name)}
               onClick={(event) => {
                 opener.current = event.currentTarget;
                 setOpen(board);
@@ -133,7 +123,7 @@ export function BoardReel({ only }: { only?: string[] } = {}) {
                 ref={(el) => {
                   videos.current[i] = el;
                 }}
-                className={board.portrait ? 'contain' : undefined}
+                className={'portrait' in board && board.portrait ? 'contain' : undefined}
                 src={`/boards/${board.id}.mp4`}
                 poster={`/boards/${board.id}.jpg`}
                 muted
@@ -148,7 +138,7 @@ export function BoardReel({ only }: { only?: string[] } = {}) {
             </button>
             <figcaption>
               <b>{board.name}</b>
-              <span>{board.note}</span>
+              <span>{noteOf(board.id)}</span>
             </figcaption>
           </figure>
         ))}
@@ -159,7 +149,7 @@ export function BoardReel({ only }: { only?: string[] } = {}) {
         <dialog
           ref={dialog}
           className="reel-open"
-          aria-label={`${open.name} board`}
+          aria-label={t.boardOf(open.name)}
           /* The backdrop is the dialog box itself, so dismiss-on-click has
              nowhere else to live, and the lint rule above is written for
              elements with no keyboard path. This one has two: Escape and the
@@ -168,9 +158,9 @@ export function BoardReel({ only }: { only?: string[] } = {}) {
             if (event.target === dialog.current) close();
           }}
         >
-          <figure className={`reel-open-panel${open.portrait ? ' portrait' : ''}`}>
+          <figure className={`reel-open-panel${'portrait' in open && open.portrait ? ' portrait' : ''}`}>
             <video
-              className={open.portrait ? 'contain' : undefined}
+              className={'portrait' in open && open.portrait ? 'contain' : undefined}
               src={`/boards/${open.id}.mp4`}
               poster={`/boards/${open.id}.jpg`}
               muted
@@ -181,11 +171,11 @@ export function BoardReel({ only }: { only?: string[] } = {}) {
             />
             <figcaption>
               <b>{open.name}</b>
-              <span>{open.note}</span>
+              <span>{noteOf(open.id)}</span>
             </figcaption>
           </figure>
           <button type="button" className="reel-close" onClick={close}>
-            <X size={17} /> Close
+            <X size={17} /> {t.close}
           </button>
         </dialog>
       )}

@@ -1,3 +1,7 @@
+'use client';
+
+import { useCopy } from '@/lib/lang';
+import { HOME } from '@/lib/copy/home';
 import { GymSpot } from './gym-spot';
 
 /* The four formats, each preview running the thing it describes on a board
@@ -81,6 +85,7 @@ function Menu({ detail = false, trim = false }: { detail?: boolean; trim?: boole
 }
 
 export function FormatGrid() {
+  const t = useCopy(HOME).formats;
   return (
     <div className="format-grid">
       <article>
@@ -90,19 +95,19 @@ export function FormatGrid() {
             <b className="one">
               <i className="fp-mark">9S</i>
               <span>
-                Ninth Street Books<em>10% off with your receipt</em>
+                {t.books.name}<em>{t.books.line}</em>
               </span>
             </b>
             <b className="two">
               <i className="fp-mark">RB</i>
               <span>
-                Rosewood Barbers<em>Walk-ins till seven</em>
+                {t.barbers.name}<em>{t.barbers.line}</em>
               </span>
             </b>
             <b className="three">
               <i className="fp-mark">IR</i>
               <span>
-                Iron Rose Gym<em>First class free</em>
+                {t.gym.name}<em>{t.gym.line}</em>
               </span>
             </b>
             <span className="fp-dots">
@@ -112,8 +117,8 @@ export function FormatGrid() {
             </span>
           </div>
         </div>
-        <h3>Bottom banner</h3>
-        <p>Your menu stays put. The strip below rotates between advertisers.</p>
+        <h3>{t.banner.title}</h3>
+        <p>{t.banner.text}</p>
       </article>
 
       <article>
@@ -124,21 +129,21 @@ export function FormatGrid() {
                 this size that is about a hundred pixels to set copy in. */}
             <b className="one">
               <i className="fp-mark">9S</i>
-              <span>Ninth Street Books</span>
-              <strong>10% off</strong>
-              <small>With your receipt</small>
+              <span>{t.books.name}</span>
+              <strong>{t.books.short}</strong>
+              <small>{t.books.sub}</small>
             </b>
             <b className="two">
               <i className="fp-mark">RB</i>
-              <span>Rosewood Barbers</span>
-              <strong>Walk-ins till 7</strong>
-              <small>Next door</small>
+              <span>{t.barbers.name}</span>
+              <strong>{t.barbers.short}</strong>
+              <small>{t.barbers.sub}</small>
             </b>
             <b className="three">
               <i className="fp-mark">IR</i>
-              <span>Iron Rose Gym</span>
-              <strong>First class free</strong>
-              <small>Two blocks north</small>
+              <span>{t.gym.name}</span>
+              <strong>{t.gym.short}</strong>
+              <small>{t.gym.sub}</small>
             </b>
             <span className="fp-dots rail">
               <i />
@@ -147,25 +152,25 @@ export function FormatGrid() {
             </span>
           </div>
         </div>
-        <h3>Side rail</h3>
-        <p>The right third, top to bottom. Your menu keeps the rest of the board.</p>
+        <h3>{t.rail.title}</h3>
+        <p>{t.rail.text}</p>
       </article>
 
       <article>
         <div className="format-preview full" aria-hidden="true">
           <Menu detail />
           <div className="fp-takeover">
-            <span className="fp-kicker">Local spot</span>
+            <span className="fp-kicker">{t.cycles.kicker}</span>
             <div className="fp-brandline">
-              <i className="fp-mark">FC</i>Freedom Cycles
+              <i className="fp-mark">FC</i>{t.cycles.name}
             </div>
-            <b>Free tune-up with any repair</b>
-            <small>820 N Freedom Blvd · two blocks north</small>
-            <em className="fp-return">Your menu is back in 0:04</em>
+            <b>{t.cycles.line}</b>
+            <small>{t.cycles.sub}</small>
+            <em className="fp-return">{t.cycles.back}</em>
           </div>
         </div>
-        <h3>Full-screen spot</h3>
-        <p>Your board blanks for one turn of the rotation, then it is back.</p>
+        <h3>{t.full.title}</h3>
+        <p>{t.full.text}</p>
       </article>
 
       <article>
@@ -181,27 +186,27 @@ export function FormatGrid() {
                   <i className="three">0:04</i>
                 </span>
               </span>
-              <span className="fp-badge">Muted</span>
+              <span className="fp-badge">{t.videoFrames.muted}</span>
             </div>
             <div className="fp-lower" />
             <div className="fp-frame one">
-              <b>Iron Rose Gym</b>
-              <small>The strength room on your block</small>
+              <b>{t.videoFrames.one[0]}</b>
+              <small>{t.videoFrames.one[1]}</small>
             </div>
             <div className="fp-frame two">
-              <b>First class free</b>
-              <small>Weekday mornings, no sign-up</small>
+              <b>{t.videoFrames.two[0]}</b>
+              <small>{t.videoFrames.two[1]}</small>
             </div>
             <div className="fp-frame three">
-              <b>Two doors down</b>
-              <small>214 N 400 W · open 5am to 10pm</small>
+              <b>{t.videoFrames.three[0]}</b>
+              <small>{t.videoFrames.three[1]}</small>
             </div>
             <span className="fp-bug">IR</span>
             <i className="fp-bar" />
           </div>
         </div>
-        <h3>Short video</h3>
-        <p>Fifteen muted seconds on a blank board, then your menu is back. No sound to talk over.</p>
+        <h3>{t.video.title}</h3>
+        <p>{t.video.text}</p>
       </article>
     </div>
   );

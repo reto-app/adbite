@@ -26,6 +26,9 @@
     <!-- Set each time a spot goes on the wall: { id, at, seconds }. The
          scene collects these and the next sync carries them. -->
     <field id="played" type="assocarray" />
+    <!-- Set while the diagnostics overlay is up: a Roku composites video
+         above graphics, so a spot would hide the overlay entirely. -->
+    <field id="hold" type="boolean" value="false" onChange="onHold" />
   </interface>
 
   <script type="text/brightscript" uri="pkg:/components/AdPane.brs" />

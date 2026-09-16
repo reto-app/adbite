@@ -7,6 +7,10 @@ import { Wordmark } from '@/components/brand';
 import { SkyShapes } from '@/components/sky-shapes';
 import { MAIL, MAILTO } from '@/lib/site';
 import { field, submitLead } from '@/lib/leads';
+import { useCopy, useLang } from '@/lib/lang';
+import { ADVERTISERS } from '@/lib/copy/advertisers';
+import { SHARED } from '@/lib/copy/shared';
+import { LangSwitch } from '@/components/lang-switch';
 
 /* The advertiser invitation.
  *
@@ -17,6 +21,9 @@ import { field, submitLead } from '@/lib/leads';
  * invites rather than gates, because a business reading this page is exactly
  * who we want on the network. */
 function AccessForm() {
+  const t = useCopy(ADVERTISERS).signin;
+  const shared = useCopy(SHARED);
+  const { lang } = useLang();
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
@@ -27,13 +34,10 @@ function AccessForm() {
         <span className="access-tick">
           <Check size={22} />
         </span>
-        <h3>You&rsquo;re on the list.</h3>
-        <p>
-          We will find the nearest board to you and come back with what is open on it and what it
-          would cost. A person writes back, not an auto-responder.
-        </p>
+        <h3>{t.done.title}</h3>
+        <p>{t.done.text}</p>
         <Link className="button invert" href="/dashboard">
-          Build your ad while you wait <ArrowRight size={16} />
+          {t.done.build} <ArrowRight size={16} />
         </Link>
       </div>
     );
@@ -50,6 +54,7 @@ function AccessForm() {
         const result = await submitLead({
           kind: 'advertiser',
           email: field(data, 'email'),
+          lang,
           detail: {
             request: 'advertiser onboarding',
             name: field(data, 'name'),
@@ -65,35 +70,31 @@ function AccessForm() {
     >
       <div className="form-grid">
         <label htmlFor="access-name">
-          Your name
-          <input id="access-name" name="name" required placeholder="Sam Ortega" />
+          {t.form.name}
+          <input id="access-name" name="name" required placeholder={t.form.namePlaceholder} />
         </label>
         <label htmlFor="access-business">
-          Business
-          <input id="access-business" name="business" required placeholder="Iron Rose Gym" />
+          {t.form.business}
+          <input id="access-business" name="business" required placeholder={t.form.businessPlaceholder} />
         </label>
         <label htmlFor="access-where">
-          Where you are
-          <input id="access-where" name="where" required placeholder="Provo, Sandy, Logan…" />
+          {t.form.where}
+          <input id="access-where" name="where" required placeholder={t.form.wherePlaceholder} />
         </label>
         <label htmlFor="access-email">
-          Email
+          {t.form.email}
           <input
             id="access-email"
             name="email"
             type="email"
             required
             autoComplete="email"
-            placeholder="you@yourbusiness.com"
+            placeholder={t.form.emailPlaceholder}
           />
         </label>
         <label className="form-wide" htmlFor="access-about">
-          What you would want to run
-          <input
-            id="access-about"
-            name="about"
-            placeholder="A banner for the lunch rush, two blocks north"
-          />
+          {t.form.about}
+          <input id="access-about" name="about" placeholder={t.form.aboutPlaceholder} />
         </label>
       </div>
       <button
@@ -102,59 +103,48 @@ function AccessForm() {
         data-track="access-request"
         disabled={sending}
       >
-        {sending ? 'Sending…' : 'Get me on a board'} <ArrowRight size={17} />
+        {sending ? shared.form.sending : t.form.submit} <ArrowRight size={17} />
       </button>
       {error && (
         <p className="form-warn" role="alert">
-          {error} <a href={MAILTO}>Email us instead</a>.
+          {error} <a href={MAILTO}>{shared.form.emailUsInstead}</a>.
         </p>
       )}
-      <p className="form-note quiet">
-        Goes straight to {MAIL}, where a person reads it. Nothing is charged and you are not
-        committing to anything.
-      </p>
+      <p className="form-note quiet">{t.form.note(MAIL)}</p>
     </form>
   );
 }
 
 export function SignInPage() {
+  const t = useCopy(ADVERTISERS).signin;
+  const shared = useCopy(SHARED);
   return (
     <main className="signin-page">
       <SkyShapes />
       <section className="signin-card">
         <div className="signin-brand">
-          <Link href="/" aria-label="AdBite home">
-            <Wordmark className="signin-word" />
-          </Link>
-          <span className="access-eyebrow">Ramping up volume</span>
-          <h1>Target your city. Or just your neighborhood.</h1>
-          <p>
-            We are adding screens and bringing advertisers on every week. Tell us where you are and
-            what you would run, and we will get you onto the boards closest to your customers.
-          </p>
+          <div className="signin-top">
+            <Link href="/" aria-label={shared.header.home}>
+              <Wordmark className="signin-word" />
+            </Link>
+            {/* No site header on this page, so the switch rides with the mark. */}
+            <LangSwitch />
+          </div>
+          <span className="access-eyebrow">{t.eyebrow}</span>
+          <h1>{t.title}</h1>
+          <p>{t.lede}</p>
           <ul>
-            <li>
-              Pick the city, the neighborhood and the hours. Your ad runs on those boards and
-              nowhere else
-            </li>
-            <li>
-              No auction. The rate card is the rate, and it does not move because someone with a
-              bigger budget turned up that week
-            </li>
-            <li>
-              You pay for what actually ran, by the minute or by the play. An ad that never played
-              is never billed
-            </li>
+            {t.points.map((point) => <li key={point}>{point}</li>)}
           </ul>
           <p className="signin-mail">
-            <Mail size={16} /> Would rather just write? <a href={MAILTO}>{MAIL}</a>
+            <Mail size={16} /> {t.ratherWrite} <a href={MAILTO}>{MAIL}</a>
           </p>
         </div>
         <div className="signin-panel">
-          <h2>Tell us where you are</h2>
+          <h2>{t.panelTitle}</h2>
           <AccessForm />
           <p className="signin-foot">
-            Running a shop instead? <Link href="/#join">Join the shop waitlist</Link>
+            {t.runningAShop} <Link href="/#join">{t.joinShop}</Link>
           </p>
         </div>
       </section>
