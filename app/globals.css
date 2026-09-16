@@ -1947,11 +1947,25 @@ h3 {
   margin: 0;
 }
 
+/* The tile is the control: the whole board is clickable, so it is a button
+   wearing the screen's chrome rather than a frame with a button inside it. */
 .reel-screen {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
   border: 5px solid #2a2e2c;
   border-radius: 14px;
   overflow: hidden;
   background: #000;
+  cursor: zoom-in;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.reel-screen:hover,
+.reel-screen:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 0 -4px rgba(14, 14, 14, 0.22);
 }
 
 .reel-screen video {
@@ -1959,6 +1973,142 @@ h3 {
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
+}
+
+.reel-zoom {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(14, 14, 14, 0.62);
+  color: #fff;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.reel-screen:hover .reel-zoom,
+.reel-screen:focus-visible .reel-zoom {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---- a board, filling the window --------------------------------------- */
+
+/* The UA hides a closed dialog with display:none, which the display below
+   would otherwise override: a shut dialog would keep covering the page. */
+.reel-open:not([open]) {
+  display: none;
+}
+
+.reel-open {
+  width: 100vw;
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: max(20px, 4vh) 20px;
+  border: 0;
+  background: transparent;
+  overflow: hidden;
+  animation: reelIn 0.18s ease-out;
+}
+
+.reel-open::backdrop {
+  background: rgba(14, 14, 14, 0.82);
+}
+
+@keyframes reelIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.reel-open-panel {
+  width: min(1180px, 100%);
+  max-height: 84vh;
+  display: flex;
+  flex-direction: column;
+  cursor: default;
+}
+
+.reel-open-panel.portrait {
+  width: min(560px, 100%);
+}
+
+.reel-open-panel video {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  max-height: 74vh;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  border: 5px solid #2a2e2c;
+  border-radius: 14px;
+  background: #000;
+}
+
+.reel-open-panel.portrait video {
+  aspect-ratio: 9 / 16;
+}
+
+.reel-open-panel figcaption {
+  margin-top: 12px;
+  color: var(--chalk);
+}
+
+.reel-open-panel figcaption b {
+  display: block;
+  font-family: var(--font-display), sans-serif;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+.reel-open-panel figcaption span {
+  display: block;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.72);
+  max-width: 62ch;
+}
+
+.reel-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px;
+  border: 2px solid var(--chalk);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--chalk);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.reel-close:hover {
+  background: var(--chalk);
+  color: var(--board);
+}
+
+@media (max-width: 720px) {
+  .reel-open-panel video {
+    max-height: 60vh;
+  }
+
+  .reel-close {
+    top: 12px;
+    right: 12px;
+  }
 }
 
 .reel-screen video.contain {
