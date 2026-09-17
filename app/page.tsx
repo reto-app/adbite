@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     absolute: 'AdBite · Your menu board, earning between orders',
   },
   description:
-    'AdBite turns a third of your shop screen into local ad space you approve, one creative at a time. About $100 a week from the TV you already run.',
+    'AdBite turns a slice of your shop screen into local ad space you approve, one creative at a time. Up to $3,000 a year from the TV you already run.',
   alternates: { canonical: `${ORIGIN}/` },
 };
 
