@@ -10007,3 +10007,243 @@ text.vs-small {
 .tv-card b[title] {
   cursor: text;
 }
+
+/* ---- what the screen is, asked once ---------------------------------------- */
+.board-setup {
+  padding-block: 56px 72px;
+}
+
+.setup-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.setup-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 22px 22px 24px;
+  text-align: left;
+  border: 2px solid var(--board);
+  border-radius: 16px;
+  background: var(--chalk);
+  cursor: pointer;
+  transition: transform 0.12s ease-out, box-shadow 0.12s ease-out;
+}
+
+.setup-card:hover,
+.setup-card:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 0 -4px var(--board);
+}
+
+.setup-card b {
+  font-family: var(--font-display), sans-serif;
+  font-size: 20px;
+}
+
+.setup-card span {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.setup-card i {
+  font-size: 13px;
+  color: var(--ash);
+}
+
+/* ---- the shop's own media -------------------------------------------------- */
+.shop-media {
+  margin-top: 28px;
+}
+
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.media-card {
+  margin: 0;
+  border: 2px solid var(--board);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--chalk);
+}
+
+.media-art {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  background: var(--paper-warm);
+  overflow: hidden;
+}
+
+.media-art img,
+.media-art video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.media-card.working .media-art {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--paper-warm) 0 10px,
+    rgba(19, 20, 22, 0.05) 10px 20px
+  );
+}
+
+.media-working {
+  font-size: 13px;
+  color: var(--ash);
+  padding: 0 12px;
+  text-align: center;
+}
+
+.media-card figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px 12px;
+  font-size: 13px;
+}
+
+.media-card figcaption b {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.media-card figcaption button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  font-size: 12px;
+  color: var(--ash);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.media-card figcaption button:hover {
+  color: var(--rule);
+}
+
+.media-hold {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ash);
+}
+
+.media-hold input {
+  width: 54px;
+  padding: 3px 6px;
+  border: 2px solid var(--board);
+  border-radius: 7px;
+  font: inherit;
+}
+
+.media-note {
+  display: block;
+  padding: 0 12px 12px;
+  font-size: 12px;
+  color: var(--ash);
+}
+
+.media-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 150px;
+  padding: 18px;
+  text-align: center;
+  border: 2px dashed var(--board);
+  border-radius: 14px;
+  background: none;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+
+.media-add b {
+  font-size: 14px;
+}
+
+.media-add span {
+  font-size: 12px;
+  color: var(--ash);
+}
+
+.media-add:disabled {
+  cursor: default;
+}
+
+/* What this screen is, and the way back to that question. */
+.board-kind-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  font-size: 13px;
+  color: var(--ash);
+}
+
+.board-kind-row button {
+  font: inherit;
+  color: var(--ink-soft);
+  background: none;
+  border: 0;
+  padding: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.board-kind-row button:hover {
+  color: var(--rule);
+}
+
+/* The rotation an uploaded board actually plays. */
+.media-preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--board);
+}
+
+.media-preview img,
+.media-preview video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.media-preview.empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--chalk-dim);
+  font-size: 14px;
+}
+
+.media-preview-name {
+  position: absolute;
+  left: 14px;
+  bottom: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--chalk);
+  background: rgba(19, 20, 22, 0.66);
+}

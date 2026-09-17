@@ -98,6 +98,29 @@ already used by Vercel. Do not set `ASSETS_ORIGIN` there: the worker reads and
 writes through R2's S3 endpoint, while only the site and Roku need its public
 origin. `fly logs --config worker/fly.toml` shows job failures and retries.
 
+## A shop's own media
+
+Not every board is a menu. A shop is asked once what the screen is for (a
+menu, a specials board, or a display screen) and whether they want to type it
+here or upload it; the answer is on `boards.board.kind` and `.source` and is
+changeable from the board tab.
+
+Their own pictures and film live in `shop_media`, never in `creatives`. A
+creative belongs to an advertiser, is approved by a shop and is billed for;
+shop media is the opposite of all three, and the only thing the two share is
+a bucket. It uploads through the same endpoint with `?for=shop`, is
+re-encoded by the render worker exactly as an advertiser's video is, and
+mixes into the same rotation so a board reads as one thing.
+
+It is never billed. On an ordinary screen its spots carry an id of
+`media-<uuid>`, which is not a campaign id, so the play the channel reports
+is dropped. Inside a stitched reel its segments carry no campaign, so they
+count toward the whole -- the advertising is billed only for its real share
+of the loop -- and are charged to nobody.
+
+**A shop that chose "upload my own" has no menu on the wall.** The composed
+board is `supplemental`, the same shape a second screen gets.
+
 ## Payments (Stripe)
 
 Advertisers pay AdBite; AdBite pays each shop its share. Two hops, and they

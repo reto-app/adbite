@@ -76,13 +76,17 @@ export async function POST(request: Request): Promise<Response> {
       .select('segments')
       .eq('shop_id', device.shop_id)
       .maybeSingle();
-    const segments = (reelRow?.segments ?? []) as { campaign_id: string; seconds: number }[];
+    const segments = (reelRow?.segments ?? []) as { campaign_id: string | null; seconds: number }[];
     /* Share out the looping time by how much of the reel each spot is, using
        the segments' own total so the parts add back up to the time the wall
        actually showed rather than to the file's length after its dissolves. */
     const whole = segments.reduce((total, segment) => total + (Number(segment.seconds) || 0), 0);
     if (whole > 0) {
       for (const segment of segments) {
+        /* A segment with no campaign is the shop's own footage. It counts
+           toward the whole, so the advertising is billed only for its real
+           share of the loop, but nobody is charged for it. */
+        if (!segment.campaign_id) continue;
         const share = (Number(segment.seconds) || 0) / whole;
         if (share <= 0) continue;
         rows.push({
@@ -167,6 +171,26 @@ export async function POST(request: Request): Promise<Response> {
     }
   }
 
+  /* The shop's own media, which every screen carries and nobody is billed
+     for. A board the shop uploads is nothing but this plus the advertising. */
+  const { data: mediaRows } = await db
+    .from('shop_media')
+    .select('id, name, kind, storage_path, sha256, bytes, seconds, hold_seconds')
+    .eq('shop_id', device.shop_id)
+    .eq('ready', true)
+    .order('position');
+  const media = (mediaRows ?? [])
+    .filter((row) => row.storage_path && row.sha256 && row.bytes)
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+      kind: row.kind as 'image' | 'video',
+      src: `${origin}/${row.storage_path!.replace(/^\/+/, '')}`,
+      sha256: row.sha256!,
+      bytes: row.bytes!,
+      seconds: row.kind === 'video' ? Number(row.seconds) || 15 : row.hold_seconds,
+    }));
+
   const board = compose({
     shopId: shop.id,
     board: boardRow.board,
@@ -175,6 +199,7 @@ export async function POST(request: Request): Promise<Response> {
     spots,
     screen,
     reel,
+    media,
     pollMinutes: POLL_MINUTES,
   });
   const text = serialize(board);

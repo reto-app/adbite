@@ -91,6 +91,58 @@ export function shareOf(id: PlacementId) {
   return placementById(id).share;
 }
 
+/* ---- what kind of board this is -------------------------------------------
+   Not every screen is a menu. A shop is asked once, in its own words, what
+   the screen is for, because the answer changes what the editor should even
+   show them: a display board has no prices to type, and a shop running its
+   own film should not be handed an empty menu grid. */
+
+export type BoardKind = 'menu' | 'special' | 'display';
+
+export const BOARD_KINDS: { id: BoardKind; label: string; blurb: string; example: string }[] = [
+  {
+    id: 'menu',
+    label: 'A menu',
+    blurb: 'What you sell and what it costs, in sections your customers read while they queue.',
+    example: 'Tacos, burritos, drinks, with prices',
+  },
+  {
+    id: 'special',
+    label: 'A specials board',
+    blurb: 'A few things at a time rather than the whole list. Today, this week, while it lasts.',
+    example: "Today's three specials, the soup, the happy hour",
+  },
+  {
+    id: 'display',
+    label: 'A display screen',
+    blurb: 'No prices. Your own photos and film, playing on a loop for the room to look at.',
+    example: 'Your food, your work, your team, your hours',
+  },
+];
+
+export function boardKindById(id: BoardKind) {
+  return BOARD_KINDS.find((kind) => kind.id === id) ?? BOARD_KINDS[0];
+}
+
+/* Where the shop's half of the screen comes from: the editor in this
+   dashboard, or files they upload. Independent of the kind, because a menu
+   can be a photograph of a hand-written board and a display screen can be
+   typed. */
+export type BoardSource = 'builder' | 'media';
+
+export const BOARD_SOURCES: { id: BoardSource; label: string; blurb: string }[] = [
+  {
+    id: 'builder',
+    label: 'Build it here',
+    blurb: 'Type your sections and prices and we lay them out. Change them from your phone whenever you like.',
+  },
+  {
+    id: 'media',
+    label: 'Upload my own',
+    blurb: 'Your own images and video, played in a loop. Use this if your board is already designed, or if the screen is not a menu at all.',
+  },
+];
+
 /* ---- how the board looks ------------------------------------------------- */
 
 export type ThemeId = 'chalk' | 'enamel' | 'warm' | 'garden';
@@ -140,6 +192,10 @@ export type Board = {
   shopName: string;
   tagline: string;
   theme: ThemeId;
+  /** What the screen is for. Null until the shop has been asked. */
+  kind: BoardKind | null;
+  /** Whether the shop's half is typed here or uploaded. */
+  source: BoardSource;
   /** Where on the screen ads may sit. 'none' means not this week. */
   adPlacement: PlacementId;
   slots: Record<SlotId, MenuSection[]>;
@@ -176,6 +232,9 @@ export function starterBoard(): Board {
     shopName: 'Bao Pao Wow',
     tagline: 'Filipino steamed buns · 660 N Freedom Blvd',
     theme: 'chalk',
+    /* Null on purpose: the dashboard asks before it assumes. */
+    kind: null,
+    source: 'builder',
     adPlacement: 'rail',
     slots: {
       morning: [
@@ -297,6 +356,10 @@ function announce() {
    old number to the nearest placement so an existing board opens where its
    owner left it rather than back on the default. */
 function migrated(saved: Board & { adShare?: number }): Board {
+  /* A board saved before the question existed is a menu built here, which is
+     what every board was then. Its owner is not asked again. */
+  if (saved.kind === undefined) saved = { ...saved, kind: 'menu' };
+  if (!saved.source) saved = { ...saved, source: 'builder' };
   if (saved.adPlacement) return saved;
   const share = typeof saved.adShare === 'number' ? saved.adShare : DEFAULT_AD_SHARE;
   const nearest = PLACEMENTS.reduce((best, place) =>

@@ -1,9 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Check,
-  Clapperboard,
   LayoutTemplate,
   RotateCcw,
   Sparkles,
@@ -31,6 +30,11 @@ import {
   type Board,
   type SlotId,
   type ThemeId,
+  BOARD_KINDS,
+  BOARD_SOURCES,
+  boardKindById,
+  type BoardKind,
+  type BoardSource,
 } from '@/lib/board';
 import { LIVE_VENUES } from '@/lib/network';
 import {
@@ -52,6 +56,13 @@ import {
 } from '@/lib/campaigns';
 import { FORMATS } from '@/lib/boards';
 import { POLL_MINUTES, isOnline, pairDevice, renameDevice, useDevices, type Device } from '@/lib/devices';
+import {
+  removeShopMedia,
+  setHoldSeconds,
+  uploadShopMedia,
+  useShopMedia,
+  type ShopMedia,
+} from '@/lib/shop-media';
 import { beginConnectOnboarding } from '@/lib/payments';
 import { useShopStatements } from '@/lib/statements';
 import { localeOf, useCopy, useLang } from '@/lib/lang';
@@ -88,7 +99,6 @@ const WHEN: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', hour:
 
 type TabId = (typeof TABS)[number]['id'];
 
-const MAX_CLIP = 8 * 1024 * 1024;
 
 export function ShopDashboard() {
   const { ready, board } = useBoard();
@@ -114,6 +124,20 @@ export function ShopDashboard() {
       <main className="campaign-page">
         <SiteHeader nav={NAV} />
         <div className="campaign-loading" aria-hidden="true" />
+      </main>
+    );
+  }
+
+  /* Asked once, before the editor makes an assumption about what the screen
+     is. A shop running a looping film should not be handed an empty menu
+     grid and left to work out that it does not apply to them. */
+  if (board.kind === null) {
+    return (
+      <main className="campaign-page shop-page">
+        <SiteHeader nav={NAV} />
+        <BoardSetup
+          onDone={(kind, source) => set({ kind, source })}
+        />
       </main>
     );
   }
@@ -190,30 +214,31 @@ function BoardTab({
 }) {
   const t = useCopy(COPY);
   const shared = useCopy(SHARED);
-  const [clipError, setClipError] = useState('');
-
-  const takeClip = (file: File | undefined) => {
-    if (!file) return;
-    if (!file.type.startsWith('video/')) {
-      setClipError(t.clip.notVideo);
-      return;
-    }
-    if (file.size > MAX_CLIP) {
-      setClipError(t.clip.tooBig);
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result !== 'string') return;
-      setClipError('');
-      onChange({ media: { on: true, name: file.name, src: reader.result } });
-    };
-    reader.readAsDataURL(file);
-  };
+  const uploaded = board.source === 'media';
 
   return (
     <section className="shop-body">
       <div className="shop-edit">
+        {/* The answer to "what is this screen for" decides what this half of
+            the page is. A shop that uploads its board has no sections to
+            type, and handing them an empty menu grid would be telling them
+            their answer did not matter. */}
+        <div className="board-kind-row">
+          <span>
+            {boardKindById(board.kind ?? 'menu').label} ·{' '}
+            {BOARD_SOURCES.find((option) => option.id === board.source)?.label}
+          </span>
+          <button type="button" onClick={() => onChange({ kind: null })}>
+            {t.setup.change}
+          </button>
+        </div>
+
+        {uploaded ? (
+          <div className="shop-scroll">
+            <MediaPanel />
+          </div>
+        ) : (
+          <>
         <div className="slot-tabs" role="tablist" aria-label={t.editor.whichBoard}>
           {SLOTS.map((item) => (
             <button
@@ -372,62 +397,31 @@ function BoardTab({
             )}
           </section>
 
-          <section className="shop-panel">
-            <div className="prefs-head">
-              <h3>
-                <Clapperboard size={15} /> {t.clip.title}
-              </h3>
-              <span className="shop-switch">
-                <input
-                  type="checkbox"
-                  aria-label={t.clip.toggle}
-                  checked={board.media.on}
-                  onChange={(event) =>
-                    onChange({ media: { ...board.media, on: event.target.checked } })
-                  }
-                />
-                <span />
-              </span>
-            </div>
-            {board.media.on && (
-              <>
-                <label className="clip-drop">
-                  <Upload size={16} />
-                  <b>{board.media.name ?? t.clip.choose}</b>
-                  <span>{t.clip.spec}</span>
-                  <input
-                    type="file"
-                    accept="video/*"
-                    className="visually-hidden"
-                    onChange={(event) => takeClip(event.target.files?.[0])}
-                  />
-                </label>
-                {board.media.src && (
-                  <video className="clip-preview" src={board.media.src} muted loop autoPlay playsInline />
-                )}
-                {clipError && (
-                  <p className="prefs-warn" role="alert">
-                    {clipError}
-                  </p>
-                )}
-              </>
-            )}
-          </section>
+          {/* The shop's own pictures and film. This used to be one clip kept
+              as a data URL in this browser, which meant it never reached a
+              screen at all; it is now a library that uploads, is re-encoded
+              for the TV, and mixes with the ads. */}
+          <MediaPanel />
 
           <button type="button" className="edit-add section" onClick={resetBoard}>
             <RotateCcw size={14} /> {t.reset}
           </button>
         </div>
+          </>
+        )}
       </div>
 
       <div className="shop-preview">
         <div className="preview-head">
           <span>
-            {t.preview.onTheWall} · {shared.slots[slot].label}
+            {t.preview.onTheWall}
+            {uploaded ? '' : ` · ${shared.slots[slot].label}`}
           </span>
           <i>{t.preview.updates}</i>
         </div>
-        <BoardCanvas board={board} slot={slot} />
+        {/* A board the shop uploads has no menu on the wall, so showing one
+            here would promise something the screen will not do. */}
+        {uploaded ? <MediaPreview /> : <BoardCanvas board={board} slot={slot} />}
 
         <fieldset className="place-pick">
           <legend>{t.preview.where}</legend>
@@ -770,5 +764,217 @@ function TvCard({ device }: { device: Device }) {
         </div>
       </dl>
     </article>
+  );
+}
+
+/* ---- what the screen is ----------------------------------------------------
+   Two questions, asked once, in the shop's own words. The first decides what
+   the editor puts in front of them; the second decides whether they type
+   their board or upload it. Neither changes what they are paid. */
+function BoardSetup({ onDone }: { onDone: (kind: BoardKind, source: BoardSource) => void }) {
+  const t = useCopy(COPY).setup;
+  const [kind, setKind] = useState<BoardKind | null>(null);
+
+  if (kind === null) {
+    return (
+      <section className="board-setup wrap">
+        <div className="section-head">
+          <h2>{t.title}</h2>
+          <p>{t.lede}</p>
+        </div>
+        <div className="setup-grid">
+          {BOARD_KINDS.map((option) => (
+            <button key={option.id} type="button" className="setup-card" onClick={() => setKind(option.id)}>
+              <b>{option.label}</b>
+              <span>{option.blurb}</span>
+              <i>
+                {t.exampleLabel}: {option.example}
+              </i>
+            </button>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="board-setup wrap">
+      <div className="section-head">
+        <h2>{t.sourceTitle}</h2>
+        <p>{t.sourceLede}</p>
+      </div>
+      <div className="setup-grid two">
+        {BOARD_SOURCES.map((option) => (
+          <button key={option.id} type="button" className="setup-card" onClick={() => onDone(kind, option.id)}>
+            <b>{option.label}</b>
+            <span>{option.blurb}</span>
+          </button>
+        ))}
+      </div>
+      <button type="button" className="dash-add quiet" onClick={() => setKind(null)}>
+        {t.back}
+      </button>
+    </section>
+  );
+}
+
+/* ---- the shop's own pictures and film --------------------------------------
+   Sits beside the menu editor rather than inside it, because it is not part
+   of the menu: it is the other thing a screen can be. */
+function MediaPanel() {
+  const t = useCopy(COPY).media;
+  const { media } = useShopMedia();
+  const input = useRef<HTMLInputElement>(null);
+  const [progress, setProgress] = useState<number | null>(null);
+  const [error, setError] = useState('');
+
+  const take = async (file: File | undefined) => {
+    if (!file) return;
+    const isVideo = file.type === 'video/mp4';
+    const isImage = ['image/png', 'image/jpeg', 'image/webp'].includes(file.type);
+    if (!isVideo && !isImage) {
+      setError(t.notMedia);
+      return;
+    }
+    if (file.size > (isVideo ? 12 : 6) * 1024 * 1024) {
+      setError(t.tooBig);
+      return;
+    }
+    setError('');
+    setProgress(0.05);
+    const result = await uploadShopMedia(file, setProgress);
+    setProgress(null);
+    if (!result.ok) setError(result.message);
+    if (input.current) input.current.value = '';
+  };
+
+  return (
+    <section className="shop-media">
+      <div className="section-head">
+        <h2>{t.title}</h2>
+        <p>{t.lede}</p>
+      </div>
+
+      <div className="media-grid">
+        {media.map((item) => (
+          <MediaCard key={item.id} item={item} />
+        ))}
+
+        <button
+          type="button"
+          className="media-add"
+          onClick={() => input.current?.click()}
+          disabled={progress !== null}
+        >
+          {progress !== null ? (
+            <>
+              <Upload size={22} />
+              <b>{t.uploading}</b>
+              <span className="upload-bar">
+                <i style={{ width: `${Math.round(progress * 100)}%` }} />
+              </span>
+            </>
+          ) : (
+            <>
+              <Upload size={22} />
+              <b>{t.add}</b>
+              <span>{t.dropSub}</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      {media.length === 0 && progress === null && <p className="queue-empty">{t.empty}</p>}
+      {error && (
+        <p className="form-warn" role="alert">
+          {error}
+        </p>
+      )}
+
+      <input
+        ref={input}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,video/mp4"
+        className="visually-hidden"
+        onChange={(event) => void take(event.target.files?.[0])}
+      />
+    </section>
+  );
+}
+
+function MediaCard({ item }: { item: ShopMedia }) {
+  const t = useCopy(COPY).media;
+  return (
+    <figure className={`media-card${item.ready ? '' : ' working'}`}>
+      <div className="media-art">
+        {!item.ready ? (
+          <span className="media-working">{t.processing}</span>
+        ) : item.kind === 'video' ? (
+          <video src={item.url ?? undefined} muted loop autoPlay playsInline />
+        ) : (
+          <img src={item.url ?? undefined} alt={item.name} />
+        )}
+      </div>
+      <figcaption>
+        <b>{item.name}</b>
+        {item.kind === 'video' ? (
+          <span>{item.seconds ? `${Math.round(item.seconds)}s` : ''}</span>
+        ) : (
+          <label className="media-hold">
+            {t.holdFor}
+            <input
+              type="number"
+              min={2}
+              max={60}
+              defaultValue={item.holdSeconds}
+              onBlur={(event) => void setHoldSeconds(item.id, Number(event.target.value))}
+            />
+            {t.seconds}
+          </label>
+        )}
+        <button type="button" onClick={() => void removeShopMedia(item.id)}>
+          <Trash2 size={13} /> {t.remove}
+        </button>
+      </figcaption>
+      {!item.ready && <span className="media-note">{t.processingNote}</span>}
+    </figure>
+  );
+}
+
+/* What an uploaded board actually looks like: the shop's own media in the
+   order it will play, with the approved advertising folded into the same
+   rotation. It cycles so the page shows the thing rather than describing it. */
+function MediaPreview() {
+  const t = useCopy(COPY).media;
+  const { media } = useShopMedia();
+  const ready = media.filter((item) => item.ready);
+  const [at, setAt] = useState(0);
+
+  useEffect(() => {
+    if (ready.length < 2) return;
+    const item = ready[at % ready.length];
+    const hold = (item.kind === 'video' ? item.seconds ?? 12 : item.holdSeconds) * 1000;
+    const timer = setTimeout(() => setAt((was) => was + 1), Math.max(2000, hold));
+    return () => clearTimeout(timer);
+  }, [at, ready]);
+
+  if (ready.length === 0) {
+    return (
+      <div className="board-canvas-frame media-preview empty">
+        <span>{t.empty}</span>
+      </div>
+    );
+  }
+
+  const item = ready[at % ready.length];
+  return (
+    <div className="board-canvas-frame media-preview">
+      {item.kind === 'video' ? (
+        <video key={item.id} src={item.url ?? undefined} muted autoPlay playsInline />
+      ) : (
+        <img key={item.id} src={item.url ?? undefined} alt={item.name} />
+      )}
+      <span className="media-preview-name">{item.name}</span>
+    </div>
   );
 }

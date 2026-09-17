@@ -179,6 +179,19 @@ files.
 - Reel size stays under the device cap from the phase 2 test (the 145 s
   Mexico reel was 42 MB at CRF 22; CRF 25 roughly halves it).
 
+## Boards that are not menus (2026-09-17)
+
+A screen is asked what it is for before the editor assumes. Shop-owned media
+is its own table, mixes with the advertising in one rotation, and is billed
+to nobody. The Mexico footage that went in as campaigns -- because campaigns
+were the only thing that could reach a screen -- has been moved to the shop
+that runs it; the Quick Quack and Crumbl spots stay campaigns, because they
+are advertising.
+
+Still to do here: a "specials" board still uses the menu editor, which is
+probably right but has not been looked at with a shop; and the reel is built
+in upload order, with no way yet for a shop to reorder it.
+
 ## Reels and billing (2026-09-16)
 
 A looping reel is one file made of several campaigns, so neither end can say

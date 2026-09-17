@@ -79,58 +79,6 @@ begin
   return claimed;
 end $$;
 
--- Queue a rebuild without making a stack of identical jobs. This is used by
--- both the change triggers and the worker's periodic repair scan.
-create function enqueue_reel_job(target_shop_id uuid) returns void
-language plpgsql security definer set search_path = public as $$
-begin
-  if target_shop_id is null then return; end if;
-  insert into render_jobs (kind, shop_id)
-    values ('reel', target_shop_id)
-    on conflict do nothing;
-end $$;
-
-create function queue_reel_for_approval() returns trigger
-language plpgsql security definer set search_path = public as $$
-begin
-  perform enqueue_reel_job(coalesce(new.shop_id, old.shop_id));
-  if tg_op = 'DELETE' then return old; end if;
-  return new;
-end $$;
-
-create trigger approvals_queue_reel
-  after insert or update of status or delete on approvals
-  for each row execute function queue_reel_for_approval();
-
-create function queue_reels_for_campaign() returns trigger
-language plpgsql security definer set search_path = public as $$
-begin
-  perform enqueue_reel_job(a.shop_id)
-  from approvals a
-  where a.campaign_id = coalesce(new.id, old.id);
-  if tg_op = 'DELETE' then return old; end if;
-  return new;
-end $$;
-
-create trigger campaigns_queue_reel
-  after update of status, creative_id or delete on campaigns
-  for each row execute function queue_reels_for_campaign();
-
-create function queue_reels_for_creative() returns trigger
-language plpgsql security definer set search_path = public as $$
-begin
-  perform enqueue_reel_job(a.shop_id)
-  from campaigns c join approvals a on a.campaign_id = c.id
-  where c.creative_id = new.id;
-  return new;
-end $$;
-
-create trigger creatives_queue_reel
-  after update of ready, storage_path, seconds on creatives
-  for each row execute function queue_reels_for_creative();
-
--- SECURITY DEFINER functions otherwise default to executable by every role.
-revoke execute on function claim_render_job() from public;
-revoke execute on function enqueue_reel_job(uuid) from public;
-grant execute on function claim_render_job() to service_role;
-grant execute on function enqueue_reel_job(uuid) to service_role;
+-- Everything below this line was once appended to this file after it had
+-- already been applied, which meant it never ran. It now lives in
+-- 0012_reel_triggers.sql. An applied migration is a record of what ran.

@@ -30,6 +30,17 @@ export type Spot = {
 /** A shop's approved spots stitched into one file by the render worker. */
 export type Reel = { src: string; sha256: string; bytes: number; seconds: number };
 
+/** A shop's own picture or film: part of the rotation, billed to nobody. */
+export type OwnMedia = {
+  id: string;
+  name: string;
+  kind: 'image' | 'video';
+  src: string;
+  sha256: string;
+  bytes: number;
+  seconds: number;
+};
+
 export type ComposeInput = {
   shopId: string;
   board: Board;
@@ -40,6 +51,8 @@ export type ComposeInput = {
   screen: 'menu' | 'reel';
   /** Only used by a reel screen, and only when the worker has built one. */
   reel?: Reel | null;
+  /** The shop's own media, mixed into the rotation ahead of the advertising. */
+  media?: OwnMedia[];
   pollMinutes: number;
 };
 
@@ -135,6 +148,23 @@ export function compose(input: ComposeInput): RokuBoard {
     };
   }
 
+  /* The shop's own media leads, then what it was paid to carry: a board
+     should read as the shop's, with advertising in it. An id of `media-...`
+     is never a campaign id, which is how the server knows not to bill the
+     time it reports. */
+  const own = (input.media ?? [])
+    .filter((item) => item.src && item.sha256 && item.bytes > 0)
+    .map((item) => ({
+      id: `media-${item.id}`,
+      name: item.name,
+      format: 'video' as const,
+      src: item.src,
+      sha256: item.sha256,
+      bytes: item.bytes,
+      seconds: Math.max(2, Math.round(item.seconds)),
+      chain: true,
+    }));
+
   const ads = input.spots
     .filter((spot) => spot.src && spot.sha256 && spot.bytes > 0 && allowed(spot.format))
     .map((spot) => ({
@@ -148,6 +178,9 @@ export function compose(input: ComposeInput): RokuBoard {
     }));
 
   const { adPlacement: _placement, ...rest } = board;
+  /* A shop that uploads its board has no menu for us to lay out, so the
+     screen is all rotation, the same shape a second screen uses. */
+  const uploaded = board.source === 'media';
 
   return {
     version: 1,
@@ -159,12 +192,12 @@ export function compose(input: ComposeInput): RokuBoard {
     keepAwake: true,
     textScale: 1,
     adLayout: placement === 'banner' ? 'banner' : 'rail',
-    supplemental: input.screen === 'reel',
+    supplemental: input.screen === 'reel' || uploaded,
     spotSeconds: 15,
     reviewSeconds: 12,
     slotWindows: DEFAULT_WINDOWS,
     board: { ...rest, adShare: share, media: { ...rest.media, src: null } },
-    ads,
+    ads: [...own, ...ads],
   };
 }
 

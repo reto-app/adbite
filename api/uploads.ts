@@ -64,8 +64,43 @@ export async function POST(request: Request): Promise<Response> {
     return json(400, { message: 'Unreadable request' });
   }
 
-  const finishing = new URL(request.url).searchParams.get('done') === '1';
+  const url = new URL(request.url);
+  const finishing = url.searchParams.get('done') === '1';
+  /* Two things can be uploaded and they are not the same thing: an
+     advertiser's creative, which a shop approves and an advertiser pays for,
+     and a shop's own footage, which nobody approves and nobody is billed
+     for. They share a bucket and nothing else. */
+  const forShop = url.searchParams.get('for') === 'shop';
   const store = bucket();
+
+  if (finishing && forShop) {
+    const mediaId = String(fields.mediaid ?? '');
+    const { data: media } = await db
+      .from('shop_media')
+      .select('id, shop_id, storage_path, bytes, kind, shops!inner(owner_id)')
+      .eq('id', mediaId)
+      .maybeSingle();
+    const owner = (media as unknown as { shops?: { owner_id: string } } | null)?.shops?.owner_id;
+    if (!media || owner !== user.id) return json(404, { message: 'No such upload' });
+
+    try {
+      const head = await store.client.send(new HeadObjectCommand({ Bucket: store.name, Key: media.storage_path! }));
+      if ((head.ContentLength ?? 0) !== media.bytes) return json(409, { message: 'The upload was cut short. Try again.' });
+    } catch {
+      return json(409, { message: 'That file did not finish uploading. Try again.' });
+    }
+
+    const origin = process.env.ASSETS_ORIGIN ?? 'https://assets.adbite.site';
+    const mediaUrl = `${origin}/${media.storage_path}`;
+    if (media.kind === 'video') {
+      await db.from('render_jobs').insert({ kind: 'transcode_media', shop_media_id: media.id });
+      await db.from('render_jobs').insert({ kind: 'reel', shop_id: media.shop_id });
+      return json(200, { ready: false, processing: true, url: mediaUrl });
+    }
+    await db.from('shop_media').update({ ready: true }).eq('id', media.id);
+    await db.from('render_jobs').insert({ kind: 'reel', shop_id: media.shop_id });
+    return json(200, { ready: true, url: mediaUrl });
+  }
 
   if (finishing) {
     const creativeId = String(fields.creativeid ?? '');
@@ -119,6 +154,44 @@ export async function POST(request: Request): Promise<Response> {
   if (!/^[a-f0-9]{64}$/.test(sha256)) return json(400, { message: 'Missing a checksum for the file.' });
   if (type.kind === 'video' && seconds !== null && seconds > MAX_SECONDS) {
     return json(400, { message: `A video spot runs ${MAX_SECONDS} seconds or less.` });
+  }
+
+  if (forShop) {
+    const { data: shop } = await db.from('shops').select('id').eq('owner_id', user.id).maybeSingle();
+    if (!shop) return json(403, { message: 'Only a shop owner can add media to a board' });
+    const mediaKey = `shop-media/${sha256}.${type.ext}`;
+    const { data: existingCount } = await db.from('shop_media').select('id').eq('shop_id', shop.id);
+    const { data: media, error: mediaError } = await db
+      .from('shop_media')
+      .insert({
+        shop_id: shop.id,
+        kind: type.kind,
+        name,
+        storage_path: mediaKey,
+        bytes,
+        sha256,
+        width,
+        height,
+        seconds,
+        position: existingCount?.length ?? 0,
+        ready: false,
+      })
+      .select('id')
+      .single();
+    if (mediaError || !media) return json(500, { message: mediaError?.message ?? 'Could not start the upload' });
+
+    const mediaUpload = await getSignedUrl(
+      store.client,
+      new PutObjectCommand({
+        Bucket: store.name,
+        Key: mediaKey,
+        ContentType: contentType,
+        ContentLength: bytes,
+        CacheControl: 'public, max-age=31536000, immutable',
+      }),
+      { expiresIn: 600 },
+    );
+    return json(200, { mediaId: media.id, uploadUrl: mediaUpload, key: mediaKey });
   }
 
   const key = `creatives/${sha256}.${type.ext}`;
