@@ -43,14 +43,17 @@ node --input-type=module -e '
 ' "$BOARD"
 
 rm -rf dist/stage "$OUT"
-mkdir -p dist/stage/source dist/stage/components dist/stage/images dist/stage/media dist/stage/ads
+mkdir -p dist/stage/source dist/stage/components dist/stage/images dist/stage/ads
 
 cp manifest dist/stage/
 cp source/*.brs dist/stage/source/
 cp components/*.xml components/*.brs dist/stage/components/
 cp images/*.png dist/stage/images/
-cp media/*.mp4 dist/stage/media/
 cp "$BOARD" dist/stage/board.json
+# The sample the pairing screen offers with OK, so a reviewer (or a shop
+# deciding whether to pair at all) can see a whole working board with no
+# account and no network.
+[ -f demo-board.json ] && cp demo-board.json dist/stage/demo-board.json
 
 # Artwork referenced as `ads/<file>` has to travel with the board. The exporter
 # writes them next to the board.json it produces.

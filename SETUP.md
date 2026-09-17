@@ -98,6 +98,22 @@ already used by Vercel. Do not set `ASSETS_ORIGIN` there: the worker reads and
 writes through R2's S3 endpoint, while only the site and Roku need its public
 origin. `fly logs --config worker/fly.toml` shows job failures and retries.
 
+## Putting a screen in a shop
+
+Two settings on the TV itself, both in the shop's hands and neither something
+the channel may do for them:
+
+- **Settings → Screen saver → Wait time → Disabled.** A board that blanks
+  after ten minutes is not a board. The channel is not allowed to prevent
+  this itself; see `docs/ROKU-STORE.md`.
+- **Settings → System → Power → Fast TV Start → On.** Without it a Roku TV
+  drops its network in standby, so it stops picking up menu changes and
+  stops reporting what it played.
+
+Installing the channel is `docs/ROKU-STORE.md`. Until it is in the Store that
+means sideloading, which needs the TV and a laptop on one network; after that
+it is a search on the TV.
+
 ## A shop's own media
 
 Not every board is a menu. A shop is asked once what the screen is for (a

@@ -6,7 +6,7 @@
   "pairing": true,
   "remoteUrl": null,
   "refreshMinutes": 1,
-  "keepAwake": true,
+  "keepAwake": false,
   "textScale": 1,
   "adLayout": "rail",
   "spotSeconds": 15,

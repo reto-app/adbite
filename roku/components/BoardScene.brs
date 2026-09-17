@@ -2,11 +2,11 @@ sub init()
     m.backdrop = m.top.findNode("backdrop")
     m.menu = m.top.findNode("menu")
     m.ads = m.top.findNode("ads")
-    m.keepAwake = m.top.findNode("keepAwake")
     m.diagnostics = m.top.findNode("diagnostics")
     m.diagText = m.top.findNode("diagText")
     m.pairing = m.top.findNode("pairing")
     m.pendingPlays = []
+    m.demoing = false
 
     m.config = invalid
     m.slotId = ""
@@ -14,7 +14,6 @@ sub init()
     m.revision = 0
     m.nextRefreshAt = 0
 
-    m.ads.observeField("playingVideo", "onAdVideo")
     m.ads.observeField("played", "onPlayed")
 
     m.slotTimer = m.top.createChild("Timer")
@@ -81,9 +80,15 @@ sub onConfig()
         print "[adbite] a board arrived with nothing in it; keeping what is up"
         return
     end if
+    ' A board arriving from the server while the demo is up would yank it
+    ' away mid-look. The demo is left alone until Back closes it.
+    if m.demoing = true then return
+    applyBoard(config, m.loader.source)
+end sub
 
+sub applyBoard(config as Object, source as String)
     m.config = config
-    m.source = m.loader.source
+    m.source = source
     m.slotId = currentSlotId()
 
     if config.pairing = true
@@ -97,7 +102,6 @@ sub onConfig()
         layout()
     end if
 
-    startKeepAwake()
     startRefresh()
     refreshDiagnostics()
 end sub
@@ -124,7 +128,7 @@ sub showPairing(code as String)
 
     help = m.top.findNode("pairHelp")
     help.font = BoardFont(40, false)
-    help.text = "On your computer or phone, sign in at adbite.site/dashboard, open Your TVs, and type this code. The board appears here within a minute."
+    help.text = "On your computer or phone, sign in at adbite.site/dashboard, open Your TVs, and type this code. The board appears here within a minute." + Chr(10) + Chr(10) + "Press OK to see a sample board first."
 
     device = CreateObject("roDeviceInfo")
     foot = m.top.findNode("pairFoot")
@@ -310,35 +314,24 @@ function secondsUntil(clockTime as String) as Integer
     return gap
 end function
 
+' The sample board that ships inside every package, used by the demo the
+' pairing screen offers. Read on demand rather than held, because it is
+' looked at once and then usually never again.
+function readDemoBoard() as Dynamic
+    fs = CreateObject("roFileSystem")
+    if not fs.Exists("pkg:/demo-board.json") then return invalid
+    raw = ReadAsciiFile("pkg:/demo-board.json")
+    if raw = "" then return invalid
+    parsed = ParseJson(raw)
+    if parsed = invalid or type(parsed) <> "roAssociativeArray" then return invalid
+    return parsed
+end function
+
 function registryHasUrl() as Boolean
     section = CreateObject("roRegistrySection", "adbite")
     if not section.Exists("remoteUrl") then return false
     return section.Read("remoteUrl") <> ""
 end function
-
-sub startKeepAwake()
-    if m.config.keepAwake = false
-        m.keepAwake.control = "stop"
-        return
-    end if
-
-    content = CreateObject("roSGNode", "ContentNode")
-    content.url = "pkg:/media/keepawake.mp4"
-    content.streamFormat = "mp4"
-    m.keepAwake.content = content
-    m.keepAwake.control = "play"
-end sub
-
-' One decoder, one clip. The keep-awake loop stands down while a video spot is
-' on the wall, and picks back up when the menu returns.
-sub onAdVideo()
-    if m.config = invalid or m.config.keepAwake = false then return
-    if m.ads.playingVideo
-        m.keepAwake.control = "stop"
-    else
-        m.keepAwake.control = "play"
-    end if
-end sub
 
 ' ---- diagnostics ----------------------------------------------------------
 
@@ -348,6 +341,24 @@ end sub
 function onKeyEvent(key as String, press as Boolean) as Boolean
     if not press then return false
 
+    ' Back closes whatever is open before it closes the channel, which is
+    ' what Roku's certification asks of it: return to the previous state, and
+    ' from the first screen exit to the home screen. Returning false here is
+    ' what lets the system do the second half.
+    if key = "back"
+        if m.diagnostics.visible
+            m.diagnostics.visible = false
+            m.ads.hold = false
+            return true
+        end if
+        if m.demoing = true
+            m.demoing = false
+            reloadConfig()
+            return true
+        end if
+        return false
+    end if
+
     if key = "options" or key = "info"
         m.diagnostics.visible = not m.diagnostics.visible
         ' A spot playing over the overlay would hide it: the video plane is
@@ -356,6 +367,20 @@ function onKeyEvent(key as String, press as Boolean) as Boolean
         m.ads.hold = m.diagnostics.visible
         refreshDiagnostics()
         return true
+    end if
+
+    ' A reviewer installs this and sees a code they have no dashboard to type
+    ' it into, so OK puts the sample board up: a whole working screen, menu,
+    ' rotation and all, with no account and no network. Back returns to the
+    ' code. It is also the fastest way for a shop to see what they are about
+    ' to get before they pair anything.
+    if key = "OK" and m.config <> invalid and m.config.pairing = true
+        demo = readDemoBoard()
+        if demo <> invalid
+            m.demoing = true
+            applyBoard(demo, "demo")
+            return true
+        end if
     end if
 
     if key = "play"

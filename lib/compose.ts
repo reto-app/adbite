@@ -123,7 +123,10 @@ export function compose(input: ComposeInput): RokuBoard {
       boardVersion: input.boardVersion,
       remoteUrl: null,
       refreshMinutes: input.pollMinutes,
-      keepAwake: true,
+      /* Roku forbids an app from interfering with the system screensaver, so
+         a board that must stay up asks the shop to switch the screensaver
+         off in the TV's own settings instead. */
+      keepAwake: false,
       textScale: 1,
       adLayout: 'rail',
       supplemental: true,
@@ -189,7 +192,7 @@ export function compose(input: ComposeInput): RokuBoard {
     boardVersion: input.boardVersion,
     remoteUrl: null,
     refreshMinutes: input.pollMinutes,
-    keepAwake: true,
+    keepAwake: false,
     textScale: 1,
     adLayout: placement === 'banner' ? 'banner' : 'rail',
     supplemental: input.screen === 'reel' || uploaded,

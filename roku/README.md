@@ -89,6 +89,17 @@ stitched from. That is what makes a second screen billable at all.
 `tools/point.sh <ip> <url>` still works for a hand-served board; a stored
 `remoteUrl` is only consulted when the package has no `syncUrl`.
 
+## The screensaver
+
+The channel does not hold the screensaver off. Roku's certification criteria
+prohibit an app from interfering with it, and this one used to loop two muted
+pixels of video in the corner to do exactly that. A board that has to stay up
+asks the shop to turn the screensaver off in the TV's own settings:
+
+    Settings -> Screen saver -> Wait time -> Disabled
+
+See `docs/ROKU-STORE.md`.
+
 ## Getting it onto a TV
 
 Put the Roku in developer mode — on the remote:

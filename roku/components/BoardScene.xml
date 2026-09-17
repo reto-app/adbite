@@ -19,11 +19,12 @@
     <MenuPane id="menu" />
     <AdPane id="ads" />
 
-    <!-- Two pixels of muted, looping black. A Roku with video playing does not
-         raise its screensaver, and that is the only lever a channel has over
-         it. Anything else on the wall would be a burn-in risk. -->
-    <Video id="keepAwake" translation="[1916, 1076]" width="2" height="2"
-           opacity="0.01" mute="true" enableUI="false" loop="true" />
+    <!-- There was a two-pixel looping video here, because a Roku with video
+         playing does not raise its screensaver. Roku's certification
+         criteria prohibit an app from overriding or interfering with the
+         system screensaver, so a board that has to stay up asks the shop to
+         turn the screensaver off in the TV's own settings, which is the
+         setting's purpose and the owner's decision to make. -->
 
     <!-- The pairing card: what a screen shows until a shop claims it. -->
     <Group id="pairing" visible="false">

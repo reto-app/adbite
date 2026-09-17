@@ -107,7 +107,42 @@ def star(size=64, points=5):
     return out
 
 
+def demo_ad(width=634, height=1080):
+    """A rail advertisement for the sample board the pairing screen offers.
+
+    Invented on purpose. A reviewer should see what a booked slot looks like
+    rather than an empty placeholder, and a real business's marks in a demo
+    would be somebody else's trademark in our package."""
+    image = Image.new("RGB", (width, height), (18, 55, 42))
+    draw = ImageDraw.Draw(image)
+
+    for y in range(0, height, 26):
+        draw.line([(0, y), (width, y)], fill=(22, 64, 49), width=9)
+
+    gold = (217, 180, 92)
+    draw.rectangle([0, 0, width, 8], fill=gold)
+
+    big = ImageFont.truetype(BOLD, 74)
+    mid = ImageFont.truetype(BOLD, 38)
+    small = ImageFont.truetype(BOLD, 28)
+
+    def centred(text, font, y, fill):
+        box = draw.textbbox((0, 0), text, font=font)
+        draw.text(((width - (box[2] - box[0])) // 2 - box[0], y), text, font=font, fill=fill)
+
+    centred("IRON ROSE", big, 300, (245, 240, 232))
+    centred("GYM", big, 380, (245, 240, 232))
+    centred("First class free", mid, 500, gold)
+    centred("Two doors down", small, 566, (198, 206, 198))
+    centred("123 Taco Ave", small, 612, (198, 206, 198))
+    centred("An example advertisement", small, height - 90, (120, 140, 128))
+    return image
+
+
+demo_ad().save("images/demo-ad-rail.png")
 star().save("images/star.png")
+# Roku Streaming Store artwork: 540x405, opaque, broadcast-safe colours.
+plate(540, 405, 335).save("images/store-poster.png")
 plate(290, 218, 210).save("images/icon_focus_hd.png")
 plate(108, 69, 78).save("images/icon_side_hd.png")
 plate(1920, 1080, 720, sub=56).save("images/splash_fhd.png")
