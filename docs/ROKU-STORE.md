@@ -23,8 +23,19 @@ entitled to make that call:
 
 > **Settings → Screen saver → Wait time → Disabled**
 
-That goes in the shop setup instructions. Every signage channel on the Store
-lives with the same rule.
+**The channel says this itself**, because a shop does not read our
+documentation and a board that blanks after ten minutes reads as broken:
+
+- on the pairing screen, in a box under the code, which is the one moment
+  somebody is looking at the TV with the remote in their hand;
+- as a card over the board the first time a screen is paired, since that is
+  when the code and its instructions disappear and the shop walks away. It is
+  shown once per TV, closes on any key, and hides itself after ninety seconds
+  so it can never sit over a shop's board all afternoon;
+- in the OPTIONS overlay, which is where somebody looks when a board is
+  already misbehaving.
+
+Every signage channel on the Store lives with the same rule.
 
 **Back.** Certification asks that Back return to the previous state and, from
 the first screen, exit to the home screen. Back now closes the diagnostics

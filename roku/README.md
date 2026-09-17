@@ -98,6 +98,11 @@ asks the shop to turn the screensaver off in the TV's own settings:
 
     Settings -> Screen saver -> Wait time -> Disabled
 
+The channel asks for this itself: under the pairing code, once as a card over
+the board the first time a screen is paired, and in the OPTIONS overlay. A
+shop does not read setup documents, and a board that blanks after ten minutes
+reads as broken rather than as a setting nobody changed.
+
 See `docs/ROKU-STORE.md`.
 
 ## Getting it onto a TV

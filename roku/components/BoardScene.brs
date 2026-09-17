@@ -5,8 +5,17 @@ sub init()
     m.diagnostics = m.top.findNode("diagnostics")
     m.diagText = m.top.findNode("diagText")
     m.pairing = m.top.findNode("pairing")
+    m.tip = m.top.findNode("tip")
     m.pendingPlays = []
     m.demoing = false
+
+    ' The screensaver card hides itself if nobody presses anything, because
+    ' a card left over a shop's board all afternoon is worse than the
+    ' screensaver it is warning about.
+    m.tipTimer = m.top.createChild("Timer")
+    m.tipTimer.duration = 90
+    m.tipTimer.repeat = false
+    m.tipTimer.observeField("fire", "dismissTip")
 
     m.config = invalid
     m.slotId = ""
@@ -100,6 +109,10 @@ sub applyBoard(config as Object, source as String)
         theme = BoardTheme(strOrDefault(config.board.theme, "chalk"))
         m.backdrop.color = theme.bg
         layout()
+        ' A screen that has just been claimed has a board on it for the first
+        ' time, which is the moment the pairing code and its instructions
+        ' disappear. Said once, then never again on this TV.
+        maybeShowTip()
     end if
 
     startRefresh()
@@ -119,7 +132,7 @@ sub showPairing(code as String)
     title.text = "Pair this screen"
 
     codeLabel = m.top.findNode("pairCode")
-    codeLabel.font = BoardFont(220, true)
+    codeLabel.font = BoardFont(180, true)
     if code = ""
         codeLabel.text = "· · · · · ·"
     else
@@ -127,8 +140,15 @@ sub showPairing(code as String)
     end if
 
     help = m.top.findNode("pairHelp")
-    help.font = BoardFont(40, false)
+    help.font = BoardFont(34, false)
     help.text = "On your computer or phone, sign in at adbite.site/dashboard, open Your TVs, and type this code. The board appears here within a minute." + Chr(10) + Chr(10) + "Press OK to see a sample board first."
+
+    ' Said here because this is the one moment the shop is looking at the TV
+    ' with the remote in their hand. A board that blanks after ten minutes
+    ' reads as broken, and this is the only thing that stops it.
+    tip = m.top.findNode("pairTip")
+    tip.font = BoardFont(30, true)
+    tip.text = "Before you walk away: turn this TV's screensaver off." + Chr(10) + "Settings  >  Screen saver  >  Wait time  >  Disabled"
 
     device = CreateObject("roDeviceInfo")
     foot = m.top.findNode("pairFoot")
@@ -140,6 +160,41 @@ sub showPairing(code as String)
     end if
 
     m.pairing.visible = true
+end sub
+
+' The one thing a shop has to do that the channel is not allowed to do for
+' them. Roku forbids an app from interfering with the system screensaver, so
+' all that is left is asking, at the moment it matters, exactly once.
+sub maybeShowTip()
+    if m.demoing = true then return
+    section = CreateObject("roRegistrySection", "adbite")
+    if section.Exists("screensaverTold") then return
+
+    title = m.top.findNode("tipTitle")
+    title.font = BoardFont(52, true)
+    title.text = "One thing before you go"
+
+    body = m.top.findNode("tipBody")
+    body.font = BoardFont(34, false)
+    body.text = "This TV will blank its own screen after a few minutes and cover your board. Turn the screensaver off and it stays up:" + Chr(10) + Chr(10) + "Settings  >  Screen saver  >  Wait time  >  Disabled"
+
+    foot = m.top.findNode("tipFoot")
+    foot.font = BoardFont(26, false)
+    foot.text = "Press OK when that is done"
+
+    m.tip.visible = true
+    m.ads.hold = true
+    m.tipTimer.control = "start"
+
+    section.Write("screensaverTold", "1")
+    section.Flush()
+end sub
+
+sub dismissTip()
+    m.tipTimer.control = "stop"
+    if not m.tip.visible then return
+    m.tip.visible = false
+    m.ads.hold = false
 end sub
 
 function spaced(code as String) as String
@@ -341,6 +396,13 @@ end function
 function onKeyEvent(key as String, press as Boolean) as Boolean
     if not press then return false
 
+    ' Anything at all puts the board back. Somebody pressing a button is
+    ' somebody who has read it.
+    if m.tip.visible
+        dismissTip()
+        return true
+    end if
+
     ' Back closes whatever is open before it closes the channel, which is
     ' what Roku's certification asks of it: return to the previous state, and
     ' from the first screen exit to the home screen. Returning false here is
@@ -426,6 +488,7 @@ sub refreshDiagnostics()
         "channel " + app.GetVersion() + "  ·  " + device.GetModelDisplayName(),
         "ip " + addresses,
         "",
+        "screensaver: Settings > Screen saver > Wait time > Disabled",
         "OPTIONS hides this  ·  PLAY syncs now"
     ]
 

@@ -30,10 +30,23 @@
     <Group id="pairing" visible="false">
       <Rectangle width="1920" height="1080" color="0x0D0D0DFF" />
       <Poster uri="pkg:/images/icon_focus_hd.png" translation="[96, 84]" width="290" height="218" />
-      <Label id="pairTitle" translation="[0, 330]" width="1920" horizAlign="center" color="0xFFFFFFFF" />
-      <Label id="pairCode" translation="[0, 420]" width="1920" horizAlign="center" color="0x8FD0F6FF" />
-      <Label id="pairHelp" translation="[260, 700]" width="1400" horizAlign="center" wrap="true" color="0xC9D1D9FF" />
-      <Label id="pairFoot" translation="[0, 960]" width="1920" horizAlign="center" color="0x6B7480FF" />
+      <Label id="pairTitle" translation="[0, 300]" width="1920" horizAlign="center" color="0xFFFFFFFF" />
+      <Label id="pairCode" translation="[0, 380]" width="1920" horizAlign="center" color="0x8FD0F6FF" />
+      <Label id="pairHelp" translation="[300, 640]" width="1320" height="150" wrap="true" horizAlign="center" color="0xC9D1D9FF" />
+      <Rectangle id="pairTipBox" translation="[400, 826]" width="1120" height="132" color="0x1B1B1BFF" />
+      <Label id="pairTip" translation="[430, 848]" width="1060" height="92" wrap="true" horizAlign="center" color="0xFFCF42FF" />
+      <Label id="pairFoot" translation="[0, 1000]" width="1920" horizAlign="center" color="0x6B7480FF" />
+    </Group>
+
+    <!-- Shown once, over the board, the first time a screen is paired: the
+         board is up and the shop is about to walk away with the screensaver
+         still armed. -->
+    <Group id="tip" visible="false">
+      <Rectangle width="1920" height="1080" color="0x000000C0" />
+      <Rectangle translation="[300, 290]" width="1320" height="500" color="0x14100DFF" />
+      <Label id="tipTitle" translation="[300, 340]" width="1320" horizAlign="center" color="0xFFFFFFFF" />
+      <Label id="tipBody" translation="[360, 430]" width="1200" height="260" wrap="true" horizAlign="center" color="0xC9D1D9FF" />
+      <Label id="tipFoot" translation="[300, 716]" width="1320" horizAlign="center" color="0x6B7480FF" />
     </Group>
 
     <Group id="diagnostics" visible="false" translation="[72, 72]">
