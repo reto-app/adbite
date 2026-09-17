@@ -117,6 +117,11 @@ Bump `build_version` in `manifest` for each package you hand a shop — the Roku
 refuses a sideload that is byte-identical to what is already installed, and the
 number is what tells two packages apart on the About screen.
 
+Every sync carries what the screen's own cache is holding, so the figures the
+OPTIONS overlay shows also arrive in the dashboard. A TV with "Control by
+mobile apps" switched off ignores remote key presses entirely, which makes
+the overlay unreachable; the report does not depend on it.
+
 ## Seeing it without a TV
 
 `tools/preview.py` is a second implementation of the layout, off the same

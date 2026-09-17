@@ -18,6 +18,8 @@ export type Device = {
   lastSeen: number | null;
   channelVersion: string | null;
   createdAt: number;
+  /** What the screen last said about its own disk, if its channel reports it. */
+  storage: { files: number; usedMb: number; totalMb?: number; freeMb?: number } | null;
 };
 
 /** Minutes between polls, mirrored from api/device/sync. The copy that tells
@@ -41,7 +43,7 @@ function announce() {
 async function load() {
   const { data } = await supabase()
     .from('devices')
-    .select('id, name, screen, last_seen, channel_version, created_at')
+    .select('id, name, screen, last_seen, channel_version, created_at, assets_state')
     .order('created_at');
   cache = {
     ready: true,
@@ -52,6 +54,10 @@ async function load() {
       lastSeen: row.last_seen ? Date.parse(row.last_seen) : null,
       channelVersion: row.channel_version,
       createdAt: Date.parse(row.created_at),
+      storage:
+        row.assets_state && typeof row.assets_state === 'object' && 'usedMb' in row.assets_state
+          ? (row.assets_state as Device['storage'])
+          : null,
     })),
   };
   announce();

@@ -33,6 +33,7 @@ export async function POST(request: Request): Promise<Response> {
     secret: typeof fields.secret === 'string' ? fields.secret : '',
     etag: typeof fields.etag === 'string' ? fields.etag : '',
     channelVersion: typeof fields.channelversion === 'string' ? fields.channelversion : '',
+    storage: fields.storage as Record<string, unknown> | undefined,
     plays: (Array.isArray(fields.plays) ? fields.plays : []) as Play[],
   };
   if (!body.deviceId || !body.secret) return json(401, { message: 'deviceId and secret are required' });
@@ -52,6 +53,12 @@ export async function POST(request: Request): Promise<Response> {
   const now = new Date().toISOString();
   const heartbeat: Record<string, unknown> = { last_seen: now };
   if (body.channelVersion) heartbeat.channel_version = body.channelVersion;
+  /* What the screen says its own disk is doing. A Roku's cache can be
+     evicted under it, and a TV that refuses remote key presses cannot be
+     asked in person, so it tells us on every sync instead. */
+  if (body.storage && typeof body.storage === 'object') {
+    heartbeat.assets_state = { ...body.storage, at: now };
+  }
 
   /* Plays first, so a board that fails to compose still keeps the log.
      A screen showing a stitched reel reports one record per minute under the

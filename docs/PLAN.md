@@ -179,6 +179,18 @@ files.
 - Reel size stays under the device cap from the phase 2 test (the 145 s
   Mexico reel was 42 MB at CRF 22; CRF 25 roughly halves it).
 
+## The fleet reports itself (2026-09-17)
+
+A screen sends what its own disk is doing with every sync, so the cache
+figure that used to need somebody standing at the TV with a remote arrives
+on its own -- and on a TV that refuses ECP key presses, which the Hisense
+does, it was otherwise unreadable. The dashboard shows it per screen.
+
+This is the same principle as the menu poll: the TV reaches us over the
+public internet and needs nothing local. The only thing that still wants a
+shared network is pushing a new channel build to a TV, which is sideloading,
+and which the Channel Store replaces.
+
 ## Boards that are not menus (2026-09-17)
 
 A screen is asked what it is for before the editor assumes. Shop-owned media

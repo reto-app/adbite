@@ -762,6 +762,12 @@ function TvCard({ device }: { device: Device }) {
           <dt>{t.channel}</dt>
           <dd>{device.channelVersion ?? t.unknown}</dd>
         </div>
+        {device.storage && (
+          <div>
+            <dt>{t.storage}</dt>
+            <dd>{t.storageValue(device.storage.usedMb, device.storage.freeMb ?? null)}</dd>
+          </div>
+        )}
       </dl>
     </article>
   );

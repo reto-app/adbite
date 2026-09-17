@@ -144,6 +144,9 @@ const en = {
     onTheWall: 'On the wall',
     notCheckingIn: 'Not checking in',
     lastSeen: 'Last checked in',
+    storage: 'Storage used',
+    storageValue: (used: number, free: number | null) =>
+      free === null ? `${used} MB of spots` : `${used} MB of spots · ${free} MB free`,
     never: 'Never',
     shows: 'Shows',
     adsOnly: 'Ads only (second screen)',
@@ -295,6 +298,9 @@ const es: typeof en = {
     onTheWall: 'En la pared',
     notCheckingIn: 'Sin reportarse',
     lastSeen: 'Último reporte',
+    storage: 'Almacenamiento',
+    storageValue: (used: number, free: number | null) =>
+      free === null ? `${used} MB en anuncios` : `${used} MB en anuncios · ${free} MB libres`,
     never: 'Nunca',
     shows: 'Muestra',
     adsOnly: 'Solo anuncios (segunda pantalla)',

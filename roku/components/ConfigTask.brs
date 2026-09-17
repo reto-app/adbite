@@ -339,10 +339,41 @@ function postSync(syncUrl as String, identity as Object) as Dynamic
         secret: identity.secret,
         etag: readEtag(),
         channelVersion: channelVersion(),
-        plays: []
+        plays: [],
+        storage: storageReport()
     }
     if m.top.plays <> invalid then body.plays = m.top.plays
     return postJson(syncUrl + "/sync", body, 30000)
+end function
+
+' What this screen's spots are costing it, sent with every sync.
+'
+' The same numbers the OPTIONS overlay shows, but nobody has to be standing
+' in the shop with the remote to read them -- and on a TV that refuses ECP
+' key presses, nobody could read them at all. A fleet that reports its own
+' disk is a fleet whose limits can be seen before one of them fills up.
+function storageReport() as Object
+    fs = CreateObject("roFileSystem")
+    used = 0
+    count = 0
+    files = fs.Find("cachefs:/", "^a-")
+    if files <> invalid
+        for each name in files
+            stat = fs.Stat("cachefs:/" + name)
+            if stat <> invalid and stat.size <> invalid
+                used = used + stat.size
+                count = count + 1
+            end if
+        end for
+    end if
+
+    report = { files: count, usedMb: Int(used / 1048576) }
+    info = fs.GetVolumeInfo("cachefs:")
+    if info <> invalid and info.blocks <> invalid and info.blocksize <> invalid
+        report.totalMb = Int(info.blocks * info.blocksize / 1048576)
+        if info.freeblocks <> invalid then report.freeMb = Int(info.freeblocks * info.blocksize / 1048576)
+    end if
+    return report
 end function
 
 function channelVersion() as String
