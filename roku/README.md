@@ -105,6 +105,16 @@ reads as broken rather than as a setting nobody changed.
 
 See `docs/ROKU-STORE.md`.
 
+## Before packaging for the Store
+
+```bash
+tools/preflight.sh <roku-ip> <dev password>
+```
+
+Every check that would otherwise come back as a certification rejection, and
+it refuses rather than warns. `docs/ROKU-STORE.md` is the rest of the
+submission.
+
 ## Getting it onto a TV
 
 Put the Roku in developer mode — on the remote:
