@@ -32,7 +32,7 @@
       <Poster uri="pkg:/images/icon_focus_hd.png" translation="[96, 84]" width="290" height="218" />
       <Label id="pairTitle" translation="[0, 300]" width="1920" horizAlign="center" color="0xFFFFFFFF" />
       <Label id="pairCode" translation="[0, 380]" width="1920" horizAlign="center" color="0x8FD0F6FF" />
-      <Label id="pairHelp" translation="[300, 640]" width="1320" height="150" wrap="true" horizAlign="center" color="0xC9D1D9FF" />
+      <Label id="pairHelp" translation="[300, 618]" width="1320" height="192" wrap="true" horizAlign="center" color="0xC9D1D9FF" />
       <Rectangle id="pairTipBox" translation="[400, 826]" width="1120" height="132" color="0x1B1B1BFF" />
       <Label id="pairTip" translation="[430, 848]" width="1060" height="92" wrap="true" horizAlign="center" color="0xFFCF42FF" />
       <Label id="pairFoot" translation="[0, 1000]" width="1920" horizAlign="center" color="0x6B7480FF" />

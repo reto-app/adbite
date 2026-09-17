@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """Render what the TV will show, without a TV.
 
-This is a second implementation of the layout in components/MenuPane.brs and
-components/AdPane.brs, at the same 1920x1080 and off the same board.json. It
-exists because the only other way to see whether a menu fits is to sideload it
-and walk over to the wall, and because the fit-to-height pass is the one piece
-of this channel that silently does the wrong thing rather than erroring.
+This is a second implementation of the layout in components/MenuPane.brs,
+components/AdPane.brs and the pairing and screensaver screens in
+components/BoardScene.xml, at the same 1920x1080 and off the same board.json.
+It exists because the only other way to see whether text fits is to sideload
+it and walk over to the wall, and because a Label that overflows its declared
+height is clipped silently rather than erroring -- which is how the pairing
+screen shipped once with its help text running through the tip box.
 
-Keep it in step with MenuPane.brs by hand. If the two disagree, the device is
+Keep it in step with the channel by hand. If the two disagree, the device is
 right and this is wrong.
 
     tools/preview.py [board.json] [-o dist/preview]
+    tools/preview.py --screens-only
 """
 
 import argparse
@@ -325,22 +328,123 @@ def render(config, slot_id, out_path):
     return scale, overflow
 
 
+# ---- the screens that are not a menu ---------------------------------------
+#
+# Mirrors components/BoardScene.xml for geometry and BoardScene.brs for the
+# copy and font sizes. These are plain screens with no fitting pass, which is
+# exactly why they need checking: a Label with a fixed height and wrap on
+# silently cuts off whatever does not fit, and nobody notices until a shop is
+# standing in front of it.
+
+SCREEN_W, SCREEN_H = 1920, 1080
+
+PAIR_TITLE = "Pair this screen"
+PAIR_HELP = ("On your computer or phone, sign in at adbite.site/dashboard, open Your TVs, "
+             "and type this code. The board appears here within a minute."
+             "\n\nPress OK to see a sample board first.")
+PAIR_TIP = ("Before you walk away: turn this TV's screensaver off."
+            "\nSettings  >  Screen saver  >  Wait time  >  Disabled")
+TIP_TITLE = "One thing before you go"
+TIP_BODY = ("This TV will blank its own screen after a few minutes and cover your board. "
+            "Turn the screensaver off and it stays up:"
+            "\n\nSettings  >  Screen saver  >  Wait time  >  Disabled")
+TIP_FOOT = "Press OK when that is done"
+
+LINE_HEIGHT = 1.28
+
+
+def wrapped(draw, text, f, width):
+    """The lines a Roku Label with wrap="true" would break this into."""
+    lines = []
+    for paragraph in text.split("\n"):
+        if not paragraph:
+            lines.append("")
+            continue
+        line = ""
+        for word in paragraph.split():
+            candidate = f"{line} {word}".strip()
+            if draw.textlength(candidate, font=f) <= width:
+                line = candidate
+            else:
+                lines.append(line)
+                line = word
+        lines.append(line)
+    return lines
+
+
+def block(draw, text, f, x, y, width, fill, centre=True):
+    """Draw wrapped text and return the height it actually took."""
+    lines = wrapped(draw, text, f, width)
+    for index, line in enumerate(lines):
+        offset = (width - draw.textlength(line, font=f)) / 2 if centre else 0
+        draw.text((x + offset, y + index * f.size * LINE_HEIGHT), line, font=f, fill=fill)
+    return len(lines) * f.size * LINE_HEIGHT
+
+
+def render_pairing(out_path, code="JRQJMF", version="1.0.0", model="Roku TV"):
+    """The screen a TV shows until a shop claims it."""
+    image = Image.new("RGB", (SCREEN_W, SCREEN_H), rgb("#0D0D0D"))
+    draw = ImageDraw.Draw(image)
+    overflow = 0
+
+    mark = pathlib.Path(__file__).resolve().parents[1] / "images" / "icon_focus_hd.png"
+    if mark.exists():
+        image.paste(Image.open(mark).convert("RGB"), (96, 84))
+
+    block(draw, PAIR_TITLE, font(56, True), 0, 300, SCREEN_W, rgb("#FFFFFF"))
+    block(draw, " ".join(code), font(180, True), 0, 380, SCREEN_W, rgb("#8FD0F6"))
+
+    used = block(draw, PAIR_HELP, font(34, False), 300, 618, 1320, rgb("#C9D1D9"))
+    overflow = max(overflow, used - 192)
+
+    draw.rectangle([400, 826, 400 + 1120, 826 + 132], fill=rgb("#1B1B1B"))
+    used = block(draw, PAIR_TIP, font(30, True), 430, 848, 1060, rgb("#FFCF42"))
+    overflow = max(overflow, used - 92)
+
+    block(draw, f"AdBite Board {version}  ·  {model}", font(26, False), 0, 1000, SCREEN_W, rgb("#6B7480"))
+    image.save(out_path)
+    return overflow
+
+
+def render_tip(out_path):
+    """The card shown once, over the board, the first time a screen pairs."""
+    image = Image.new("RGB", (SCREEN_W, SCREEN_H), rgb("#14100D"))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle([0, 0, SCREEN_W, SCREEN_H], fill=rgb("#0A0908"))
+    draw.rectangle([300, 290, 300 + 1320, 290 + 500], fill=rgb("#14100D"))
+
+    block(draw, TIP_TITLE, font(52, True), 300, 340, 1320, rgb("#FFFFFF"))
+    used = block(draw, TIP_BODY, font(34, False), 360, 430, 1200, rgb("#C9D1D9"))
+    block(draw, TIP_FOOT, font(26, False), 300, 716, 1320, rgb("#6B7480"))
+    image.save(out_path)
+    return used - 260
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("board", nargs="?", default="board.json")
     parser.add_argument("-o", "--out", default="dist/preview")
+    parser.add_argument("--screens-only", action="store_true",
+                        help="just the pairing and screensaver screens")
     args = parser.parse_args()
 
-    config = json.loads(pathlib.Path(args.board).read_text())
     out = pathlib.Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
 
-    for window in config.get("slotWindows", []):
-        path = out / f"{window['id']}.png"
-        scale, overflow = render(config, window["id"], path)
-        note = f"scale {scale:.2f}"
-        if overflow > 0:
-            note += f", CLIPPED by {round(overflow)}px"
+    if not args.screens_only:
+        config = json.loads(pathlib.Path(args.board).read_text())
+        for window in config.get("slotWindows", []):
+            path = out / f"{window['id']}.png"
+            scale, overflow = render(config, window["id"], path)
+            note = f"scale {scale:.2f}"
+            if overflow > 0:
+                note += f", CLIPPED by {round(overflow)}px"
+            print(f"  {path}  ({note})")
+
+    for name, renderer in (("pairing", render_pairing), ("screensaver-card", render_tip)):
+        path = out / f"{name}.png"
+        spill = renderer(path)
+        note = "fits" if spill <= 0 else f"CLIPPED by {round(spill)}px"
         print(f"  {path}  ({note})")
 
 

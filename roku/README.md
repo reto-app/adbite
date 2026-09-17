@@ -153,6 +153,17 @@ not fit even at the floor. It exists because the fit pass is the one part of
 this channel that fails quietly rather than loudly, and because the alternative
 to checking is sideloading and walking over to the wall.
 
+It also renders the two screens that are not a menu -- the pairing screen and
+the screensaver card -- and reports either as `CLIPPED` when its text
+overflows the height its Label was given, because a Roku cuts that off
+silently. That check caught the pairing screen dropping its own "Press OK to
+see a sample board" line, which is the one instruction a Store reviewer
+needs.
+
+```bash
+python3 tools/preview.py --screens-only
+```
+
 It is a mirror, not the source of truth. If the two disagree, the device is
 right.
 
