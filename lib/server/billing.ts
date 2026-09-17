@@ -16,21 +16,30 @@ type Account = { id: string; stripe_customer_id: string | null; stripe_account_i
 type Line = { campaignId: string; shopId: string; amountCents: number; payoutCents: number };
 type Tally = { lines: Map<string, Line>; playIds: (number | string)[] };
 
+/* The rate card's own hours, read in the shop's own time: lunch and evening
+   are peak, the afternoon between them is not. Anything outside all three --
+   breakfast, or a board still running at midnight -- is charged off-peak,
+   because it is time nobody bought as peak and an advertiser should not pay
+   the higher rate for our not having a name for that hour. A clock we cannot
+   read is charged the same way, for the same reason. */
 function localDaypart(playedAt: string, timezone: string): Daypart {
-  let hour = 12;
+  let hour = -1;
   try {
     hour = Number(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: timezone }).format(new Date(playedAt)));
-  } catch { /* malformed legacy timezone: use the peak rate rather than undercharge */ }
-  return hour >= 14 && hour < 17 ? 'afternoon' : 'lunch';
+  } catch { /* an unreadable timezone falls through to the off-peak rate */ }
+  if (hour >= 11 && hour < 14) return 'lunch';
+  if (hour >= 17 && hour < 21) return 'evening';
+  return 'afternoon';
 }
 
 function lineAmount(play: Play, campaign: Campaign, timezone: string) {
   const price = FORMAT_PRICES[campaign.format];
   if (!price) return 0;
+  /* Every format bills for time on screen, video included: a spot inside a
+     looping reel has no discrete play to count, only a share of the minutes
+     the reel ran. */
   const rate = price.rates[localDaypart(play.played_at, timezone) === 'afternoon' ? 'off' : 'peak'];
-  // Non-video spots are billed by actual seconds; video is billed per play.
-  const dollars = price.unit === 'play' ? rate : rate * (Number(play.seconds) / 60);
-  return Math.max(0, Math.round(dollars * 100));
+  return Math.max(0, Math.round(rate * (Number(play.seconds) / 60) * 100));
 }
 
 /* Stripe will not take a payment under fifty cents. A week below that is
@@ -112,10 +121,23 @@ export async function billPreviousWeek(now?: Date) {
       carried += 1;
       continue;
     }
-    const { data: existing } = await db.from('charges').select('id, stripe_payment_intent_id, status').eq('billing_run_id', run.id).eq('advertiser_id', advertiserId).maybeSingle();
-    if (existing) continue;
-    const { data: charge, error: chargeError } = await db.from('charges').insert({ billing_run_id: run.id, advertiser_id: advertiserId, amount_cents: amountCents }).select('id').single();
-    if (chargeError || !charge) throw new Error(chargeError?.message ?? 'Could not write charge');
+    const { data: existing } = await db.from('charges').select('id, status, attempts').eq('billing_run_id', run.id).eq('advertiser_id', advertiserId).maybeSingle();
+    /* Money already collected, or in flight, is left alone. A charge that
+       failed is asked again: the card may have been fixed since, and without
+       this the week it covered is never collected by a re-run. */
+    if (existing && existing.status !== 'failed') continue;
+
+    const attempt = (existing?.attempts ?? 0) + 1;
+    let charge: { id: string } | null = existing ? { id: existing.id } : null;
+    if (existing) {
+      await db.from('charges').update({ status: 'pending', amount_cents: amountCents, attempts: attempt }).eq('id', existing.id);
+      await db.from('charge_lines').delete().eq('charge_id', existing.id);
+    } else {
+      const { data: created, error: chargeError } = await db.from('charges').insert({ billing_run_id: run.id, advertiser_id: advertiserId, amount_cents: amountCents, attempts: attempt }).select('id').single();
+      if (chargeError || !created) throw new Error(chargeError?.message ?? 'Could not write charge');
+      charge = created;
+    }
+    if (!charge) continue;
     await db.from('charge_lines').insert([...lines.values()].map((line) => ({ charge_id: charge.id, campaign_id: line.campaignId, shop_id: line.shopId, amount_cents: line.amountCents, payout_cents: line.payoutCents })));
     /* Claim the plays before talking to Stripe, so a run that dies midway
        cannot bill the same minute twice. */
@@ -127,7 +149,7 @@ export async function billPreviousWeek(now?: Date) {
       continue;
     }
     try {
-      const intent = await stripe().paymentIntents.create({ amount: amountCents, currency: 'usd', customer: customerId, confirm: true, off_session: true, metadata: { charge_id: charge.id, advertiser_id: advertiserId, billing_run_id: run.id } }, { idempotencyKey: `adbite-charge-${charge.id}` });
+      const intent = await stripe().paymentIntents.create({ amount: amountCents, currency: 'usd', customer: customerId, confirm: true, off_session: true, metadata: { charge_id: charge.id, advertiser_id: advertiserId, billing_run_id: run.id } }, { idempotencyKey: `adbite-charge-${charge.id}-${attempt}` });
       await db.from('charges').update({ stripe_payment_intent_id: intent.id, status: intent.status === 'succeeded' ? 'succeeded' : 'pending', paid_at: intent.status === 'succeeded' ? new Date().toISOString() : null }).eq('id', charge.id);
       if (intent.status === 'succeeded') await settlePayouts(charge.id, sourceTransactionOf(intent));
       charged += 1;

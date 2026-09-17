@@ -42,9 +42,11 @@ export const FORMAT_PRICES: Record<
   rail: { unit: 'minute', rates: { peak: 0.24, off: 0.13 } },
   /* The whole board for your turn. The menu is gone while it runs. */
   full: { unit: 'minute', rates: { peak: 0.33, off: 0.18 } },
-  /* Per play, not per minute. Four plays fill the same minute a full-screen
-     still would, and cost a little more than one. */
-  video: { unit: 'play', rates: { peak: 0.1, off: 0.06 } },
+  /* Fifteen seconds of motion. Quoted and billed by the minute like the
+     rest, which is the same money as the old per-play rate -- four plays
+     fill a minute -- and the only unit that can describe a spot inside a
+     looping reel, where no discrete "play" exists to count. */
+  video: { unit: 'minute', rates: { peak: 0.4, off: 0.24 } },
 };
 
 /* The format a shop's earnings estimate is quoted on. It is the cheapest one,

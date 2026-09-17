@@ -275,10 +275,18 @@ it costs.
 | Bottom banner | $0.15 | $0.08 | minute |
 | Side rail | $0.24 | $0.13 | minute |
 | Full screen | $0.33 | $0.18 | minute |
-| Short video | $0.10 | $0.06 | **play** (15s) |
+| Short video | $0.40 | $0.24 | minute |
 
-Video is billed per play because a count of runs is what an advertiser buys.
-Per minute it works out at $0.40 peak, a little above full screen.
+Everything is billed by the minute it was on screen. Video used to be quoted
+per play at $0.10, which is the same money -- four fifteen-second plays fill
+a minute -- but a spot inside a looping reel has no discrete play to count,
+only a share of the minutes the reel ran, so the minute is the only unit that
+describes every case.
+
+Peak is lunch (11am-2pm) and evening (5pm-9pm) in the shop's own timezone.
+Any hour outside the rate card's three dayparts is charged off-peak: it is
+time nobody bought as peak, and the advertiser should not pay more because we
+have no name for it. Each play rounds up to the nearest cent.
 
 ### The margin is private
 
