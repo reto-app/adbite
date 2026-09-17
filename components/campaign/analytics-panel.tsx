@@ -70,9 +70,11 @@ export function AnalyticsPanel({
   const daypartRows = splitByDaypart(booking, scale);
   const days = byDay(booking);
   const hours = byHour(booking, scale);
-  const byPlay = totals.byPlay;
-  const unit = byPlay ? shared.unit.plays : shared.unit.minutes;
-  const one = byPlay ? shared.unit.play : shared.unit.minute;
+  /* A permanent spot is a place, not a quantity: nothing about it is counted,
+     so everything on this panel that reads as delivery is video's. */
+  const permanent = totals.permanent;
+  const unit = shared.unit.minutes;
+  const one = shared.unit.minute;
   /* lib/delivery.ts names weekdays in English; the page names them itself. */
   const dayName = (weekday: string) => {
     const i = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(weekday);
@@ -99,13 +101,13 @@ export function AnalyticsPanel({
           </i>
         </article>
         <article>
-          <small>{byPlay ? t.playsDelivered : t.minutesOnScreen}</small>
-          <b>{count.format(byPlay ? totals.plays : totals.minutes)}</b>
-          <i>{byPlay ? t.ofScreenTime(hoursLabel(totals.minutes)) : t.playsOf15(count.format(totals.plays))}</i>
+          <small>{t.minutesOnScreen}</small>
+          <b>{count.format(totals.minutes)}</b>
+          <i>{t.playsOf15(count.format(totals.plays))}</i>
         </article>
         <article>
           <small>{t.costPer(one)}</small>
-          <b className="money">{cents.format(byPlay ? totals.perPlay : totals.perMinute)}</b>
+          <b className="money">{cents.format(totals.perMinute)}</b>
           <i>{t.aMinuteAPlay(cents.format(totals.perMinute), cents.format(totals.perPlay))}</i>
         </article>
         <article>
@@ -121,7 +123,7 @@ export function AnalyticsPanel({
         <article>
           <small>{t.format}</small>
           <b className="stat-word">{shared.formats[booking.format].name}</b>
-          <i>{t.billedBy(unitOf(booking.format) === 'play' ? shared.unit.play : shared.unit.minute)}</i>
+          <i>{permanent ? t.billedOnce : t.billedBy(shared.unit.minute)}</i>
         </article>
       </div>
 
@@ -160,7 +162,7 @@ export function AnalyticsPanel({
                     <span
                       key={row.date.toISOString()}
                       className={`bar${row.open ? '' : ' shut'}`}
-                      title={`${dayName(row.weekday)} ${row.label} · ${fine(row.spend)} · ${count.format(byPlay ? row.plays : row.minutes)} ${unit}`}
+                      title={`${dayName(row.weekday)} ${row.label} · ${fine(row.spend)} · ${count.format(row.minutes)} ${unit}`}
                     >
                       <i style={{ height: `${Math.max(2, (row.spend / maxDay) * 100)}%` }} />
                       <em>{dayName(row.weekday)[0]}</em>
@@ -178,9 +180,7 @@ export function AnalyticsPanel({
                 <div>
                   <dt>{t.perWeek(unit.charAt(0).toUpperCase() + unit.slice(1))}</dt>
                   <dd>
-                    {count.format(
-                      byPlay ? Math.round(totals.weeklyMinutes * 4) : totals.weeklyMinutes,
-                    )}
+                    {count.format(totals.weeklyMinutes)}
                   </dd>
                 </div>
                 <div>
@@ -244,7 +244,7 @@ export function AnalyticsPanel({
                         </td>
                         <td>{shared.areas[row.venue.area].label}</td>
                         <td className="num">{row.venue.screens}</td>
-                        <td className="num">{count.format(byPlay ? row.plays : row.minutes)}</td>
+                        <td className="num">{count.format(row.minutes)}</td>
                         <td className="num">{hoursLabel(row.minutes)}</td>
                         <td className="num">{count.format(row.reach)}</td>
                         <td className="num">{cents.format(row.rate)}</td>
@@ -311,7 +311,7 @@ export function AnalyticsPanel({
                 {hours.map((cell) => (
                   <span
                     key={cell.hour}
-                    className={`hour${cell.tier ? ` ${cell.tier}` : ' off-air'}`}
+                    className={`hour${cell.minutes ? '' : ' off-air'}`}
                     title={t.hourTitle(cell.label, count.format(cell.minutes))}
                   >
                     <i style={{ height: `${Math.max(3, (cell.minutes / maxHour) * 100)}%` }} />
@@ -329,12 +329,11 @@ export function AnalyticsPanel({
               </div>
               <div className="daypart-rows">
                 {daypartRows.map((row) => (
-                  <div key={row.id} className={`daypart-row ${row.tier}`}>
+                  <div key={row.id} className="daypart-row">
                     <span className="daypart-name">
                       <b>{shared.dayparts[row.id].label}</b>
                       <i>{shared.dayparts[row.id].window}</i>
                     </span>
-                    <span className={`rate-tier ${row.tier}`}>{shared.tier[row.tier]}</span>
                     <span className="daypart-bar">
                       <i
                         style={{
@@ -346,8 +345,8 @@ export function AnalyticsPanel({
                       />
                     </span>
                     <span className="daypart-figs">
-                      <b>{count.format(byPlay ? row.plays : row.minutes)}</b>
-                      <i>{byPlay ? shared.unit.plays : 'min'}</i>
+                      <b>{count.format(row.minutes)}</b>
+                      <i>min</i>
                     </span>
                     <span className="daypart-figs">
                       <b className="money">{fine(row.spend)}</b>

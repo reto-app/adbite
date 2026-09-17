@@ -79,23 +79,13 @@ const en = {
   },
   formats: {
     banner: {
-      name: 'Bottom banner',
-      blurb: 'A strip under the shop’s menu. Their board stays readable the whole time.',
+      name: 'Permanent spot',
+      blurb: 'A static ad in the strip under the shop’s menu, held for a year. Their board stays readable the whole time.',
       spec: '1920 × 240 · still image',
-    },
-    rail: {
-      name: 'Side rail',
-      blurb: 'The right third of a wide board, top to bottom, beside the menu.',
-      spec: '720 × 1080 · still image',
-    },
-    full: {
-      name: 'Full screen',
-      blurb: 'The whole screen for one turn of the rotation, then the menu returns.',
-      spec: '1920 × 1080 · still image',
     },
     video: {
       name: 'Short video',
-      blurb: 'Up to fifteen seconds of motion, muted, in the full-screen slot.',
+      blurb: 'Up to fifteen seconds of motion, muted, between turns of the shop’s own footage.',
       spec: '1920 × 1080 · up to 0:15',
     },
   },
@@ -104,7 +94,6 @@ const en = {
     afternoon: { label: 'Afternoon', window: '2pm-5pm' },
     evening: { label: 'Evening', window: '5pm-9pm' },
   },
-  tier: { peak: 'Peak', off: 'Off-peak' },
   unit: { minute: 'minute', minutes: 'minutes', play: 'play', plays: 'plays' },
   placements: {
     none: {
@@ -138,6 +127,10 @@ const en = {
     enamel: { label: 'Enamel', note: 'Cream and brass, like a painted sign' },
     warm: { label: 'Warm', note: 'Terracotta and ink, for a room with wood in it' },
     garden: { label: 'Garden', note: 'Deep green and gold, quieter and a little formal' },
+  },
+  orientations: {
+    landscape: { label: 'Landscape', note: 'Hung the usual way round · 16:9' },
+    portrait: { label: 'Portrait', note: 'Turned on its end · 9:16' },
   },
   badges: { none: 'No tag', new: 'New', popular: 'Popular', out: 'Sold out' },
   groups: {
@@ -176,6 +169,7 @@ const en = {
     roost: 'Ads take the right third of the board. Chicken mains and sides keep the rest.',
     forno: 'Two screens on one wall. Only the right one breaks for a short local spot.',
     meridian: 'A tall board behind the counter, with the ad slot at the foot.',
+    spot: 'The shop’s own food, playing full screen, cutting to a local spot and back.',
   },
 };
 
@@ -248,23 +242,13 @@ const es: typeof en = {
   },
   formats: {
     banner: {
-      name: 'Franja inferior',
-      blurb: 'Una franja debajo del menú del negocio. Su tablero sigue legible todo el tiempo.',
+      name: 'Espacio permanente',
+      blurb: 'Un anuncio fijo en la franja debajo del menú del negocio, por un año. Su tablero sigue legible todo el tiempo.',
       spec: '1920 × 240 · imagen fija',
-    },
-    rail: {
-      name: 'Columna lateral',
-      blurb: 'El tercio derecho de un tablero ancho, de arriba abajo, junto al menú.',
-      spec: '720 × 1080 · imagen fija',
-    },
-    full: {
-      name: 'Pantalla completa',
-      blurb: 'Toda la pantalla por un turno de la rotación, y luego vuelve el menú.',
-      spec: '1920 × 1080 · imagen fija',
     },
     video: {
       name: 'Video corto',
-      blurb: 'Hasta quince segundos de video, sin sonido, en el espacio de pantalla completa.',
+      blurb: 'Hasta quince segundos de movimiento, sin sonido, entre turnos del propio video del negocio.',
       spec: '1920 × 1080 · hasta 0:15',
     },
   },
@@ -273,7 +257,6 @@ const es: typeof en = {
     afternoon: { label: 'Tarde', window: '2pm-5pm' },
     evening: { label: 'Noche', window: '5pm-9pm' },
   },
-  tier: { peak: 'Hora pico', off: 'Hora baja' },
   unit: { minute: 'minuto', minutes: 'minutos', play: 'reproducción', plays: 'reproducciones' },
   placements: {
     none: {
@@ -307,6 +290,10 @@ const es: typeof en = {
     enamel: { label: 'Esmalte', note: 'Crema y latón, como un letrero pintado' },
     warm: { label: 'Cálido', note: 'Terracota y tinta, para un local con madera' },
     garden: { label: 'Jardín', note: 'Verde profundo y dorado, más sobrio y un poco formal' },
+  },
+  orientations: {
+    landscape: { label: 'Horizontal', note: 'Colgada como siempre · 16:9' },
+    portrait: { label: 'Vertical', note: 'Girada de canto · 9:16' },
   },
   badges: { none: 'Ninguna', new: 'Nuevo', popular: 'Popular', out: 'Agotado' },
   groups: {
@@ -345,6 +332,7 @@ const es: typeof en = {
     roost: 'Los anuncios ocupan el tercio derecho del tablero. Los platillos y guarniciones se quedan con el resto.',
     forno: 'Dos pantallas en una pared. Solo la derecha se interrumpe para un anuncio local corto.',
     meridian: 'Un tablero vertical detrás del mostrador, con el espacio del anuncio al pie.',
+    spot: 'La comida del propio negocio, a pantalla completa, cortando a un anuncio local y de vuelta.',
   },
 };
 

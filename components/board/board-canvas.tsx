@@ -9,7 +9,9 @@ import { SHARED } from '@/lib/copy/shared';
  *
  * Sized in container units rather than pixels, so the same component is the
  * editor's live preview at 700px and the marketing page's example at 400px
- * without a second set of numbers to keep in step. */
+ * without a second set of numbers to keep in step. The aspect comes from the
+ * shop's own answer about how its TV is hung, so a board turned on its end is
+ * drawn on its end here too. */
 
 export function BoardCanvas({
   board,
@@ -31,7 +33,7 @@ export function BoardCanvas({
 
   return (
     <div
-      className={`board-canvas theme-${board.theme} place-${place.id}${className ? ` ${className}` : ''}`}
+      className={`board-canvas theme-${board.theme} place-${place.id} orient-${board.orientation ?? 'landscape'}${className ? ` ${className}` : ''}`}
     >
       <div className="board-menu">
         <header className="board-head">

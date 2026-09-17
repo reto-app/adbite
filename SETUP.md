@@ -172,6 +172,40 @@ their plays stay unbilled (`plays.charge_id is null`) and join the next run,
 which is why the weekly query asks for everything uncollected rather than one
 week of it.
 
+## Money
+
+Stripe is shelved. Nothing is collected in the browser and nothing settles
+itself: money moves by bank transfer in both directions, against numbered
+paper the product raises.
+
+- **Video** is metered. `/api/money/bill` runs every Monday (Vercel Cron,
+  bearer `CRON_SECRET`), tallies the minutes each screen actually reported,
+  writes `charges` / `charge_lines` / `payouts`, and raises one invoice per
+  advertiser payable net 14. A week under a dollar is carried, not invoiced.
+- **A permanent spot** is not metered. It is invoiced once, for the twelve
+  months, the moment a shop approves the artwork (`api/notify.ts`).
+- **Reconciling** is a human step, because a transfer does not announce
+  itself. Read the statement, then:
+
+  ```bash
+  curl -X POST https://adbite.site/api/money/settle \
+    -H "authorization: Bearer $CRON_SECRET" \
+    -H "content-type: application/json" \
+    -d '{"number":"AB-2026-0001"}'
+  ```
+
+  That marks the invoice and its charge paid, sends the advertiser a receipt,
+  and queues each shop's share with a remittance note. Pass
+  `"kind":"payout"` with a remittance number once that transfer has left the
+  bank.
+- **Shops** give their bank details in the dashboard (Money tab). The full
+  account number is revoked from the `authenticated` role, so only the service
+  role can read it back; the dashboard shows the last four.
+
+The `BANK_*` variables above are what an invoice tells an advertiser to pay
+into. Until they are set, invoices are still raised — the debt is real — but
+not mailed, and the run logs that it skipped them.
+
 ## Mail the product sends
 
 ## Stripe (Phase 5 in progress)
@@ -205,6 +239,11 @@ them all to `out/email/` for a look. Domain `adbite.site` is verified in Resend.
 | Variable | Purpose |
 | --- | --- |
 | `RESEND_API_KEY` | Sends everything: product mail, lead mail, and Supabase auth mail via SMTP. |
+| `BANK_ACCOUNT_NAME` | The name on AdBite's account. Printed on every invoice. |
+| `BANK_NAME` | The bank, for the invoice's payment block. |
+| `BANK_ROUTING_NUMBER` | ABA routing number advertisers transfer to. |
+| `BANK_ACCOUNT_NUMBER` | Account number advertisers transfer to. |
+| `BANK_ADDRESS` | Optional. Where a cheque goes, for the advertisers who still send one. |
 | `MAIL_FROM` | `AdBite <hello@adbite.site>` |
 | `MAIL_REPLY_TO` | `support@adbite.site`, which every mail also names in its footer. |
 
@@ -443,16 +482,24 @@ and capture at 1360x850 at 2x —
 
 | Frame | Where |
 | --- | --- |
-| `01-overview` | Dashboard, Overview tab |
+| `01-overview` | Dashboard, Overview tab, on a video campaign |
 | `02-where` | Dashboard, Where it ran |
 | `03-when` | Dashboard, When it ran |
 | `04-place` | New campaign, step 01, with a neighbourhood taken |
-| `05-price` | New campaign, step 02 |
 | `06-make` | New campaign, step 03 |
 
 Then `magick <shot>.png -resize 1360x -strip -quality 84 <shot>.webp`. Wait for
 map tiles to finish loading before capturing 02 and 04, or the frame ships with
 a grey map in it.
+
+**Two things these frames must not show.** There is no `05`, because step 02
+quotes what a permanent spot costs and the public page deliberately does not:
+that number is settled in a conversation, and a screenshot of the builder would
+publish it. For the same reason, switch the format to Short video before taking
+`04` and `06` — the summary bar pinned to the bottom of the builder carries the
+spot price too. And whatever is in the capturing account's own campaign list
+ships with the frame, so load the samples and hide the rest; a real brand in
+that sidebar reads as a customer we do not have.
 
 ## Vertical rhythm
 

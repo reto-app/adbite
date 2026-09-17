@@ -2,9 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AlertCircle,
   Check,
+  Landmark,
   LayoutTemplate,
   RotateCcw,
+  Save,
   Sparkles,
   Star,
   Trash2,
@@ -13,21 +16,27 @@ import {
   Wallet,
   X,
 } from 'lucide-react';
-import { SiteHeader } from '@/components/site-header';
+import { DashboardHeader } from '@/components/dashboard-header';
 import { SideSwitch } from '@/components/side-switch';
 import { BoardCanvas } from '@/components/board/board-canvas';
 import { MenuEditor } from '@/components/board/menu-editor';
 import {
+  ORIENTATIONS,
   PLACEMENTS,
   SLOTS,
+  placementById,
   THEMES,
+  flushBoard,
   itemCount,
   newId,
+  showsMenu,
   resetBoard,
   saveBoard,
   shareOf,
   useBoard,
   type Board,
+  type Orientation,
+  type SaveState,
   type SlotId,
   type ThemeId,
   BOARD_KINDS,
@@ -63,7 +72,7 @@ import {
   useShopMedia,
   type ShopMedia,
 } from '@/lib/shop-media';
-import { beginConnectOnboarding } from '@/lib/payments';
+import { savePayoutAccount, usePayoutAccount } from '@/lib/payments';
 import { useShopStatements } from '@/lib/statements';
 import { localeOf, useCopy, useLang } from '@/lib/lang';
 import { SHARED } from '@/lib/copy/shared';
@@ -80,15 +89,6 @@ const TABS = [
   { id: 'tvs', icon: Tv },
 ] as const;
 
-function useNav() {
-  const t = useCopy(SHARED);
-  return [
-    { href: '/advertisers', label: t.nav.forAdvertisers },
-    { href: '/', label: t.nav.forShops },
-    { href: '/faq', label: t.nav.faq },
-  ];
-}
-
 /** "Sep 15" or "15 sept", depending on the page's language. */
 function useDay(options: Intl.DateTimeFormatOptions) {
   const { lang } = useLang();
@@ -101,13 +101,12 @@ type TabId = (typeof TABS)[number]['id'];
 
 
 export function ShopDashboard() {
-  const { ready, board } = useBoard();
+  const { ready, board, save } = useBoard();
   const { campaigns } = useCampaigns();
   const [tab, setTab] = useState<TabId>('board');
   const [slot, setSlot] = useState<SlotId>('midday');
   const t = useCopy(COPY);
   const shared = useCopy(SHARED);
-  const NAV = useNav();
 
   const set = (patch: Partial<Board>) => saveBoard({ ...board, ...patch });
 
@@ -122,7 +121,7 @@ export function ShopDashboard() {
   if (!ready) {
     return (
       <main className="campaign-page">
-        <SiteHeader nav={NAV} />
+        <DashboardHeader />
         <div className="campaign-loading" aria-hidden="true" />
       </main>
     );
@@ -134,7 +133,7 @@ export function ShopDashboard() {
   if (board.kind === null) {
     return (
       <main className="campaign-page shop-page">
-        <SiteHeader nav={NAV} />
+        <DashboardHeader />
         <BoardSetup
           onDone={(kind, source) => set({ kind, source })}
         />
@@ -144,7 +143,7 @@ export function ShopDashboard() {
 
   return (
     <main className="campaign-page shop-page">
-      <SiteHeader nav={NAV} />
+      <DashboardHeader />
       <div className="dash-head">
         <div className="wrap dash-head-inner">
           <div>
@@ -190,7 +189,7 @@ export function ShopDashboard() {
       </div>
 
       {tab === 'board' && (
-        <BoardTab board={board} slot={slot} onSlot={setSlot} onChange={set} />
+        <BoardTab board={board} save={save} slot={slot} onSlot={setSlot} onChange={set} />
       )}
       {tab === 'ads' && <AdsTab waiting={waiting} campaigns={campaigns} />}
       {tab === 'money' && <MoneyTab board={board} priced={priced} />}
@@ -201,20 +200,50 @@ export function ShopDashboard() {
 
 /* ---- the builder --------------------------------------------------------- */
 
+/* The board writes itself through as you type, which is the right default and
+   was also invisible: nothing on the page ever said a price had been kept.
+   This says so, and pressing it skips the half-second wait rather than doing
+   anything the editor was not already going to do. */
+function SaveButton({ save }: { save: SaveState }) {
+  const t = useCopy(COPY).save;
+  const label =
+    save === 'saving' ? t.saving : save === 'saved' ? t.saved : save === 'error' ? t.failed : t.save;
+
+  return (
+    <div className={`board-save is-${save}`}>
+      <button
+        type="button"
+        className="button primary"
+        disabled={save === 'saving' || save === 'saved'}
+        onClick={() => void flushBoard()}
+      >
+        {save === 'saved' ? <Check size={15} /> : save === 'error' ? <AlertCircle size={15} /> : <Save size={15} />}
+        {label}
+      </button>
+      {save === 'dirty' && <span>{t.unsaved}</span>}
+    </div>
+  );
+}
+
 function BoardTab({
   board,
+  save,
   slot,
   onSlot,
   onChange,
 }: {
   board: Board;
+  save: SaveState;
   slot: SlotId;
   onSlot: (slot: SlotId) => void;
   onChange: (patch: Partial<Board>) => void;
 }) {
   const t = useCopy(COPY);
   const shared = useCopy(SHARED);
-  const uploaded = board.source === 'media';
+  /* A display screen has no menu whatever its source says, and a board whose
+     owner uploads their own artwork has none either. Both edit and preview
+     their media instead; only a typed menu gets the grid. */
+  const uploaded = !showsMenu(board);
 
   return (
     <section className="shop-body">
@@ -232,6 +261,8 @@ function BoardTab({
             {t.setup.change}
           </button>
         </div>
+
+        <SaveButton save={save} />
 
         {uploaded ? (
           <div className="shop-scroll">
@@ -301,6 +332,28 @@ function BoardTab({
                   <span className="theme-swatch" aria-hidden="true" />
                   <b>{shared.themes[theme.id].label}</b>
                   <i>{shared.themes[theme.id].note}</i>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="shop-panel">
+            <div className="prefs-head">
+              <h3>{t.screen.title}</h3>
+              <span className="prefs-hint">{t.screen.hint}</span>
+            </div>
+            <div className="orient-row">
+              {ORIENTATIONS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  className={`orient-chip o-${option.id}${board.orientation === option.id ? ' on' : ''}`}
+                  aria-pressed={board.orientation === option.id}
+                  onClick={() => onChange({ orientation: option.id as Orientation })}
+                >
+                  <span className="orient-mini" aria-hidden="true" />
+                  <b>{shared.orientations[option.id].label}</b>
+                  <i>{shared.orientations[option.id].note}</i>
                 </button>
               ))}
             </div>
@@ -421,7 +474,7 @@ function BoardTab({
         </div>
         {/* A board the shop uploads has no menu on the wall, so showing one
             here would promise something the screen will not do. */}
-        {uploaded ? <MediaPreview /> : <BoardCanvas board={board} slot={slot} />}
+        {uploaded ? <MediaPreview board={board} /> : <BoardCanvas board={board} slot={slot} />}
 
         <fieldset className="place-pick">
           <legend>{t.preview.where}</legend>
@@ -445,6 +498,117 @@ function BoardTab({
         </fieldset>
         <p className="preview-note">{t.preview.note}</p>
       </div>
+    </section>
+  );
+}
+
+/* Where a shop wants paying.
+ *
+ * Stripe's hosted onboarding is shelved, so this is the form it used to be a
+ * redirect to. The account number goes one way only: it is written here and
+ * read back as four digits, because the column it lands in is revoked from
+ * the role this page runs as. Nothing is held in this component after save. */
+function BankPanel() {
+  const t = useCopy(COPY).money.bank;
+  const shared = useCopy(SHARED);
+  const { ready, account } = usePayoutAccount();
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState<string | null>(null);
+  const [error, setError] = useState('');
+
+  const last4 = saved ?? account?.last4 ?? null;
+  const show = editing || (ready && !last4);
+
+  return (
+    <section className="shop-panel bank-panel">
+      <div className="prefs-head">
+        <h3>
+          <Landmark size={15} /> {t.title}
+        </h3>
+        <span className="prefs-hint">{t.hint}</span>
+      </div>
+
+      {!show && last4 && (
+        <div className="bank-set">
+          <p>
+            <Check size={15} /> {t.saved(last4)}
+          </p>
+          <button type="button" onClick={() => setEditing(true)}>
+            {t.change}
+          </button>
+        </div>
+      )}
+
+      {!show && ready && !last4 && <p className="prefs-note">{t.missing}</p>}
+
+      {show && (
+        <form
+          className="bank-form"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            const data = new FormData(event.currentTarget);
+            setSaving(true);
+            setError('');
+            const result = await savePayoutAccount({
+              accountHolder: String(data.get('holder') ?? ''),
+              routingNumber: String(data.get('routing') ?? ''),
+              accountNumber: String(data.get('account') ?? ''),
+              accountType: (String(data.get('type') ?? 'checking') as 'checking' | 'savings'),
+            });
+            setSaving(false);
+            if (result.ok) {
+              setSaved(String(data.get('account') ?? '').replace(/\D/g, '').slice(-4));
+              setEditing(false);
+            } else {
+              setError(result.message);
+            }
+          }}
+        >
+          <label className="shop-field">
+            {t.holder}
+            <input name="holder" required placeholder={t.holderPlaceholder} autoComplete="off" />
+          </label>
+          <div className="bank-row">
+            <label className="shop-field">
+              {t.routing}
+              <input
+                name="routing"
+                required
+                inputMode="numeric"
+                maxLength={11}
+                autoComplete="off"
+              />
+            </label>
+            <label className="shop-field">
+              {t.account}
+              <input
+                name="account"
+                required
+                inputMode="numeric"
+                maxLength={20}
+                autoComplete="off"
+              />
+            </label>
+            <label className="shop-field">
+              {t.type}
+              <select name="type" defaultValue="checking">
+                <option value="checking">{t.checking}</option>
+                <option value="savings">{t.savings}</option>
+              </select>
+            </label>
+          </div>
+          <button className="button primary" type="submit" disabled={saving}>
+            {saving ? t.saving : t.save}
+          </button>
+          {error && (
+            <p className="form-warn" role="alert">
+              {error}
+            </p>
+          )}
+          <p className="prefs-note">{t.note}</p>
+        </form>
+      )}
     </section>
   );
 }
@@ -549,8 +713,6 @@ function MoneyTab({ board, priced }: { board: Board; priced: typeof SHOP }) {
   const shared = useCopy(SHARED);
   const week = weeklyEarnings(priced);
   const stock = inventory([priced]);
-  const [connecting, setConnecting] = useState(false);
-  const [connectError, setConnectError] = useState('');
   const statements = useShopStatements();
 
   return (
@@ -577,9 +739,9 @@ function MoneyTab({ board, priced }: { board: Board; priced: typeof SHOP }) {
           <i>{SHOP.hours}</i>
         </article>
         <article>
-          <small>Paid to you</small>
+          <small>{t.paid}</small>
           <b className="money">{statements.ready ? money.format(statements.paidCents / 100) : '—'}</b>
-          <i>Settled weekly from completed delivery</i>
+          <i>{t.paidNote}</i>
         </article>
         <article>
           <small>{t.minutes}</small>
@@ -597,13 +759,10 @@ function MoneyTab({ board, priced }: { board: Board; priced: typeof SHOP }) {
             0.01,
           );
           return (
-            <div className={`money-row ${part.tier}`} key={part.id}>
+            <div className="money-row" key={part.id}>
               <span className="money-when">
                 <b>{shared.dayparts[part.id].label}</b>
                 <i>{shared.dayparts[part.id].window}</i>
-              </span>
-              <span className={`rate-tier ${part.tier}`}>
-                {shared.tier[part.tier]}
               </span>
               <span className="money-bar">
                 <i style={{ width: `${Math.max(2, (pay / most) * 100)}%` }} />
@@ -622,21 +781,7 @@ function MoneyTab({ board, priced }: { board: Board; priced: typeof SHOP }) {
           <p>{t.eitherWayText}</p>
         </div>
       </aside>
-      <button
-        type="button"
-        className="button primary"
-        disabled={connecting}
-        onClick={() => {
-          setConnecting(true); setConnectError('');
-          void beginConnectOnboarding().catch((error: unknown) => {
-            setConnectError(error instanceof Error ? error.message : 'Could not start Stripe onboarding.');
-            setConnecting(false);
-          });
-        }}
-      >
-        {connecting ? 'Opening secure payout setup…' : 'Set up payouts'}
-      </button>
-      {connectError && <p className="form-warn" role="alert">{connectError}</p>}
+      <BankPanel />
     </section>
   );
 }
@@ -786,11 +931,22 @@ function BoardSetup({ onDone }: { onDone: (kind: BoardKind, source: BoardSource)
       <section className="board-setup wrap">
         <div className="section-head">
           <h2>{t.title}</h2>
-          <p>{t.lede}</p>
         </div>
         <div className="setup-grid">
           {BOARD_KINDS.map((option) => (
-            <button key={option.id} type="button" className="setup-card" onClick={() => setKind(option.id)}>
+            <button
+              key={option.id}
+              type="button"
+              className="setup-card"
+              onClick={() => {
+                /* A display screen has no prices to type, so there is no
+                   second question to ask: it is their own media by
+                   definition. Asking anyway produced boards whose owner had
+                   said "no prices" and was then handed a menu grid. */
+                if (option.id === 'display') onDone(option.id, 'media');
+                else setKind(option.id);
+              }}
+            >
               <b>{option.label}</b>
               <span>{option.blurb}</span>
               <i>
@@ -950,21 +1106,67 @@ function MediaCard({ item }: { item: ShopMedia }) {
 /* What an uploaded board actually looks like: the shop's own media in the
    order it will play, with the approved advertising folded into the same
    rotation. It cycles so the page shows the thing rather than describing it. */
-function MediaPreview() {
+/* The screen, actually playing.
+ *
+ * This used to be a still: one item, no rotation unless there were two or
+ * more, and a timer whose effect depended on an array rebuilt on every render.
+ * Since the editor is typing next to it, every keystroke handed that effect a
+ * new array, which cleared the pending timeout and started it again -- so on
+ * a board anybody was editing the preview never advanced at all. The list is
+ * keyed on its ids now, videos advance on their own `ended` rather than a
+ * guessed duration, and one item loops rather than freezing.
+ *
+ * It also draws the ad slot the shop has sold, because what the wall plays is
+ * their media *and* the spots in it, and a preview that leaves the ads out is
+ * a preview of something else. */
+function MediaPreview({ board }: { board: Board }) {
   const t = useCopy(COPY).media;
+  const shared = useCopy(SHARED);
   const { media } = useShopMedia();
-  const ready = media.filter((item) => item.ready);
   const [at, setAt] = useState(0);
 
-  useEffect(() => {
-    if (ready.length < 2) return;
-    const item = ready[at % ready.length];
-    const hold = (item.kind === 'video' ? item.seconds ?? 12 : item.holdSeconds) * 1000;
-    const timer = setTimeout(() => setAt((was) => was + 1), Math.max(2000, hold));
-    return () => clearTimeout(timer);
-  }, [at, ready]);
+  const screen = useRef<HTMLVideoElement | null>(null);
+  const ready = useMemo(() => media.filter((item) => item.ready), [media]);
+  /* The identity that matters is which items are in the rotation, not which
+     array instance the last render happened to build. */
+  const rotation = ready.map((item) => item.id).join(',');
+  const item = ready.length ? ready[at % ready.length] : null;
 
-  if (ready.length === 0) {
+  /* Back to the top if the rotation changes underneath the index. */
+  useEffect(() => {
+    setAt(0);
+  }, [rotation]);
+
+  const advance = () => setAt((was) => was + 1);
+
+  /* `autoPlay` alone does not start these. React assigns `muted` as a property
+     after the element exists, and Chrome decides whether a video may autoplay
+     from the attribute it sees at creation, so an unmuted-looking video is
+     blocked and just sits there at readyState 0 -- which is exactly what the
+     preview was doing: the right file, loaded never, painted black. Setting
+     muted on the node and asking it to play is the same thing the board reel
+     on the marketing page already does. */
+  useEffect(() => {
+    const node = screen.current;
+    if (!node) return;
+    node.muted = true;
+    const start = () => void node.play().catch(() => {});
+    start();
+    node.addEventListener('loadeddata', start);
+    return () => node.removeEventListener('loadeddata', start);
+  }, [at, rotation]);
+
+  useEffect(() => {
+    if (!item) return;
+    /* A video says when it is done; only a still needs a clock. A one-item
+       rotation still advances, which for a video means it plays again. */
+    if (item.kind === 'video') return;
+    const hold = Math.max(2, item.holdSeconds || 8) * 1000;
+    const timer = setTimeout(advance, hold);
+    return () => clearTimeout(timer);
+  }, [at, rotation, item?.id, item?.kind, item?.holdSeconds]);
+
+  if (!item) {
     return (
       <div className="board-canvas-frame media-preview empty">
         <span>{t.empty}</span>
@@ -972,15 +1174,51 @@ function MediaPreview() {
     );
   }
 
-  const item = ready[at % ready.length];
+  const place = placementById(board.adPlacement);
+  const orientation = board.orientation ?? 'landscape';
+
   return (
-    <div className="board-canvas-frame media-preview">
-      {item.kind === 'video' ? (
-        <video key={item.id} src={item.url ?? undefined} muted autoPlay playsInline />
-      ) : (
-        <img key={item.id} src={item.url ?? undefined} alt={item.name} />
+    <div className={`media-preview-wrap orient-${orientation} place-${place.id}`}>
+      <div className="board-canvas-frame media-preview">
+        {item.kind === 'video' ? (
+          <video
+            key={item.id}
+            ref={screen}
+            src={item.url ?? undefined}
+            poster={item.posterUrl ?? undefined}
+            muted
+            autoPlay
+            preload="auto"
+            playsInline
+            /* One item on its own loops; more than one hands over. */
+            loop={ready.length === 1}
+            onEnded={() => {
+              if (ready.length > 1) advance();
+            }}
+          />
+        ) : (
+          <img key={item.id} src={item.url ?? undefined} alt={item.name} />
+        )}
+
+        {/* Where the ads sit, drawn on the media the way they sit on the wall. */}
+        {(place.id === 'rail' || place.id === 'banner') && (
+          <aside className="media-ad">
+            <b>{shared.board.adSpace}</b>
+            <i>{shared.placements[place.id].label}</i>
+          </aside>
+        )}
+
+        <span className="media-preview-name">{item.name}</span>
+      </div>
+
+      {/* Where you are in the loop, so a still preview is legibly a rotation. */}
+      {ready.length > 1 && (
+        <div className="media-dots" aria-hidden="true">
+          {ready.map((entry, index) => (
+            <i key={entry.id} className={index === at % ready.length ? 'on' : undefined} />
+          ))}
+        </div>
       )}
-      <span className="media-preview-name">{item.name}</span>
     </div>
   );
 }

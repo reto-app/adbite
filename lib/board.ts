@@ -124,6 +124,18 @@ export function boardKindById(id: BoardKind) {
   return BOARD_KINDS.find((kind) => kind.id === id) ?? BOARD_KINDS[0];
 }
 
+/* Whether this screen has a menu on it at all.
+ *
+ * This used to be `source === 'media'` alone, which meant a shop that said
+ * their screen was a display -- no prices, their own photos and film -- was
+ * still handed an empty menu grid to fill in and shown a preview of a menu
+ * board they had never asked for. The kind is the answer to "what is this
+ * screen for", so it decides, and the source only decides how a menu gets
+ * filled when there is one. */
+export function showsMenu(board: Pick<Board, 'kind' | 'source'>) {
+  return board.kind !== 'display' && board.source === 'builder';
+}
+
 /* Where the shop's half of the screen comes from: the editor in this
    dashboard, or files they upload. Independent of the kind, because a menu
    can be a photograph of a hand-written board and a display screen can be
@@ -141,6 +153,19 @@ export const BOARD_SOURCES: { id: BoardSource; label: string; blurb: string }[] 
     label: 'Upload my own',
     blurb: 'Your own images and video, played in a loop. Use this if your board is already designed, or if the screen is not a menu at all.',
   },
+];
+
+/* ---- which way up the TV is ---------------------------------------------
+   Most counter screens are hung landscape, but a board squeezed beside a till
+   or behind a coffee machine is often turned on its end, and the editor was
+   drawing every one of them 16:9. The shop says which, once, and the preview,
+   the ad slot and the screen itself follow. */
+
+export type Orientation = 'landscape' | 'portrait';
+
+export const ORIENTATIONS: { id: Orientation; label: string; note: string }[] = [
+  { id: 'landscape', label: 'Landscape', note: 'Hung the usual way round. 16:9' },
+  { id: 'portrait', label: 'Portrait', note: 'Turned on its end, taller than wide. 9:16' },
 ];
 
 /* ---- how the board looks ------------------------------------------------- */
@@ -192,6 +217,8 @@ export type Board = {
   shopName: string;
   tagline: string;
   theme: ThemeId;
+  /** Which way the TV is hung. */
+  orientation: Orientation;
   /** What the screen is for. Null until the shop has been asked. */
   kind: BoardKind | null;
   /** Whether the shop's half is typed here or uploaded. */
@@ -232,6 +259,7 @@ export function starterBoard(): Board {
     shopName: 'Bao Pao Wow',
     tagline: 'Filipino steamed buns · 660 N Freedom Blvd',
     theme: 'chalk',
+    orientation: 'landscape',
     /* Null on purpose: the dashboard asks before it assumes. */
     kind: null,
     source: 'builder',
@@ -339,14 +367,28 @@ export function starterBoard(): Board {
 /* ---- the store -----------------------------------------------------------
    The signed-in owner's shop and its board, cached for the tab. Edits land in
    the cache at once and reach the table half a second after the last
-   keystroke, so typing a menu is not a write per character. */
+   keystroke, so typing a menu is not a write per character.
 
-type Cache = { ready: boolean; shopId: string | null; board: Board };
+   That write-through is still what actually saves, but it used to be silent,
+   which left a shop owner typing their prices into a page that never once
+   said it had kept them. The state below is what the Save button in the
+   editor reads, and pressing it skips the wait rather than doing anything
+   different. */
 
-let cache: Cache = { ready: false, shopId: null, board: starterBoard() };
+/** Where the board stands against the row behind it. */
+export type SaveState = 'saved' | 'dirty' | 'saving' | 'error';
+
+type Cache = { ready: boolean; shopId: string | null; board: Board; save: SaveState };
+
+let cache: Cache = { ready: false, shopId: null, board: starterBoard(), save: 'saved' };
 let loading: Promise<void> | null = null;
 let flush: ReturnType<typeof setTimeout> | null = null;
 const listeners = new Set<() => void>();
+
+function setSave(save: SaveState) {
+  cache = { ...cache, save };
+  announce();
+}
 
 function announce() {
   for (const listener of listeners) listener();
@@ -360,6 +402,7 @@ function migrated(saved: Board & { adShare?: number }): Board {
      what every board was then. Its owner is not asked again. */
   if (saved.kind === undefined) saved = { ...saved, kind: 'menu' };
   if (!saved.source) saved = { ...saved, source: 'builder' };
+  if (!saved.orientation) saved = { ...saved, orientation: 'landscape' };
   if (saved.adPlacement) return saved;
   const share = typeof saved.adShare === 'number' ? saved.adShare : DEFAULT_AD_SHARE;
   const nearest = PLACEMENTS.reduce((best, place) =>
@@ -372,7 +415,7 @@ async function load() {
   const db = supabase();
   const { data: auth } = await db.auth.getUser();
   if (!auth.user) {
-    cache = { ready: true, shopId: null, board: starterBoard() };
+    cache = { ready: true, shopId: null, board: starterBoard(), save: 'saved' };
     announce();
     return;
   }
@@ -388,6 +431,7 @@ async function load() {
     ready: true,
     shopId: row?.id ?? null,
     board: saved ? migrated(saved as Board & { adShare?: number }) : starterBoard(),
+    save: 'saved',
   };
   announce();
 }
@@ -400,30 +444,43 @@ function ensureLoaded() {
 /** Drop the cache so the next reader fetches again (after sign-in or out). */
 export function reloadBoard() {
   loading = null;
-  cache = { ready: false, shopId: null, board: starterBoard() };
+  cache = { ready: false, shopId: null, board: starterBoard(), save: 'saved' };
   void ensureLoaded();
 }
 
 async function persist() {
   const { shopId, board } = cache;
+  /* Signed out, or a shop row that does not exist yet: the editor still works
+     and nothing is lost, but there is nowhere to write. Saying "saved" would
+     be a lie, so the state stops at dirty. */
   if (!shopId) return;
+  setSave('saving');
   const db = supabase();
   /* The uploaded clip is a data URL and can be tens of megabytes; it does not
      belong in a row. It stays in the cache for this tab's preview only. */
   const stored = { ...board, media: { ...board.media, src: null } };
-  await db
-    .from('boards')
-    .update({ board: stored, updated_at: new Date().toISOString() })
-    .eq('shop_id', shopId);
-  await db.rpc('bump_board_version', { p_shop_id: shopId });
-  await db
-    .from('shops')
-    .update({ name: board.shopName, ad_placement: board.adPlacement })
-    .eq('id', shopId);
+  try {
+    const { error } = await db
+      .from('boards')
+      .update({ board: stored, updated_at: new Date().toISOString() })
+      .eq('shop_id', shopId);
+    if (error) throw error;
+    await db.rpc('bump_board_version', { p_shop_id: shopId });
+    await db
+      .from('shops')
+      .update({ name: board.shopName, ad_placement: board.adPlacement })
+      .eq('id', shopId);
+  } catch {
+    setSave('error');
+    return;
+  }
+  /* Anything typed while that round trip was in the air is still unsaved, and
+     its own debounce is already running. Do not paint over it. */
+  if (cache.board === board) setSave('saved');
 }
 
 export function saveBoard(board: Board) {
-  cache = { ...cache, board };
+  cache = { ...cache, board, save: 'dirty' };
   announce();
   if (flush) clearTimeout(flush);
   flush = setTimeout(() => {
@@ -432,20 +489,30 @@ export function saveBoard(board: Board) {
   }, 500);
 }
 
+/** Write now rather than in half a second. What the Save button calls. */
+export async function flushBoard() {
+  if (flush) {
+    clearTimeout(flush);
+    flush = null;
+  }
+  await persist();
+}
+
 export function resetBoard() {
   saveBoard(starterBoard());
 }
 
 /** `ready` stays false through the first paint so the prerender matches. */
-export function useBoard(): { ready: boolean; board: Board } {
-  const [state, setState] = useState<{ ready: boolean; board: Board }>({
+export function useBoard(): { ready: boolean; board: Board; save: SaveState } {
+  const [state, setState] = useState<{ ready: boolean; board: Board; save: SaveState }>({
     ready: false,
     board: starterBoard(),
+    save: 'saved',
   });
 
   useEffect(() => {
     void ensureLoaded();
-    const sync = () => setState({ ready: cache.ready, board: cache.board });
+    const sync = () => setState({ ready: cache.ready, board: cache.board, save: cache.save });
     sync();
     listeners.add(sync);
     return () => {

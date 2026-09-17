@@ -17,9 +17,13 @@ import { CAMPAIGN } from '@/lib/copy/campaign';
 
 /* The words for each frame are in lib/copy/campaign.ts under `tour.frames`,
    in this order. */
+/* Five, not six. There was a frame of step 02 here and it cannot ship: what a
+   permanent spot costs is settled in a conversation, so the builder quotes a
+   price the public page deliberately does not, and a screenshot of that step
+   would publish it anyway. The page says what there is to buy in its own words
+   directly above this tour; the tour shows the parts that are safe to show. */
 const FRAMES = [
   { id: 'place', src: '/shots/04-place.webp' },
-  { id: 'price', src: '/shots/05-price.webp' },
   { id: 'make', src: '/shots/06-make.webp' },
   { id: 'overview', src: '/shots/01-overview.webp' },
   { id: 'where', src: '/shots/02-where.webp' },

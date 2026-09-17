@@ -3,8 +3,17 @@
  * Mail clients are the 2009 web: tables, inline styles, no SVG, no web
  * fonts. So the brand is carried by three things they all honour: the black
  * plate with the wordmark and bite as a hosted PNG, a system sans, and the
- * sky-blue button. Every template below hands this a title, a few blocks and
- * an optional button, and gets back HTML and a plain-text twin.
+ * sky-blue button.
+ *
+ * The plate has to read with the image off, which is how a good share of
+ * recipients will see it: Outlook blocks remote images by default, and a
+ * proxy that cached a miss will go on serving one. So the td carries the
+ * black as a `bgcolor` attribute as well as a style, and the img's alt text
+ * is styled white and large enough to stand in for the wordmark, which is
+ * the one piece of styling every client applies to a broken image.
+ *
+ * Every template below hands this a title, a few blocks and an optional
+ * button, and gets back HTML and a plain-text twin.
  *
  * Shared by the api/ functions (through Resend) and by the script that pushes
  * the sign-in template into Supabase Auth, which is why nothing here touches
@@ -18,7 +27,12 @@ export const PAPER = '#ffffff';
 export const GROUND = '#f2f4f6';
 export const MUTED = '#6b7480';
 
-export const HEADER_IMAGE = `${ORIGIN}/brand/email-header.png`;
+/* The version suffix is not for us, it is for the image proxies. Gmail and
+   Outlook cache a fetch of this URL — including a failed one — against the
+   URL itself, and a proxy that cached a miss before the file was published
+   will keep serving that miss to every recipient afterwards. Bump this and
+   they fetch again. */
+export const HEADER_IMAGE = `${ORIGIN}/brand/email-header.png?v=2`;
 
 export type Block =
   | { kind: 'p'; text: string }
@@ -87,8 +101,8 @@ export function html(mail: Mail, raw?: { buttonHref?: string }): string {
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${GROUND};">
 <tr><td align="center" style="padding:32px 16px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;width:100%;">
-  <tr><td style="background:${INK};border-radius:8px 8px 0 0;">
-    <a href="${ORIGIN}" style="display:block;"><img src="${HEADER_IMAGE}" width="600" height="150" alt="AdBite" style="display:block;width:100%;height:auto;border:0;border-radius:8px 8px 0 0;"></a>
+  <tr><td bgcolor="${INK}" style="background:${INK};background-color:${INK};border-radius:8px 8px 0 0;">
+    <a href="${ORIGIN}" style="display:block;text-decoration:none;"><img src="${HEADER_IMAGE}" width="600" height="150" alt="AdBite" style="display:block;width:100%;max-width:600px;height:auto;border:0;border-radius:8px 8px 0 0;font-family:${FONT};font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:150px;color:${PAPER};text-align:left;text-indent:36px;text-decoration:none;"></a>
   </td></tr>
   <tr><td style="background:${PAPER};padding:36px 40px 28px;">
     <h1 style="margin:0 0 18px;font-size:26px;line-height:1.25;font-weight:800;letter-spacing:-.01em;color:${INK};">${escape(mail.title)}</h1>

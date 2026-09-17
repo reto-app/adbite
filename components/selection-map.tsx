@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import 'leaflet/dist/leaflet.css';
 import { distanceKm, pointInPolygon, type Venue } from '@/lib/network';
+import { spotsFree } from '@/lib/pricing';
 
 export type DrawnShape =
   | { kind: 'radius'; metres: number }
@@ -25,6 +26,7 @@ export function SelectionMap({
   selected,
   tool,
   onToggle,
+  onOpen,
   onRegion,
   onToolDone,
   focus,
@@ -35,6 +37,8 @@ export function SelectionMap({
   selected: string[];
   tool: MapTool;
   onToggle: (id: string) => void;
+  /** A pin was clicked. The caller decides what to show for it. */
+  onOpen: (id: string) => void;
   /** A drawn shape resolved to the shops inside it. The shape is described
       rather than named, so the caller can put it into words in its own
       language. */
@@ -59,9 +63,9 @@ export function SelectionMap({
   /* Handlers live in a ref so the map is never torn down to pick up a new
      closure. Written in an effect rather than during render, because a render
      that React later discards must not leave the map holding its callbacks. */
-  const handlers = useRef({ onToggle, onRegion, onToolDone, venues, selected, tool });
+  const handlers = useRef({ onToggle, onOpen, onRegion, onToolDone, venues, selected, tool });
   useEffect(() => {
-    handlers.current = { onToggle, onRegion, onToolDone, venues, selected, tool };
+    handlers.current = { onToggle, onOpen, onRegion, onToolDone, venues, selected, tool };
   });
 
   /* ---- build the map once ---- */
@@ -130,15 +134,20 @@ export function SelectionMap({
 
     for (const venue of venues) {
       const on = selected.includes(venue.id);
+      /* The number on a pin is what there is left to buy on that board, which
+         is the thing an advertiser is actually shopping for. A full board is
+         drawn greyed with a zero rather than hidden: knowing a shop exists and
+         is taken is worth more than a gap on the map. */
+      const free = spotsFree(venue);
       const cls = `pin${on ? ' on' : ''}${venue.status === 'prospect' ? ' prospect' : ''}${
         highlight === venue.id ? ' hot' : ''
-      }`;
+      }${free === 0 ? ' full' : ''}`;
       const existing = markers.current.get(venue.id);
       const icon = L.divIcon({
         className: 'venue-pin',
-        html: `<span class="${cls}"><i>${venue.screens}</i></span>`,
-        iconSize: [26, 26],
-        iconAnchor: [13, 13],
+        html: `<span class="${cls}"><i>${free}</i></span>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
       });
 
       if (existing) {
@@ -149,11 +158,15 @@ export function SelectionMap({
       const marker = L.marker(venue.at, { icon, keyboard: false, alt: venue.name })
         .addTo(instance)
         .bindTooltip(
-          `<b>${venue.name}</b><br>${venue.kind}<br>${venue.screens} screen${venue.screens > 1 ? 's' : ''}`,
-          { direction: 'top', offset: [0, -12] },
+          `<b>${venue.name}</b><br>${venue.kind}<br>${free} spot${free === 1 ? '' : 's'} free`,
+          { direction: 'top', offset: [0, -13] },
         );
       marker.on('click', () => {
-        if (handlers.current.tool === 'pan') handlers.current.onToggle(venue.id);
+        if (handlers.current.tool !== 'pan') return;
+        /* A click on the map opens the shop rather than silently toggling it.
+           Adding and removing is a decision you make after reading what is on
+           the board, not before, and the card that opens carries both. */
+        handlers.current.onOpen(venue.id);
       });
       markers.current.set(venue.id, marker);
     }

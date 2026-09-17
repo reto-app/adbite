@@ -13,7 +13,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { Bite } from '@/components/brand';
-import { SiteHeader } from '@/components/site-header';
+import { DashboardHeader } from '@/components/dashboard-header';
 import { CreativeStep, type Creative } from '@/components/campaign/creative-step';
 import {
   DEFAULT_PLACEMENT,
@@ -21,23 +21,26 @@ import {
   chosenVenues,
   type Placement,
 } from '@/components/campaign/place-step';
-import { SpendStep } from '@/components/campaign/spend-step';
+import { BuyStep } from '@/components/campaign/buy-step';
 import { AnalyticsPanel } from '@/components/campaign/analytics-panel';
 import { FORMATS, type FormatId } from '@/lib/boards';
 import { LIVE_VENUES, VENUES, totalScreens } from '@/lib/network';
 import {
   DAYPARTS,
-  cents as rate,
+  SPOT_YEARLY,
+  VIDEO_HOURLY,
   count,
+  hoursLabel,
   inventory,
+  isPermanent,
   money,
-  rateFor,
-  unitOf,
+  spotCost,
+  totalSpotsFree,
+  videoCost,
   type Daypart,
 } from '@/lib/pricing';
 import {
   addCampaign,
-  beginPaymentSetup,
   campaignMinutes,
   clearSamples,
   hasSamples,
@@ -54,15 +57,6 @@ import { SideSwitch } from '@/components/side-switch';
 import { localeOf, useCopy, useLang } from '@/lib/lang';
 import { CAMPAIGN } from '@/lib/copy/campaign';
 import { SHARED } from '@/lib/copy/shared';
-
-function useNav() {
-  const t = useCopy(SHARED);
-  return [
-    { href: '/advertisers', label: t.nav.forAdvertisers },
-    { href: '/', label: t.nav.forShops },
-    { href: '/faq', label: t.nav.faq },
-  ];
-}
 
 function useDay() {
   const { lang } = useLang();
@@ -94,7 +88,8 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
   const shared = useCopy(SHARED);
   const day = useDay();
   const [step, setStep] = useState(0);
-  const [spend, setSpend] = useState(60);
+  const [spots, setSpots] = useState(1);
+  const [hours, setHours] = useState(4);
   const [dayparts, setDayparts] = useState<Daypart[]>(DAYPARTS.map((part) => part.id));
   const [placement, setPlacement] = useState<Placement>(DEFAULT_PLACEMENT);
   const [format, setFormat] = useState<FormatId>('banner');
@@ -104,13 +99,20 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
   const [error, setError] = useState('');
 
   const chosen = chosenVenues(placement);
-  const booking = { venues: placement.venues, dayparts, weeklySpend: spend, format };
+  const permanent = isPermanent(format);
+  /* A permanent spot is bought outright, so it commits nothing weekly; video
+     is the only thing with a weekly number, and it is hours times the rate. */
+  const free = totalSpotsFree(chosen);
+  const takenSpots = permanent ? Math.min(spots, free) : 0;
+  const weeklySpend = permanent ? 0 : videoCost(hours);
+  const booking = { weeklySpend, format };
   const minutes = campaignMinutes(booking);
-  const byPlay = unitOf(format) === 'play';
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
   const blocked =
-    (step === 0 && chosen.length === 0) || (step === 2 && (!creative || !emailOk || sending));
+    (step === 0 && chosen.length === 0) ||
+    (step === 1 && permanent && free === 0) ||
+    (step === 2 && (!creative || !emailOk || sending));
 
   /* A booking is a row now, not a note to us: it lands in the database, the
      shop sees it in their queue, and api/notify mails both sides. It used to
@@ -122,7 +124,8 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
     try {
       const saved = await addCampaign({
         name: `${formatName(format)} · ${day.format(new Date())}`,
-        weeklySpend: spend,
+        weeklySpend,
+        spots: takenSpots,
         format,
         venues: placement.venues,
         ages: placement.ages,
@@ -133,7 +136,10 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
         email: email.trim(),
         startedAt: null,
       });
-      await beginPaymentSetup(saved.id);
+      /* Stripe is shelved: nothing is collected in the browser. The booking
+         is the thing that exists now, and an invoice follows it by mail once
+         the shop approves the artwork, payable by bank transfer. */
+      onDone();
       return;
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : t.send.couldNotSave);
@@ -174,13 +180,15 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
         <div className="wrap campaign-body-inner">
           {step === 0 && <PlaceStep placement={placement} onChange={setPlacement} />}
           {step === 1 && (
-            <SpendStep
-              spend={spend}
-              onChange={setSpend}
-              dayparts={dayparts}
-              onDayparts={setDayparts}
+            <BuyStep
               format={format}
               onFormat={setFormat}
+              spots={spots}
+              onSpots={setSpots}
+              hours={hours}
+              onHours={setHours}
+              dayparts={dayparts}
+              onDayparts={setDayparts}
               venues={chosen}
             />
           )}
@@ -226,14 +234,6 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
         <div className="wrap campaign-bar-inner">
           <dl className="bar-summary">
             <div>
-              <dt>{t.bar.perWeek(byPlay ? shared.unit.plays : shared.unit.minutes)}</dt>
-              <dd>{count.format(byPlay ? minutes * 4 : minutes)}</dd>
-            </div>
-            <div>
-              <dt>{t.bar.spend}</dt>
-              <dd className="money">{money.format(spend)}</dd>
-            </div>
-            <div>
               <dt>{t.bar.shops}</dt>
               <dd>{chosen.length || '0'}</dd>
             </div>
@@ -241,15 +241,48 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
               <dt>{t.bar.format}</dt>
               <dd className="bar-word">{shared.formats[format].name}</dd>
             </div>
+            {permanent ? (
+              <>
+                <div>
+                  <dt>{t.bar.spots}</dt>
+                  <dd>{takenSpots}</dd>
+                </div>
+                <div>
+                  <dt>{t.bar.onceOff}</dt>
+                  <dd className="money">{money.format(spotCost(takenSpots))}</dd>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <dt>{t.bar.hours}</dt>
+                  <dd>{hoursLabel(minutes)}</dd>
+                </div>
+                <div>
+                  <dt>{t.bar.spend}</dt>
+                  <dd className="money">{money.format(weeklySpend)}</dd>
+                </div>
+              </>
+            )}
             <div className="bar-rate">
               <dt>{t.bar.rate}</dt>
-              <dd>{t.bar.rateLine(rate.format(rateFor(format, 'lunch')), rate.format(rateFor(format, 'afternoon')))}</dd>
+              <dd>
+                {permanent
+                  ? t.bar.perSpot(money.format(SPOT_YEARLY))
+                  : t.bar.perHour(money.format(VIDEO_HOURLY))}
+              </dd>
             </div>
           </dl>
           <div className="bar-actions">
             {blocked && !sending && (
               <span className="bar-warn">
-                {step === 0 ? t.bar.pickOne : !creative ? t.bar.upload : t.bar.addEmail}
+                {step === 0
+                  ? t.bar.pickOne
+                  : step === 1
+                    ? t.bar.noSpots
+                    : !creative
+                      ? t.bar.upload
+                      : t.bar.addEmail}
               </span>
             )}
             <button
@@ -344,7 +377,6 @@ function CampaignDetail({ campaign, onDelete }: { campaign: Campaign; onDelete: 
    submit, which is also the moment intent is highest. */
 export function AdvertiserDashboard() {
   const t = useCopy(CAMPAIGN).dash;
-  const NAV = useNav();
   const { ready: listReady, campaigns } = useCampaigns();
   const [creating, setCreating] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
@@ -364,7 +396,7 @@ export function AdvertiserDashboard() {
   if (creating) {
     return (
       <main className="campaign-page building">
-        <SiteHeader nav={NAV} />
+        <DashboardHeader />
         <NewCampaign onDone={() => setCreating(false)} onCancel={() => setCreating(false)} />
       </main>
     );
@@ -372,7 +404,7 @@ export function AdvertiserDashboard() {
 
   return (
     <main className="campaign-page">
-      <SiteHeader nav={NAV} />
+      <DashboardHeader />
 
       <div className="dash-head">
         <div className="wrap dash-head-inner">

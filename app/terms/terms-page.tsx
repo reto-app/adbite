@@ -4,7 +4,7 @@ import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { MAIL, MAILTO } from '@/lib/site';
 import { VENUES } from '@/lib/network';
-import { cents, count, inventory, money, rateFor, weeklyCeiling, weeklyEarnings } from '@/lib/pricing';
+import { SPOTS_PER_SCREEN, VIDEO_HOURLY, count, inventory, money, weeklyEarnings, yearlyEarnings } from '@/lib/pricing';
 import { useCopy } from '@/lib/lang';
 import { PAGES } from '@/lib/copy/pages';
 import { SHARED } from '@/lib/copy/shared';
@@ -13,11 +13,9 @@ const SHOP = VENUES[0];
 
 const FIGURES = {
   weekly: money.format(weeklyEarnings(SHOP)),
-  ceiling: money.format(weeklyCeiling(SHOP)),
-  bannerOff: cents.format(rateFor('banner', 'afternoon')),
-  fullPeak: cents.format(rateFor('full', 'lunch')),
-  videoOff: cents.format(rateFor('video', 'afternoon')),
-  videoPeak: cents.format(rateFor('video', 'lunch')),
+  yearly: money.format(yearlyEarnings(SHOP)),
+  videoHour: money.format(VIDEO_HOURLY),
+  spots: SPOTS_PER_SCREEN,
   minutes: count.format(inventory([SHOP]).minutes),
 };
 

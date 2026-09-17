@@ -4,10 +4,12 @@ import { useMemo, useState } from 'react';
 import {
   Check,
   CircleDashed,
+  Clock,
   Hand,
   Lasso,
   MapPin,
   Monitor,
+  Plus,
   Search,
   Undo2,
   Users,
@@ -24,7 +26,7 @@ import {
   type GroupId,
   type Venue,
 } from '@/lib/network';
-import { count, inventory } from '@/lib/pricing';
+import { count, inventory, spotsFree, spotsOn, totalSpotsFree } from '@/lib/pricing';
 import { SelectionMap, type DrawnShape, type Focus, type MapTool } from '@/components/selection-map';
 import { useCopy } from '@/lib/lang';
 import { CAMPAIGN } from '@/lib/copy/campaign';
@@ -66,6 +68,91 @@ const TOOLS: { id: MapTool; icon: typeof Hand }[] = [
   { id: 'lasso', icon: Lasso },
 ];
 
+/* What is actually on one board, opened from its pin.
+ *
+ * Monthly traffic rather than weekly, because a month is the unit an
+ * advertiser thinks in and a week past one counter is a number small enough to
+ * read as unimpressive when it is not. It is a planning figure either way and
+ * says so. */
+function ShopCard({
+  venue,
+  on,
+  onToggle,
+  onClose,
+}: {
+  venue: Venue;
+  on: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+}) {
+  const t = useCopy(CAMPAIGN).place.detail;
+  const shared = useCopy(SHARED);
+  const free = spotsFree(venue);
+  const total = spotsOn(venue);
+  const videoHours = Math.floor(inventory([venue]).hours);
+  /* Footfall is a week. A month is the unit the card is written in. */
+  const monthly = Math.round((venue.footfall * 52) / 12);
+
+  return (
+    <aside className="shop-card">
+      <div className="shop-card-head">
+        <div>
+          <b>{venue.name}</b>
+          <span>
+            {venue.kind} · {shared.areas[venue.area].label}
+          </span>
+        </div>
+        <button type="button" aria-label={t.close} onClick={onClose}>
+          <X size={15} />
+        </button>
+      </div>
+
+      <dl className="shop-card-stats">
+        <div>
+          <dt>{t.monthlyTraffic}</dt>
+          <dd>{count.format(monthly)}</dd>
+          <i>{t.monthlyNote}</i>
+        </div>
+        <div className={free ? 'free' : 'gone'}>
+          <dt>{t.spotsFree}</dt>
+          <dd>{free}</dd>
+          <i>{t.spotsNote(total)}</i>
+        </div>
+        <div>
+          <dt>{t.videoHours}</dt>
+          <dd>{videoHours}</dd>
+          <i>{t.videoNote}</i>
+        </div>
+      </dl>
+
+      <p className="shop-card-line">
+        <Monitor size={13} /> {venue.screens} · {venue.board}
+      </p>
+      <p className="shop-card-line">
+        <Clock size={13} /> {venue.hours}
+      </p>
+      <p className="shop-card-line">
+        <MapPin size={13} /> {venue.street}, {venue.city}
+      </p>
+
+      {free === 0 && <p className="shop-card-note">{t.fullBoard}</p>}
+      {venue.status === 'prospect' && <p className="shop-card-note">{t.prospect}</p>}
+
+      <button type="button" className={`shop-card-cta${on ? ' on' : ''}`} onClick={onToggle}>
+        {on ? (
+          <>
+            <Check size={15} /> {t.onIt}
+          </>
+        ) : (
+          <>
+            <Plus size={15} /> {t.add}
+          </>
+        )}
+      </button>
+    </aside>
+  );
+}
+
 export function PlaceStep({
   placement,
   onChange,
@@ -82,6 +169,9 @@ export function PlaceStep({
   const [focus, setFocus] = useState<Focus>(null);
   const [drawn, setDrawn] = useState<{ shape: string; added: number } | null>(null);
   const [hot, setHot] = useState<string | null>(null);
+  /* The shop whose card is open. A pin click opens one rather than silently
+     toggling it: what is on a board is what decides whether you want it. */
+  const [open, setOpen] = useState<string | null>(null);
   /* State, not a ref: the Undo button is rendered from it, and a ref read
      during render would not re-render the bar when a shape lands. */
   const [previous, setPrevious] = useState<string[] | null>(null);
@@ -273,11 +363,11 @@ export function PlaceStep({
                     </span>
                   </span>
                   <span className="pick-stats">
-                    <i>
-                      <Monitor size={12} /> {venue.screens}
+                    <i className={spotsFree(venue) ? undefined : 'gone'}>
+                      <Monitor size={12} /> {spotsFree(venue)}
                     </i>
                     <i>
-                      <Users size={12} /> {count.format(venue.footfall)}
+                      <Users size={12} /> {count.format(Math.round((venue.footfall * 52) / 12))}
                     </i>
                   </span>
                 </button>
@@ -344,16 +434,25 @@ export function PlaceStep({
             focus={focus}
             highlight={hot}
             onToggle={(id) => set({ venues: toggle(selected, id) })}
+            onOpen={setOpen}
             onRegion={(ids, shape) => {
               addMany(ids);
               setDrawn({ shape: describe(shape), added: ids.length });
             }}
             onToolDone={() => setTool('pan')}
           />
-          {drawn && (
+          {drawn && !open && (
             <output className="map-drawn">
               <MapPin size={13} /> {t.drawn(drawn.shape, drawn.added)}
             </output>
+          )}
+          {open && (
+            <ShopCard
+              venue={VENUES.find((venue) => venue.id === open) ?? VENUES[0]}
+              on={selected.includes(open)}
+              onToggle={() => set({ venues: toggle(selected, open) })}
+              onClose={() => setOpen(null)}
+            />
           )}
         </div>
 
@@ -370,8 +469,8 @@ export function PlaceStep({
             <b>{chosen.reduce((total, venue) => total + venue.screens, 0)}</b>
           </div>
           <div>
-            <small>{t.foot.minutes}</small>
-            <b>{count.format(stock.minutes)}</b>
+            <small>{t.foot.spots}</small>
+            <b>{count.format(totalSpotsFree(chosen))}</b>
           </div>
           <div>
             <small>{t.foot.heads}</small>

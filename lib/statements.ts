@@ -1,8 +1,9 @@
 'use client';
 
-/* The product ledger lives in Supabase; Stripe remains the payment processor.
-   These hooks deliberately expose only the signed-in party's own rows, which
-   are already constrained by the payments migration's RLS policies. */
+/* The product ledger lives in Supabase, and money moves by bank transfer
+   against the invoices raised off these rows. These hooks deliberately expose
+   only the signed-in party's own rows, which are already constrained by the
+   payments migration's RLS policies. */
 
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase';

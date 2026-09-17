@@ -2,7 +2,7 @@
  * from the page so the money still lives in lib/pricing.ts. */
 
 type AboutFigures = { city: string; since: string; shop: string; street: string; cityLine: string; weekly: string };
-type TermsFigures = { weekly: string; ceiling: string; bannerOff: string; fullPeak: string; videoOff: string; videoPeak: string; minutes: string };
+type TermsFigures = { weekly: string; yearly: string; videoHour: string; spots: number; minutes: string };
 
 const en = {
   about: {
@@ -17,8 +17,8 @@ const en = {
     facts: (f: AboutFigures): [string, string][] => [
       ['Stage', `Pilot. Boards going in across Salt Lake, Utah and Cache counties, the first live since ${f.since}.`],
       ['Where it started', `${f.shop}, ${f.street}, ${f.cityLine}.`],
-      ['What a shop earns', `From about ${f.weekly} a week per board, more when the larger ad formats sell, and more again on a second screen.`],
-      ['What we charge advertisers', 'By the minute, or by the play for video. More at lunch and dinner, more for the formats that take more of the board.'],
+      ['What a shop earns', `About ${f.weekly} a week per board once its permanent spots are sold, with video paid on top of that, and both again on a second screen.`],
+      ['What we charge advertisers', 'Two things: a permanent spot on one screen for a year, priced over a conversation, or short video by the hour it was actually on screen.'],
     ],
     note: 'The illustrated shops elsewhere on this site are examples of the kinds of businesses AdBite is built for, not customers. The board screenshots are concept mockups. When that changes, this page changes with it.',
     contactBefore: 'A real person reads ',
@@ -34,20 +34,20 @@ const en = {
     shop: (f: TermsFigures) => [
       'You approve every creative before it is scheduled. You can reject anything, for any reason, without explaining yourself.',
       'You set where on the screen ads may sit: a strip under your menu, a rail down the right, a full turn between your boards, or nowhere at all in any given week.',
-      `You are paid from about ${f.weekly} a week per board, rising toward ${f.ceiling} in weeks when the larger ad formats sell. Your own opening hours and the number of screens you run change the figure.`,
-      'You are paid monthly, on what actually played, itemised by spot, so you can see which hours and formats earned.',
+      `Each board carries ${f.spots} permanent spots. Sold, they pay you about ${f.yearly} a year, or ${f.weekly} a week, whatever your footfall does. Video is paid on top, by the minute it was on your screen.`,
+      'You are paid monthly by bank transfer, itemised by spot, so you can see what each advertiser and each hour earned.',
       'The board software, the screen monitoring, finding advertisers and collecting the money are all included. There is nothing to pay us and nothing deducted from your side.',
       'There is no contract term, no hardware to buy, and no exit fee. Tell us to stop and we stop.',
     ],
     adTitle: 'If you buy ads',
     ads: (f: TermsFigures) => [
-      'You buy screen time, not impressions. Price moves on two things: how much of the board your ad takes, and when it runs. You pick the shops, the neighborhoods or the whole county.',
-      `A bottom banner starts at ${f.bannerOff} a minute off-peak. A full-screen spot, which blanks the shop’s menu for its turn, runs to ${f.fullPeak} a minute at peak. A side rail sits between them.`,
-      `A short video is ${f.videoOff} to ${f.videoPeak} a minute. It is the priciest format by the minute because fifteen seconds of motion takes the whole board and is the thing people look up at.`,
-      'Peak is lunch and dinner. The afternoon is about half the price of peak in every format.',
+      'There are two things to buy. A permanent spot is a place: the strip under one shop’s menu, on one screen, for a year. Short video is time, bought by the hour. You pick the shops, the neighborhoods or the whole county either way.',
+      `A board holds ${f.spots} permanent spots. They are priced per screen for twelve months and arranged over a conversation, because which boards have one free changes week to week.`,
+      `Short video is ${f.videoHour} an hour actually shown, one flat rate at every hour of the day. Fifteen muted seconds between turns of the shop’s own footage.`,
+      'There is no peak rate and no auction. The number above is the number, and it does not move because of who else booked that week.',
       'The shop owner can reject your creative. If they do, nothing runs and nothing is billed.',
-      'You are billed only for the minutes that actually ran. Anything booked that did not run rolls into the next week. Each time your ad is shown, the amount is rounded up to the nearest cent, and a week that comes to less than fifty cents is carried into the next one rather than charged.',
-      'Reporting is plays and on-screen minutes, split peak and off-peak. We do not report reach, impressions or any modelled figure, because we cannot measure them.',
+      'Video is billed only for the minutes that actually ran, invoiced weekly and paid by bank transfer. Anything booked that did not run rolls into the next week, and a week that comes to less than a dollar is carried rather than invoiced. A permanent spot is invoiced once, when the shop approves it.',
+      'Reporting is plays and on-screen minutes, per shop and per hour. We do not report reach, impressions or any modelled figure, because we cannot measure them.',
       'There is no auction. The rate card is the rate, and it does not move because of who else booked that week.',
     ],
     notTitle: 'What we do not promise',
@@ -89,8 +89,8 @@ const es: typeof en = {
     facts: (f: AboutFigures): [string, string][] => [
       ['Etapa', `Piloto. Tableros instalándose en los condados de Salt Lake, Utah y Cache, el primero activo desde ${f.since}.`],
       ['Dónde empezó', `${f.shop}, ${f.street}, ${f.cityLine}.`],
-      ['Cuánto gana un negocio', `Desde cerca de ${f.weekly} a la semana por tablero, más cuando se venden los formatos grandes, y más aún con una segunda pantalla.`],
-      ['Qué cobramos a los anunciantes', 'Por minuto. Más al almuerzo y la cena, más por los formatos que ocupan más tablero.'],
+      ['Cuánto gana un negocio', `Cerca de ${f.weekly} a la semana por tablero cuando sus espacios permanentes están vendidos, con el video aparte, y las dos cosas otra vez con una segunda pantalla.`],
+      ['Qué cobramos a los anunciantes', 'Dos cosas: un espacio permanente en una pantalla por un año, cotizado hablando, o video corto por hora realmente mostrada.'],
     ],
     note: 'Los negocios ilustrados en este sitio son ejemplos del tipo de negocios para los que está hecho AdBite, no clientes. Las capturas de los tableros son maquetas conceptuales. Cuando eso cambie, esta página cambia también.',
     contactBefore: 'Una persona real lee ',
@@ -106,20 +106,20 @@ const es: typeof en = {
     shop: (f: TermsFigures) => [
       'Apruebas cada anuncio antes de que se programe. Puedes rechazar cualquiera, por cualquier motivo, sin dar explicaciones.',
       'Tú decides dónde van los anuncios en la pantalla: una franja debajo de tu menú, una columna a la derecha, un turno completo entre tus tableros, o ningún lado en cualquier semana.',
-      `Cobras desde cerca de ${f.weekly} a la semana por tablero, subiendo hacia ${f.ceiling} en las semanas en que se venden los formatos grandes. Tu propio horario y el número de pantallas cambian la cifra.`,
-      'Cobras cada mes, por lo que realmente se reprodujo, detallado por espacio, para que veas qué horas y formatos generaron ingresos.',
+      `Cada tablero tiene ${f.spots} espacios permanentes. Vendidos, te pagan cerca de ${f.yearly} al año, o ${f.weekly} a la semana, pase lo que pase con tu clientela. El video se paga aparte, por minuto mostrado en tu pantalla.`,
+      'Cobras cada mes por transferencia bancaria, detallado por espacio, para que veas cuánto generó cada anunciante y cada hora.',
       'El software del tablero, el monitoreo de la pantalla, conseguir anunciantes y cobrar el dinero están incluidos. No nos pagas nada y no se te descuenta nada.',
       'No hay plazo de contrato, no hay equipo que comprar y no hay cargo por salir. Dinos que paremos y paramos.',
     ],
     adTitle: 'Si compras anuncios',
     ads: (f: TermsFigures) => [
-      'Compras tiempo en pantalla, no impresiones. El precio depende de dos cosas: cuánto tablero ocupa tu anuncio y cuándo se muestra. Tú eliges los negocios, los vecindarios o el condado entero.',
-      `Una franja inferior empieza en ${f.bannerOff} por minuto en hora baja. Un anuncio de pantalla completa, que apaga el menú del negocio durante su turno, llega a ${f.fullPeak} por minuto en hora pico. Una columna lateral queda entre los dos.`,
-      `Un video corto cuesta de ${f.videoOff} a ${f.videoPeak} por minuto. Es el formato más caro por minuto porque quince segundos de movimiento ocupan todo el tablero y es lo que hace que la gente levante la vista.`,
-      'La hora pico es el almuerzo y la cena. La tarde cuesta cerca de la mitad de la hora pico en todos los formatos.',
+      'Hay dos cosas que comprar. Un espacio permanente es un lugar: la franja debajo del menú de un negocio, en una pantalla, por un año. El video corto es tiempo, comprado por hora. En los dos casos eliges los negocios, los vecindarios o el condado entero.',
+      `Un tablero tiene ${f.spots} espacios permanentes. Se cotizan por pantalla por doce meses y se acuerdan hablando, porque qué tableros tienen uno libre cambia cada semana.`,
+      `El video corto cuesta ${f.videoHour} por hora realmente mostrada, una tarifa plana a cualquier hora del día. Quince segundos sin sonido entre turnos del propio video del negocio.`,
+      'No hay tarifa de hora pico ni subasta. El número de arriba es el número, y no cambia según quién más reservó esa semana.',
       'El dueño del negocio puede rechazar tu anuncio. Si lo hace, no se muestra nada y no se cobra nada.',
-      'Solo se te cobra lo que realmente se mostró: minutos en pantalla, o reproducciones en el caso del video. Lo reservado que no se mostró pasa a la siguiente semana.',
-      'Los reportes son reproducciones y minutos en pantalla, separados en hora pico y hora baja. No reportamos alcance, impresiones ni ninguna cifra modelada, porque no podemos medirlas.',
+      'El video se cobra solo por los minutos que realmente se mostraron, se factura cada semana y se paga por transferencia bancaria. Lo reservado que no se mostró pasa a la siguiente semana. Un espacio permanente se factura una vez, cuando el negocio lo aprueba.',
+      'Los reportes son reproducciones y minutos en pantalla, por negocio y por hora. No reportamos alcance, impresiones ni ninguna cifra modelada, porque no podemos medirlas.',
       'No hay subasta. La tarifa es la tarifa, y no cambia según quién más haya reservado esa semana.',
     ],
     notTitle: 'Lo que no prometemos',

@@ -9,11 +9,8 @@ import {
   Clapperboard,
   LayoutTemplate,
   MonitorPlay,
-  Radio,
-  SlidersHorizontal,
   Star,
   Truck,
-  Wallet,
   X,
 } from 'lucide-react';
 import { Bite } from '@/components/brand';
@@ -26,53 +23,26 @@ import { SkyShapes } from '@/components/sky-shapes';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { Link } from '@/components/nav';
-import { VENUES } from '@/lib/network';
 import { MAILTO } from '@/lib/site';
 import { field, submitLead } from '@/lib/leads';
 import { useCopy, useLang } from '@/lib/lang';
 import { HOME } from '@/lib/copy/home';
 import { SHARED } from '@/lib/copy/shared';
-import {
-  OFF_DAYPARTS,
-  PEAK_DAYPARTS,
-  count,
-  daypartEarnings,
-  inventory,
-  money,
-  monthlyEarnings,
-  weeklyCeiling,
-  weeklyEarnings,
-  yearlyEarnings,
-} from '@/lib/pricing';
+
 
 /* The businesses that buy a counter screen are the ones close enough to walk
    to. Every example on the site is one of those, and says so. The words are
    in lib/copy/home.ts; the colours belong to the scene. */
 const AD_COLORS = ['coral', 'sun', 'blue'];
 
-const FEATURE_ICONS = [
-  <SlidersHorizontal size={20} key="share" />,
-  <Check size={20} key="approve" />,
-  <Radio size={20} key="check" />,
-  <Wallet size={20} key="pay" />,
-];
-
 /* The screen is worth running even in a week when no ad sells, and this is the
-   half of the product that makes that true. It used to be one line in the
-   features grid and a link to a Menu Designer that did not exist. */
+   half of the product that makes that true. */
 const TOOL_ICONS = [
   <LayoutTemplate size={22} key="design" />,
   <Clapperboard size={22} key="clip" />,
   <Star size={22} key="reviews" />,
   <CalendarClock size={22} key="hours" />,
 ];
-
-const SHOP = VENUES[0];
-const sum = (parts: typeof PEAK_DAYPARTS, each: (id: (typeof parts)[number]['id']) => number) =>
-  parts.reduce((total, part) => total + each(part.id), 0);
-
-const PEAK_PAY = sum(PEAK_DAYPARTS, (id) => daypartEarnings(SHOP, id));
-const OFF_PAY = sum(OFF_DAYPARTS, (id) => daypartEarnings(SHOP, id));
 
 function JoinForm() {
   const t = useCopy(HOME).join.form;
@@ -150,7 +120,6 @@ export function HomePage() {
   return <main>
     <SiteHeader
       nav={[
-        { href: '#how', label: t.nav.how },
         { href: '#earnings', label: t.nav.earnings },
         { href: '#tools', label: t.nav.tools },
         { href: '/faq', label: shared.nav.faq },
@@ -174,7 +143,10 @@ export function HomePage() {
       </section>
     </div>
 
-    <section id="how" className="section wrap"><div className="section-head"><h2>{t.how.title}</h2><p>{t.how.lede}</p></div><div className="steps">{t.how.steps.map(([title, text], i) => <article className="step" key={title}><span>{String(i + 1).padStart(2, '0')}</span><h3>{title}</h3><p>{text}</p></article>)}</div></section>
+    <section id="how" className="section wrap touch-band">
+      <div className="section-head"><h2>{t.how.title}</h2><p>{t.how.lede}</p></div>
+      <a className="button primary" href="#join" data-track="shop-get-in-touch">{t.how.cta} <ArrowRight size={17}/></a>
+    </section>
 
     <section className="formats"><div className="wrap"><div className="section-head format-head"><h2>{t.formats.title}</h2><p>{t.formats.lede}</p></div><FormatGrid/></div></section>
 
@@ -182,27 +154,13 @@ export function HomePage() {
 
     <section className="approval wrap"><div className="approval-art"><div className="approval-card"><div className="review-head"><span className="review-tag">{t.approval.inReview}</span><span>{t.approval.queued}</span></div><div className="mini-ad"><div className="mini-brand"><i>RB</i><span>{t.approval.brand}<em>{t.approval.where}</em></span></div><b>{t.approval.headline}</b><p>{t.approval.body}</p><span className="mini-offer">{t.approval.offer}</span></div><dl className="review-details"><dt>{t.approval.format}</dt><dd>{t.approval.formatValue}</dd><dt>{t.approval.length}</dt><dd>{t.approval.lengthValue}</dd><dt>{t.approval.rotation}</dt><dd>{t.approval.rotationValue}</dd><dt>{t.approval.runs}</dt><dd>{t.approval.runsValue}</dd></dl><div className="approval-actions"><button type="button"><X size={16}/> {t.approval.reject}</button><button type="button"><Check size={16}/> {t.approval.approve}</button></div></div><div className="approval-badge"><BadgeCheck size={20}/><span><b>{t.approval.yourCall}</b>{t.approval.everyAd}</span></div></div><div className="approval-copy"><h2>{t.approval.title}</h2><p>{t.approval.lede}</p><ul>{t.approval.points.map((point) => <li key={point}><Check size={17}/> {point}</li>)}</ul></div></section>
 
-    <section id="earnings" className="numbers-band"><div className="wrap numbers-inner">
-      <div>
-        <h2>{t.earnings.title1}<br/>{t.earnings.title2}</h2>
-        <p className="band-note">{t.earnings.note(SHOP.hours)}</p>
-        <ul className="band-points">
-          <li><Check size={16}/> {t.earnings.points.busy}</li>
-          <li><Check size={16}/> {t.earnings.points.upTo(money.format(weeklyCeiling(SHOP)))}</li>
-          <li><Check size={16}/> {t.earnings.points.monthly}</li>
-          <li><Check size={16}/> {t.earnings.points.off}</li>
-        </ul>
-      </div>
-      <div className="calculator">
-        <div className="calc-row"><span>{t.earnings.calc.minutes}</span><b>{count.format(inventory([SHOP]).minutes)}</b></div>
-        <div className="calc-row"><span>{t.earnings.calc.busy}</span><b>{money.format(PEAK_PAY)}</b></div>
-        <div className="calc-row"><span>{t.earnings.calc.quiet}</span><b>{money.format(OFF_PAY)}</b></div>
-        <div className="calc-total"><span>{t.earnings.calc.paid}</span><strong className="money">{money.format(weeklyEarnings(SHOP))} <small>{t.earnings.calc.perWeek}</small></strong></div>
-        <div className="calc-foot"><span>{t.earnings.calc.perMonth(money.format(monthlyEarnings(SHOP)))}</span><span>{t.earnings.calc.perYear(money.format(yearlyEarnings(SHOP)))}</span></div>
-      </div>
+    <section id="earnings" className="numbers-band"><div className="wrap figure-inner">
+      <p className="big-figure">
+        <span>{t.earnings.upTo}</span>
+        <strong>{t.earnings.figure}</strong>
+        <span>{t.earnings.per}</span>
+      </p>
     </div></section>
-
-    <section id="features" className="features"><div className="wrap"><div className="section-head"><h2>{t.features.title}</h2><p>{t.features.lede}</p></div><div className="feature-grid">{t.features.items.map(([title, text], i) => <article className="feature" key={title}><span>{FEATURE_ICONS[i]}</span><h3>{title}</h3><p>{text}</p></article>)}</div></div></section>
 
     <section id="tools" className="levelup">
       <div className="wrap">

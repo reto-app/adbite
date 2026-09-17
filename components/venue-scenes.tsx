@@ -7,6 +7,21 @@
 
 type Kind = 'restaurant' | 'barber' | 'salon' | 'cafe';
 
+/* Every advertiser drawn on this page used to be the same coral, which read
+   as one brand buying every board rather than eight neighbours buying one
+   each. Each spot now carries its own colour; the initials inside the white
+   chip follow it, through the `t-` class on the group. */
+const TONE: Record<string, string> = {
+  coral: '#de5540',
+  green: '#2f6f63',
+  plum: '#7a4b8f',
+  navy: '#17557f',
+  rose: '#bf2f62',
+  ochre: '#a9660f',
+  brick: '#b8341f',
+  olive: '#4f7d3a',
+};
+
 /* three curls, drawn once and reused over anything hot */
 function Steam({ x, y }: { x: number; y: number }) {
   return (
@@ -55,11 +70,11 @@ function Restaurant() {
         <text x="89" y="58" textAnchor="end">8.00</text>
       </g>
       {[
-        ['one', 'FC', 'FREEDOM CYCLES'],
-        ['two', '9S', 'NINTH ST BOOKS'],
-      ].map(([slot, initials, name]) => (
-        <g className={`vs-ad ${slot}`} key={name}>
-          <rect x="97" y="14" width="14" height="54" rx="3" fill="#de5540" />
+        ['one', 'FC', 'FREEDOM CYCLES', 'coral'],
+        ['two', '9S', 'NINTH ST BOOKS', 'green'],
+      ].map(([slot, initials, name, tone]) => (
+        <g className={`vs-ad ${slot} t-${tone}`} key={name}>
+          <rect x="97" y="14" width="14" height="54" rx="3" fill={TONE[tone]} />
           <rect x="100.5" y="17" width="7" height="7" rx="1.6" fill="#fff6ee" />
           <text className="vs-ad-mark" x="104" y="22.3" textAnchor="middle">
             {initials}
@@ -123,11 +138,11 @@ function Barber() {
         <text x="72" y="51" textAnchor="end">22</text>
       </g>
       {[
-        ['one', 'IR', 'IRON ROSE'],
-        ['two', 'NP', 'NORTH PARK'],
-      ].map(([slot, initials, name]) => (
-        <g className={`vs-ad ${slot}`} key={name}>
-          <rect x="77" y="14" width="21" height="38" rx="2.5" fill="#de5540" />
+        ['one', 'IR', 'IRON ROSE', 'plum'],
+        ['two', 'NP', 'NORTH PARK', 'navy'],
+      ].map(([slot, initials, name, tone]) => (
+        <g className={`vs-ad ${slot} t-${tone}`} key={name}>
+          <rect x="77" y="14" width="21" height="38" rx="2.5" fill={TONE[tone]} />
           <rect x="84" y="17" width="7" height="7" rx="1.6" fill="#fff6ee" />
           <text className="vs-ad-mark" x="87.5" y="22.3" textAnchor="middle">
             {initials}
@@ -202,11 +217,11 @@ function Salon() {
         <text x="103" y="50" textAnchor="end">30</text>
       </g>
       {[
-        ['one', 'MF', 'Mia’s Flowers'],
-        ['two', '9S', 'Ninth St Books'],
-      ].map(([slot, initials, name]) => (
-        <g className={`vs-ad ${slot}`} key={name}>
-          <rect x="67" y="52" width="38" height="15" rx="2.5" fill="#de5540" />
+        ['one', 'MF', 'Mia’s Flowers', 'rose'],
+        ['two', '9S', 'Ninth St Books', 'ochre'],
+      ].map(([slot, initials, name, tone]) => (
+        <g className={`vs-ad ${slot} t-${tone}`} key={name}>
+          <rect x="67" y="52" width="38" height="15" rx="2.5" fill={TONE[tone]} />
           <rect x="69.5" y="54.5" width="7" height="7" rx="1.6" fill="#fff6ee" />
           <text className="vs-ad-mark" x="73" y="59.8" textAnchor="middle">
             {initials}
@@ -269,8 +284,8 @@ function Cafe() {
           <text x="65" y="54" textAnchor="end">3.25</text>
         </g>
       </g>
-      <g className="vs-ad two">
-        <rect x="8" y="12" width="66" height="50" rx="3" fill="#de5540" />
+      <g className="vs-ad two t-brick">
+        <rect x="8" y="12" width="66" height="50" rx="3" fill={TONE.brick} />
         <rect x="14" y="17" width="9" height="9" rx="2" fill="#fff6ee" />
         <text className="vs-ad-mark vs-big" x="18.5" y="23.6" textAnchor="middle">RB</text>
         <text className="vs-ad-name vs-big" x="14" y="40">Rosewood</text>

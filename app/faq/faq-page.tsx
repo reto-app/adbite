@@ -8,7 +8,7 @@ import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { MAIL, MAILTO } from '@/lib/site';
 import { VENUES } from '@/lib/network';
-import { cents, money, rateFor, weeklyCeiling, weeklyEarnings } from '@/lib/pricing';
+import { SPOTS_PER_SCREEN, VIDEO_HOURLY, money, weeklyEarnings, yearlyEarnings } from '@/lib/pricing';
 import { useCopy } from '@/lib/lang';
 import { FAQ } from '@/lib/copy/faq';
 import { SHARED } from '@/lib/copy/shared';
@@ -21,10 +21,9 @@ const SHOP = VENUES[0];
 const FIGURES = {
   hours: SHOP.hours,
   weekly: money.format(weeklyEarnings(SHOP)),
-  ceiling: money.format(weeklyCeiling(SHOP)),
-  bannerOff: cents.format(rateFor('banner', 'afternoon')),
-  fullPeak: cents.format(rateFor('full', 'lunch')),
-  videoOff: cents.format(rateFor('video', 'afternoon')),
+  yearly: money.format(yearlyEarnings(SHOP)),
+  videoHour: money.format(VIDEO_HOURLY),
+  spots: SPOTS_PER_SCREEN,
   mail: MAIL,
 };
 

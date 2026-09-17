@@ -5,10 +5,13 @@ import { Maximize2, X } from 'lucide-react';
 import { useCopy } from '@/lib/lang';
 import { SHARED } from '@/lib/copy/shared';
 
-/* The four example boards. Their notes are in lib/copy/shared.ts under
-   `reel`, keyed by these ids. */
+/* The example boards. Their notes are in lib/copy/shared.ts under `reel`,
+   keyed by these ids. `spot` is not a menu board at all: it is a screen
+   running the shop's own food, cutting to a full-screen local ad and back,
+   which is the second of the two things the pilot sells. */
 const boards = [
   { id: 'rosas', name: 'Rosas Taqueria' },
+  { id: 'spot', name: 'Full-screen spot' },
   { id: 'roost', name: 'The Roost Shop' },
   { id: 'forno', name: 'Forno Nove' },
   { id: 'meridian', name: 'Meridian Café', portrait: true },
@@ -17,7 +20,7 @@ const boards = [
 type Board = (typeof boards)[number];
 type BoardId = Board['id'];
 
-/* Four boards you can open.
+/* Boards you can open.
  *
  * The tile is a button, so a whole board opens with a click, Enter or Space
  * and takes one stop in the tab order; the magnify badge is decoration on top

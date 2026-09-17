@@ -47,6 +47,12 @@ export type Venue = Priceable & {
   status: VenueStatus;
   /** Rough heads past the board in a week. A planning figure, not a count. */
   footfall: number;
+  /* Permanent bottom-banner spots already sold on this board. Maintained by
+     hand for the pilot, the way `status` and `since` are: an advertiser can
+     only see their own bookings through row-level security, so a count of
+     everyone's cannot be worked out in the browser. It moves to a view over
+     the campaigns table when the pilot ends. Absent means none sold. */
+  spotsTaken?: number;
 };
 
 /* ---- how shops are grouped ---------------------------------------------- */

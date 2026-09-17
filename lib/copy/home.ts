@@ -2,7 +2,7 @@
  * appear on it: the four format previews and the board designer showcase. */
 
 const en = {
-  nav: { how: 'How it works', earnings: 'Earnings', tools: 'Menu tools' },
+  nav: { earnings: 'Earnings', tools: 'Menu tools' },
   ads: [
     { label: 'Now playing · Bottom banner', brand: 'Rosewood Barbers', detail: 'Walk-ins till seven · next door' },
     { label: 'Now playing · Full screen', brand: 'North Park Dental', detail: 'New patient checkups this week' },
@@ -16,28 +16,19 @@ const en = {
     earnings: 'See what a screen earns',
   },
   how: {
-    title: 'Five steps, then it runs itself.',
-    lede: 'From the TV you already own to money in the account. Nothing here asks you to sell an ad, sign a contract, or hand over your screen.',
-    steps: [
-      ['Connect your screen', 'We help set up your existing TV or menu board.'],
-      ['Advertisers book', 'Local businesses buy minutes on your screen, by the week.'],
-      ['You approve', 'Review each creative. Approve or reject—nothing runs without you.'],
-      ['Content stays yours', 'Ads take about a third of the screen. Your menu keeps the rest.'],
-      ['Get paid', 'Your earnings land monthly, itemised by spot. No invoicing, no chasing.'],
-    ] as [string, string][],
+    title: 'From the TV you already own to money in the account.',
+    lede: 'Nothing here asks you to sell an ad, sign a contract, or hand over your screen.',
+    cta: 'Get in touch',
   },
   formats: {
-    title: 'Four ways an ad can show up.',
-    lede: 'Every format leaves your own content in place, and every format is subject to your approval.',
+    title: 'Two ways an ad can show up.',
+    lede: 'Both leave your own content in place, and both are subject to your approval.',
     banner: { title: 'Bottom banner', text: 'Your menu stays put. The strip below rotates between advertisers.' },
-    rail: { title: 'Side rail', text: 'The right third, top to bottom. Your menu keeps the rest of the board.' },
-    full: { title: 'Full-screen spot', text: 'Your board blanks for one turn of the rotation, then it is back.' },
-    video: { title: 'Short video', text: 'Fifteen muted seconds on a blank board, then your menu is back. No sound to talk over.' },
+    video: { title: 'Short video', text: 'Fifteen muted seconds between turns of your own food playing. No sound to talk over.' },
     /* the ads drawn inside the previews */
     books: { name: 'Ninth Street Books', line: '10% off with your receipt', short: '10% off', sub: 'With your receipt' },
     barbers: { name: 'Rosewood Barbers', line: 'Walk-ins till seven', short: 'Walk-ins till 7', sub: 'Next door' },
     gym: { name: 'Iron Rose Gym', line: 'First class free', short: 'First class free', sub: 'Two blocks north' },
-    cycles: { kicker: 'Local spot', name: 'Freedom Cycles', line: 'Free tune-up with any repair', sub: '820 N Freedom Blvd · two blocks north', back: 'Your menu is back in 0:04' },
     videoFrames: {
       muted: 'Muted',
       one: ['Iron Rose Gym', 'The strength room on your block'],
@@ -47,7 +38,7 @@ const en = {
   },
   boards: {
     title: 'What it will look like.',
-    lede: 'Four AdBite boards. Watch where the ad sits, and how much of the screen stays the shop’s.',
+    lede: 'AdBite boards, running. Watch where the ad sits, and how much of the screen stays the shop’s.',
   },
   approval: {
     inReview: 'In review',
@@ -74,34 +65,9 @@ const en = {
     points: ['See the ad before it’s scheduled', 'Approve or reject in one tap', 'Choose where on your screen ads sit'],
   },
   earnings: {
-    title1: 'A little screen time.',
-    title2: 'A meaningful extra.',
-    note: (hours: string) => `Worked from a board like the ones going in now: open ${hours}, with about a third of the screen sold as ads. Your own hours change the number, and a second screen doubles it.`,
-    points: {
-      busy: 'Your busy hours are worth more, and are paid as such',
-      upTo: (ceiling: string) => `Up to ${ceiling} a week when the bigger formats sell`,
-      monthly: 'Paid monthly, itemised by spot',
-      off: 'Turn ads off entirely any week you like',
-    },
-    calc: {
-      minutes: 'Ad minutes on your board, each week',
-      busy: 'Your busy hours · lunch and evening',
-      quiet: 'The quiet middle · afternoons',
-      paid: 'You are paid',
-      perWeek: '/ week',
-      perMonth: (n: string) => `${n} / month`,
-      perYear: (n: string) => `About ${n} / year`,
-    },
-  },
-  features: {
-    title: 'And the controls that keep it yours.',
-    lede: 'AdBite is the board software and the ad side together, so the tools that pay you are the same ones you use to run your menu. These are the levers on the paying half.',
-    items: [
-      ['Your ad share', 'Set how much of the screen ads can use, down to none at all this week. The rest is always your own content.'],
-      ['Approval queue', 'Every creative waits for your yes. Reject anything that does not suit your shop, with no explanation owed.'],
-      ['Screen check', 'We watch that your board is up and playing. If it drops off, you hear it from us first.'],
-      ['Earnings, itemised', 'See what each spot paid and what is owed, then take your payment once a month.'],
-    ] as [string, string][],
+    upTo: 'up to',
+    figure: '$3,000',
+    per: '/ year',
   },
   tools: {
     eyebrow: 'The other half of AdBite',
@@ -164,7 +130,7 @@ const en = {
 };
 
 const es: typeof en = {
-  nav: { how: 'Cómo funciona', earnings: 'Ganancias', tools: 'Tu menú' },
+  nav: { earnings: 'Ganancias', tools: 'Tu menú' },
   ads: [
     { label: 'En pantalla · Franja inferior', brand: 'Rosewood Barbers', detail: 'Sin cita hasta las siete · aquí al lado' },
     { label: 'En pantalla · Pantalla completa', brand: 'North Park Dental', detail: 'Revisiones para pacientes nuevos esta semana' },
@@ -178,27 +144,18 @@ const es: typeof en = {
     earnings: 'Mira cuánto gana una pantalla',
   },
   how: {
-    title: 'Cinco pasos, y después funciona solo.',
-    lede: 'De la TV que ya tienes a dinero en tu cuenta. Nada de esto te pide vender un anuncio, firmar un contrato ni entregar tu pantalla.',
-    steps: [
-      ['Conecta tu pantalla', 'Te ayudamos a configurar tu TV o tablero de menú actual.'],
-      ['Los anunciantes reservan', 'Negocios locales compran minutos en tu pantalla, por semana.'],
-      ['Tú apruebas', 'Revisa cada anuncio. Aprueba o rechaza: nada se muestra sin ti.'],
-      ['El contenido sigue siendo tuyo', 'Los anuncios ocupan como un tercio de la pantalla. Tu menú se queda con el resto.'],
-      ['Cobra', 'Tus ganancias llegan cada mes, detalladas por espacio. Sin facturar ni perseguir a nadie.'],
-    ] as [string, string][],
+    title: 'De la TV que ya tienes a dinero en tu cuenta.',
+    lede: 'Nada de esto te pide vender un anuncio, firmar un contrato ni entregar tu pantalla.',
+    cta: 'Hablemos',
   },
   formats: {
-    title: 'Cuatro formas en que puede aparecer un anuncio.',
-    lede: 'Todos los formatos dejan tu contenido en su lugar, y todos pasan por tu aprobación.',
+    title: 'Dos formas en que puede aparecer un anuncio.',
+    lede: 'Las dos dejan tu contenido en su lugar, y las dos pasan por tu aprobación.',
     banner: { title: 'Franja inferior', text: 'Tu menú no se mueve. La franja de abajo rota entre anunciantes.' },
-    rail: { title: 'Columna lateral', text: 'El tercio derecho, de arriba abajo. Tu menú se queda con el resto del tablero.' },
-    full: { title: 'Pantalla completa', text: 'Tu tablero se apaga por un turno de la rotación, y luego vuelve.' },
-    video: { title: 'Video corto', text: 'Quince segundos sin sonido en pantalla completa, y luego vuelve tu menú. Nada que interrumpa la conversación.' },
+    video: { title: 'Video corto', text: 'Quince segundos sin sonido entre turnos de tu propia comida en pantalla. Nada que interrumpa la conversación.' },
     books: { name: 'Ninth Street Books', line: '10% de descuento con tu recibo', short: '10% menos', sub: 'Con tu recibo' },
     barbers: { name: 'Rosewood Barbers', line: 'Sin cita hasta las siete', short: 'Sin cita hasta las 7', sub: 'Aquí al lado' },
     gym: { name: 'Iron Rose Gym', line: 'Primera clase gratis', short: 'Primera clase gratis', sub: 'Dos cuadras al norte' },
-    cycles: { kicker: 'Anuncio local', name: 'Freedom Cycles', line: 'Afinación gratis con cualquier reparación', sub: '820 N Freedom Blvd · dos cuadras al norte', back: 'Tu menú vuelve en 0:04' },
     videoFrames: {
       muted: 'Sin sonido',
       one: ['Iron Rose Gym', 'El gimnasio de tu cuadra'],
@@ -208,7 +165,7 @@ const es: typeof en = {
   },
   boards: {
     title: 'Así se va a ver.',
-    lede: 'Cuatro tableros de AdBite. Fíjate dónde queda el anuncio y cuánta pantalla sigue siendo del negocio.',
+    lede: 'Tableros de AdBite, funcionando. Fíjate dónde queda el anuncio y cuánta pantalla sigue siendo del negocio.',
   },
   approval: {
     inReview: 'En revisión',
@@ -235,34 +192,9 @@ const es: typeof en = {
     points: ['Mira el anuncio antes de que se programe', 'Aprueba o rechaza con un toque', 'Elige dónde van los anuncios en tu pantalla'],
   },
   earnings: {
-    title1: 'Un poco de tiempo en pantalla.',
-    title2: 'Un extra que se nota.',
-    note: (hours: string) => `Calculado con un tablero como los que estamos instalando ahora: abierto ${hours}, con cerca de un tercio de la pantalla vendida como anuncios. Tu propio horario cambia la cifra, y una segunda pantalla la duplica.`,
-    points: {
-      busy: 'Tus horas más ocupadas valen más, y se pagan así',
-      upTo: (ceiling: string) => `Hasta ${ceiling} a la semana cuando se venden los formatos grandes`,
-      monthly: 'Pago mensual, detallado por espacio',
-      off: 'Apaga los anuncios por completo cualquier semana',
-    },
-    calc: {
-      minutes: 'Minutos de anuncios en tu tablero, cada semana',
-      busy: 'Tus horas ocupadas · almuerzo y noche',
-      quiet: 'La tarde tranquila',
-      paid: 'Te pagamos',
-      perWeek: '/ semana',
-      perMonth: (n: string) => `${n} / mes`,
-      perYear: (n: string) => `Cerca de ${n} / año`,
-    },
-  },
-  features: {
-    title: 'Y los controles que lo mantienen tuyo.',
-    lede: 'AdBite es el software del tablero y la parte de anuncios juntos, así que las herramientas que te pagan son las mismas con las que manejas tu menú. Estas son las palancas de la mitad que paga.',
-    items: [
-      ['Tu espacio de anuncios', 'Decide cuánta pantalla pueden usar los anuncios, hasta nada esta semana. El resto siempre es tu contenido.'],
-      ['Cola de aprobación', 'Cada anuncio espera tu sí. Rechaza lo que no vaya con tu negocio, sin deberle explicaciones a nadie.'],
-      ['Monitoreo de pantalla', 'Vigilamos que tu tablero esté encendido y funcionando. Si se cae, te enteras primero por nosotros.'],
-      ['Ganancias detalladas', 'Mira cuánto pagó cada espacio y cuánto se te debe, y cobra una vez al mes.'],
-    ] as [string, string][],
+    upTo: 'hasta',
+    figure: '$3,000',
+    per: '/ año',
   },
   tools: {
     eyebrow: 'La otra mitad de AdBite',

@@ -2,7 +2,7 @@
   "framework": "vite",
   "outputDirectory": "dist/client",
   "crons": [
-    { "path": "/api/stripe/bill", "schedule": "0 8 * * 1" }
+    { "path": "/api/money/bill", "schedule": "0 8 * * 1" }
   ],
   "headers": [
     {

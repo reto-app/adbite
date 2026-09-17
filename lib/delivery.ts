@@ -25,9 +25,8 @@ import type { Priceable } from '@/lib/pricing';
 import {
   DAYPARTS,
   PLAYS_PER_MINUTE,
-  blendedRate,
+  isPermanent,
   perMinuteRate,
-  unitOf,
   weeklyMinutes,
   type Daypart,
 } from '@/lib/pricing';
@@ -116,7 +115,7 @@ export function splitByVenue(booking: Bookable, scale = 1): VenueSplit[] {
   return supply.map(({ venue, minutes: supplyMinutes }) => {
     const share = supplyMinutes / totalSupply;
     const weekSpend = booking.weeklySpend * share;
-    const rate = blendedRate([venue], dayparts, format);
+    const rate = perMinuteRate(format) || 1;
     const weekMinutes = Math.min(supplyMinutes, weekSpend / rate);
     /* Heads past the board, pro-rated by the slice of this shop's open week
        the ad actually occupied. */
@@ -137,7 +136,6 @@ export type DaypartSplit = {
   id: Daypart;
   label: string;
   window: string;
-  tier: 'peak' | 'off';
   minutes: number;
   plays: number;
   spend: number;
@@ -152,7 +150,7 @@ export function splitByDaypart(booking: Bookable, scale = 1): DaypartSplit[] {
   const supply = DAYPARTS.filter((part) => dayparts.includes(part.id)).map((part) => ({
     part,
     minutes: venues.reduce((total, venue) => total + weeklyMinutes(venue, part.id), 0),
-    rate: perMinuteRate(format, part.id),
+    rate: perMinuteRate(format),
   }));
 
   const totalValue = supply.reduce((total, item) => total + item.minutes * item.rate, 0) || 1;
@@ -165,7 +163,6 @@ export function splitByDaypart(booking: Bookable, scale = 1): DaypartSplit[] {
       id: part.id,
       label: part.label,
       window: part.window,
-      tier: part.tier,
       minutes: Math.round(weekMinutes * scale),
       plays: Math.round(weekMinutes * PLAYS_PER_MINUTE * scale),
       spend: weekSpend * scale,
@@ -206,7 +203,7 @@ export function byDay(booking: Bookable, limit = 28): DayRow[] {
 
   const venues = venuesOf(booking);
   const dayparts = daypartsOf(booking);
-  const rate = blendedRate(venues, dayparts, booking.format);
+  const rate = perMinuteRate(booking.format) || 1;
 
   /* The weekly spend is shared out over the days every booked shop is open,
      so a shop that shuts on Sunday does not quietly bill for it. */
@@ -241,7 +238,7 @@ export function byDay(booking: Bookable, limit = 28): DayRow[] {
 /* The hour grid. Each daypart's minutes land evenly across the hours it
    covers, because nothing here counts footfall by the hour and a made-up
    curve would be a lie told in a prettier shape. */
-export type HourCell = { hour: number; label: string; minutes: number; tier: 'peak' | 'off' | null };
+export type HourCell = { hour: number; label: string; minutes: number };
 
 export function byHour(booking: Bookable, scale = 1): HourCell[] {
   const splits = splitByDaypart(booking, scale);
@@ -259,7 +256,6 @@ export function byHour(booking: Bookable, scale = 1): HourCell[] {
       hour,
       label: hour > 12 ? `${hour - 12}p` : hour === 12 ? '12p' : `${hour}a`,
       minutes: Math.round(minutes),
-      tier: owner?.tier ?? null,
     });
   }
   return cells;
@@ -295,7 +291,8 @@ export type Totals = {
   /** Booked for the week, for pacing against. */
   weeklySpend: number;
   weeklyMinutes: number;
-  byPlay: boolean;
+  /** A permanent spot is bought outright and never metered. */
+  permanent: boolean;
   screens: number;
   shops: number;
 };
@@ -339,7 +336,7 @@ export function totalsOf(booking: Bookable, measured?: Measured | null): Totals 
     perThousand: reach ? (deliveredSpend / reach) * 1000 : 0,
     weeklySpend: booking.weeklySpend,
     weeklyMinutes: weekMinutes,
-    byPlay: unitOf(booking.format) === 'play',
+    permanent: isPermanent(booking.format),
     screens: venues.reduce((total, venue) => total + venue.screens, 0),
     shops: venues.length,
   };

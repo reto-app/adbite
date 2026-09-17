@@ -1,14 +1,23 @@
-/* Weekly delivery billing and payout settlement. This module is server-only:
-   it is called by the protected cron route and by verified Stripe webhooks. */
+/* Weekly delivery billing and payout settlement. Server-only: called by the
+   protected cron route.
+ *
+ * Stripe is shelved. Nothing is collected here any more -- what this does is
+ * work out what each advertiser owes for the video that actually ran, write
+ * the ledger rows, and raise a numbered invoice payable by bank transfer.
+ * Money arriving is a separate, human step (lib/server/invoices.ts), because
+ * a transfer does not announce itself.
+ *
+ * Only video is metered. A permanent spot is a place on a board bought for a
+ * year and is invoiced once, when the shop approves it, so it never appears
+ * in a weekly run. */
 
-import { FORMAT_PRICES, shopEarningsFromSpend, type Daypart } from '../pricing.js';
-import { send } from '../email/send.js';
-import { paymentFailed } from '../email/templates.js';
+import { VIDEO_PER_MINUTE, isPermanent, shopEarningsFromSpend } from '../pricing.js';
+import type { FormatId } from '../boards.js';
 import { service } from './db.js';
-import { stripe } from './stripe.js';
+import { invoiceCharge, type InvoiceLine } from './invoices.js';
 
 type Play = { id: number | string; campaign_id: string; device_id: string; played_at: string; seconds: number | string };
-type Campaign = { id: string; advertiser_id: string; format: keyof typeof FORMAT_PRICES; status: string };
+type Campaign = { id: string; advertiser_id: string; name: string; format: FormatId; status: string };
 type Device = { id: string; shop_id: string | null };
 type Shop = { id: string; owner_id: string; timezone: string };
 type Account = { id: string; stripe_customer_id: string | null; stripe_account_id: string | null };
@@ -16,36 +25,21 @@ type Account = { id: string; stripe_customer_id: string | null; stripe_account_i
 type Line = { campaignId: string; shopId: string; amountCents: number; payoutCents: number };
 type Tally = { lines: Map<string, Line>; playIds: (number | string)[] };
 
-/* The rate card's own hours, read in the shop's own time: lunch and evening
-   are peak, the afternoon between them is not. Anything outside all three --
-   breakfast, or a board still running at midnight -- is charged off-peak,
-   because it is time nobody bought as peak and an advertiser should not pay
-   the higher rate for our not having a name for that hour. A clock we cannot
-   read is charged the same way, for the same reason. */
-function localDaypart(playedAt: string, timezone: string): Daypart {
-  let hour = -1;
-  try {
-    hour = Number(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: timezone }).format(new Date(playedAt)));
-  } catch { /* an unreadable timezone falls through to the off-peak rate */ }
-  if (hour >= 11 && hour < 14) return 'lunch';
-  if (hour >= 17 && hour < 21) return 'evening';
-  return 'afternoon';
+/* Video is one flat rate at every hour of the day, so what a minute costs no
+   longer depends on when it ran and the shop's timezone no longer decides a
+   price. It is still read for reporting, in lib/delivery.ts; it just does not
+   set money any more. */
+function lineAmount(play: Play, campaign: Campaign) {
+  /* A permanent spot is not metered. If a play somehow arrives for one, it is
+     a screen reporting the strip it carries all year, not a billable minute. */
+  if (isPermanent(campaign.format)) return 0;
+  return Math.max(0, Math.round(VIDEO_PER_MINUTE * (Number(play.seconds) / 60) * 100));
 }
 
-function lineAmount(play: Play, campaign: Campaign, timezone: string) {
-  const price = FORMAT_PRICES[campaign.format];
-  if (!price) return 0;
-  /* Every format bills for time on screen, video included: a spot inside a
-     looping reel has no discrete play to count, only a share of the minutes
-     the reel ran. */
-  const rate = price.rates[localDaypart(play.played_at, timezone) === 'afternoon' ? 'off' : 'peak'];
-  return Math.max(0, Math.round(rate * (Number(play.seconds) / 60) * 100));
-}
-
-/* Stripe will not take a payment under fifty cents. A week below that is
-   carried into the next run rather than charged, because a rejected charge
-   reads to an advertiser as a payment they have to go and fix. */
-const MIN_CHARGE_CENTS = 50;
+/* A week worth less than a dollar is carried rather than invoiced. Raising a
+   numbered invoice for forty cents costs the advertiser a bank transfer fee
+   and us the paper; it keeps until it is worth asking for. */
+const MIN_CHARGE_CENTS = 100;
 
 function weekBounds(now = new Date()) {
   const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
@@ -92,11 +86,11 @@ export async function billPreviousWeek(now?: Date) {
     const shop = shopId ? shopById.get(shopId) : undefined;
     /* A play exists because a screen put the spot on a wall, which only
        happens after a shop approved it. So the question is whether the
-       campaign has since been stopped, not whether a status column was ever
-       moved to 'live' -- that column is Stripe's, and gating on it here meant
-       every approved campaign delivered for free. */
+       campaign has since been stopped, not whether it has been paid for:
+       gating on a payment status here would mean every unpaid week delivered
+       for free, and an unpaid invoice is a conversation, not a kill switch. */
     if (!campaign || !shop || campaign.status === 'paused' || campaign.status === 'ended') continue;
-    const amountCents = lineAmount(play, campaign, shop.timezone);
+    const amountCents = lineAmount(play, campaign);
     if (!amountCents) continue;
     const key = `${campaign.id}:${shop.id}`;
     const tally = byAdvertiser.get(campaign.advertiser_id) ?? { lines: new Map<string, Line>(), playIds: [] };
@@ -139,33 +133,38 @@ export async function billPreviousWeek(now?: Date) {
     }
     if (!charge) continue;
     await db.from('charge_lines').insert([...lines.values()].map((line) => ({ charge_id: charge.id, campaign_id: line.campaignId, shop_id: line.shopId, amount_cents: line.amountCents, payout_cents: line.payoutCents })));
-    /* Claim the plays before talking to Stripe, so a run that dies midway
+    /* Claim the plays before raising the invoice, so a run that dies midway
        cannot bill the same minute twice. */
     await markPlaysBilled(tally.playIds, charge.id);
 
-    const customerId = accountById.get(advertiserId)?.stripe_customer_id;
-    if (!customerId) {
-      await markChargeFailed(charge.id, advertiserId);
-      continue;
-    }
+    /* One line per campaign, named, because "$41.20" with no breakdown is a
+       number an advertiser has to write in to understand. */
+    const invoiceLines: InvoiceLine[] = [...lines.values()]
+      .reduce((rows, line) => {
+        const name = campaignById.get(line.campaignId)?.name ?? 'Video';
+        const found = rows.find((row) => row.description === name);
+        if (found) found.amountCents += line.amountCents;
+        else rows.push({ description: name, amountCents: line.amountCents });
+        return rows;
+      }, [] as InvoiceLine[])
+      .sort((a, b) => b.amountCents - a.amountCents);
+
     try {
-      const intent = await stripe().paymentIntents.create({ amount: amountCents, currency: 'usd', customer: customerId, confirm: true, off_session: true, metadata: { charge_id: charge.id, advertiser_id: advertiserId, billing_run_id: run.id } }, { idempotencyKey: `adbite-charge-${charge.id}-${attempt}` });
-      await db.from('charges').update({ stripe_payment_intent_id: intent.id, status: intent.status === 'succeeded' ? 'succeeded' : 'pending', paid_at: intent.status === 'succeeded' ? new Date().toISOString() : null }).eq('id', charge.id);
-      if (intent.status === 'succeeded') await settlePayouts(charge.id, sourceTransactionOf(intent));
+      await invoiceCharge(
+        charge.id,
+        advertiserId,
+        invoiceLines,
+        `Video shown between ${bounds.startDate} and ${bounds.endDate}.`,
+      );
       charged += 1;
-    } catch {
-      await markChargeFailed(charge.id, advertiserId);
+    } catch (failure) {
+      /* The ledger stands and the plays stay claimed; only the paper failed.
+         Leaving the charge pending means the next run finds it and tries the
+         invoice again rather than billing the same minutes twice. */
+      console.error('could not raise invoice for charge', charge.id, failure);
     }
   }
   return { runId: run.id, charges: charged, carried };
-}
-
-/** The charge behind a PaymentIntent, which is what a transfer draws on. */
-function sourceTransactionOf(intent: { latest_charge?: unknown }): string | undefined {
-  const latest = intent.latest_charge;
-  if (typeof latest === 'string') return latest;
-  if (latest && typeof latest === 'object' && 'id' in latest) return String((latest as { id: unknown }).id);
-  return undefined;
 }
 
 async function markPlaysBilled(playIds: (number | string)[], chargeId: string) {
@@ -177,64 +176,22 @@ async function markPlaysBilled(playIds: (number | string)[], chargeId: string) {
   }
 }
 
-export async function markChargeFailed(chargeId: string, advertiserId: string) {
+/* An invoice that goes unpaid is a conversation with a person, not an
+   automatic pause: a bank transfer can be late for a dozen dull reasons and
+   taking an advertiser off every screen over one is the wrong reflex. This
+   voids the ledger row and hands its minutes back to the queue, and is called
+   by hand when a week is genuinely written off. */
+export async function voidCharge(chargeId: string) {
   const db = service();
   await db.from('charges').update({ status: 'failed' }).eq('id', chargeId);
+  await db.from('invoices').update({ status: 'void' }).eq('charge_id', chargeId);
   /* Hand the plays back to the queue. Nothing was collected for them, so
-     they belong in the next run rather than in a charge that failed. */
+     they belong in the next run rather than in a charge that was voided. */
   await db.from('plays').update({ charge_id: null }).eq('charge_id', chargeId);
-  const { data: lines } = await db.from('charge_lines').select('campaign_id').eq('charge_id', chargeId);
-  const ids = [...new Set((lines ?? []).map((line) => line.campaign_id))];
-  if (ids.length) await db.from('campaigns').update({ status: 'paused' }).eq('advertiser_id', advertiserId).in('id', ids).eq('status', 'live');
-  const { data: account } = await db.from('accounts').select('email').eq('id', advertiserId).maybeSingle();
-  if (account?.email) await send(account.email, paymentFailed());
 }
 
-/** Transfer a successful charge's recorded shop shares, never more than once.
- *
- * `sourceTransaction` is the Stripe charge the money came in on. Without it a
- * transfer draws on the platform's *available* balance, and card money is not
- * available for about two business days, so an honest weekly run would fail
- * every time. Naming the charge moves the money as soon as it settles. */
-export async function settlePayouts(chargeId: string, sourceTransaction?: string) {
-  const db = service();
-  const { data: lines } = await db.from('charge_lines').select('shop_id, payout_cents').eq('charge_id', chargeId);
-  const byShop = new Map<string, number>();
-  for (const line of lines ?? []) byShop.set(line.shop_id, (byShop.get(line.shop_id) ?? 0) + Number(line.payout_cents));
-  const shops = [...byShop.keys()];
-  if (!shops.length) return;
-  const { data: shopRows } = await db.from('shops').select('id, owner_id').in('id', shops);
-  const owners = (shopRows ?? []).map((shop) => shop.owner_id);
-  const { data: accounts } = await db.from('accounts').select('id, stripe_account_id').in('id', owners);
-  const accountByOwner = new Map((accounts ?? []).map((account) => [account.id, account.stripe_account_id]));
-  for (const shop of shopRows ?? []) {
-    const amount = byShop.get(shop.id) ?? 0;
-    if (!amount) continue;
-    const { data: existing } = await db.from('payouts').select('id, status').eq('charge_id', chargeId).eq('shop_id', shop.id).maybeSingle();
-    if (existing && existing.status !== 'failed') continue;
-    const { data: created } = existing
-      ? { data: existing }
-      : await db.from('payouts').insert({ charge_id: chargeId, shop_id: shop.id, amount_cents: amount }).select('id').single();
-    const payout = created;
-    const destination = accountByOwner.get(shop.owner_id);
-    if (!payout || !destination) continue;
-    try {
-      const account = await stripe().v2.core.accounts.retrieve(destination, { include: ['configuration.recipient'] });
-      /* Only transfer to a shop that can actually receive it. A shop part-way
-         through onboarding is skipped, and the money stays in the platform
-         balance until their next charge settles after they finish. */
-      const balance = account.configuration?.recipient?.capabilities?.stripe_balance;
-      if (balance?.stripe_transfers?.status !== 'active') continue;
-      const transfer = await stripe().transfers.create({
-        amount,
-        currency: 'usd',
-        destination,
-        ...(sourceTransaction ? { source_transaction: sourceTransaction } : {}),
-        metadata: { charge_id: chargeId, shop_id: shop.id },
-      }, { idempotencyKey: `adbite-payout-${payout.id}` });
-      await db.from('payouts').update({ stripe_transfer_id: transfer.id, status: 'paid', paid_at: new Date().toISOString() }).eq('id', payout.id);
-    } catch {
-      await db.from('payouts').update({ status: 'failed' }).eq('id', payout.id);
-    }
-  }
-}
+/* What a shop is owed, and telling them it is coming, both live in
+   lib/server/invoices.ts now: `queuePayouts` writes the payout rows and mails
+   the remittance advice, and `markPayoutSent` closes one when the transfer
+   has actually left the bank. Nothing pushes money from here. */
+export { queuePayouts, markChargePaid, markPayoutSent } from './invoices.js';

@@ -6,6 +6,7 @@
  * itself, not from here. */
 
 import { ORIGIN } from '../site.js';
+import type { BankDetails } from '../server/bank.js';
 import type { Mail } from './layout.js';
 
 const DASHBOARD = `${ORIGIN}/dashboard`;
@@ -131,5 +132,120 @@ export function paymentFailed(): Mail {
     ],
     button: { label: 'Open your dashboard', href: DASHBOARD },
     reason: 'You have an active advertiser account on adbite.site.',
+  };
+}
+
+
+/* ---- money, now that it moves by bank transfer ---------------------------
+   Stripe is shelved, so nothing settles itself and nothing tells us it has.
+   These three carry the whole cycle: what is owed and where to send it, a
+   receipt when it lands, and a note to a shop saying what we have pushed.
+   Every one of them leads on the number, because the number is what a person
+   types into a bank form and what they search for six months later. */
+
+export function invoiceIssued(facts: {
+  number: string;
+  amount: string;
+  dueOn: string;
+  lines: [string, string][];
+  bank: BankDetails;
+  note?: string;
+}): Mail {
+  return {
+    subject: `Invoice ${facts.number} · ${facts.amount}`,
+    preview: `Due ${facts.dueOn}. Pay by bank transfer.`,
+    title: `Invoice ${facts.number}`,
+    blocks: [
+      {
+        kind: 'lead',
+        text: `${facts.amount} for what ran, due ${facts.dueOn}. Pay by bank transfer and quote ${facts.number} as the reference so we can match it.`,
+      },
+      { kind: 'rows', rows: facts.lines },
+      {
+        kind: 'rows',
+        rows: [
+          ['Pay to', facts.bank.accountName],
+          ['Bank', facts.bank.bankName],
+          ['Routing (ABA)', facts.bank.routingNumber],
+          ['Account', facts.bank.accountNumber],
+          ['Reference', facts.number],
+          ['Amount', facts.amount],
+          ['Due', facts.dueOn],
+        ],
+      },
+      ...(facts.note ? [{ kind: 'p' as const, text: facts.note }] : []),
+      {
+        kind: 'quiet',
+        text: 'We send a receipt the day it clears. Nothing stops running while an invoice is open; if one goes unpaid we write to you before anything comes off a screen.',
+      },
+    ],
+    button: { label: 'See what it covers', href: DASHBOARD },
+    reason: 'You have an active advertiser account on adbite.site and this covers what ran on it.',
+  };
+}
+
+export function paymentReceived(facts: { number: string; amount: string; paidOn: string }): Mail {
+  return {
+    subject: `Receipt · ${facts.amount} received`,
+    preview: `Invoice ${facts.number} is settled. Nothing else to do.`,
+    title: 'Thank you, that is settled.',
+    blocks: [
+      {
+        kind: 'lead',
+        text: `We have ${facts.amount} against invoice ${facts.number}. Nothing else is owed on it.`,
+      },
+      {
+        kind: 'rows',
+        rows: [
+          ['Invoice', facts.number],
+          ['Amount', facts.amount],
+          ['Received', facts.paidOn],
+        ],
+      },
+      { kind: 'p', text: 'Keep this as your receipt. Your campaigns carry on exactly as they were.' },
+    ],
+    button: { label: 'Open your campaigns', href: DASHBOARD },
+    reason: 'You paid an AdBite invoice. This is the receipt for it.',
+  };
+}
+
+/** To a shop, when its share of a settled week is on its way. */
+export function remittanceSent(facts: {
+  number: string;
+  shopName: string;
+  amount: string;
+  last4: string | null;
+}): Mail {
+  return {
+    subject: `${facts.amount} on its way to ${facts.shopName}`,
+    preview: facts.last4
+      ? `Bank transfer to the account ending ${facts.last4}.`
+      : 'We need your bank details before we can send it.',
+    title: facts.last4 ? 'Your money is on its way.' : 'Your money is waiting on a bank account.',
+    blocks: [
+      {
+        kind: 'lead',
+        text: facts.last4
+          ? `${facts.amount} is going out to the account ending ${facts.last4}. Bank transfers usually land in one to three working days.`
+          : `${facts.amount} is yours and is sitting here until you tell us where to send it. Add your bank details on the dashboard and it goes out on the next run.`,
+      },
+      {
+        kind: 'rows',
+        rows: [
+          ['Remittance', facts.number],
+          ['Amount', facts.amount],
+          ['To', facts.last4 ? `Account ending ${facts.last4}` : 'Not set yet'],
+        ],
+      },
+      {
+        kind: 'p',
+        text: 'Your dashboard itemises it: which advertiser, which hours, and what each one paid.',
+      },
+    ],
+    button: {
+      label: facts.last4 ? 'See what it covers' : 'Add your bank details',
+      href: DASHBOARD,
+    },
+    reason: `You run ${facts.shopName} on AdBite, and this is your share of what ran on your screen.`,
   };
 }

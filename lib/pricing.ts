@@ -5,25 +5,27 @@
  * difference between them and is never rendered anywhere on the site: it lives
  * in SHOP_SHARE below and is used only to turn one into the other.
  *
- * Price moves on two axes:
+ * There are exactly two things to buy, and they are bought in different
+ * shapes, which is the whole reason this file is not one rate table:
  *
- *   WHEN   peak is lunch and dinner, when there is a queue in front of the
- *          board. Off-peak is the quiet middle of the afternoon, about half.
+ *   A PERMANENT SPOT is a place, not a quantity. A static ad in the strip
+ *   under one shop's menu, on one screen, for a year. A board holds a fixed
+ *   number of them, so what an advertiser is choosing is which screens have
+ *   one free. It is invoiced once, up front, and nothing about it is metered.
  *
- *   WHAT   a strip under the menu is the cheapest thing we sell. Taking the
- *          right third costs more. Blanking the whole board costs more again,
- *          because for that turn the shop's own menu is gone.
+ *   VIDEO is time. Fifteen muted seconds between turns of the shop's own
+ *   footage, bought by the hour and billed on the hours that actually ran.
+ *   One flat rate: there is no peak, because a flat number is one an
+ *   advertiser can hold in their head and we would rather be held to it.
  *
- * Video is the exception to the unit, not just the rate: it is billed per play
- * rather than per minute, because what an advertiser is buying is a number of
- * fifteen-second runs, and counting them is the honest way to charge for it.
- * Its per-play price works out a little above full screen. */
+ * The public advertiser page quotes the video rate and refers the permanent
+ * spot to a conversation. SPOT_YEARLY below is the number the builder prices
+ * a spot at, and is not rendered anywhere outside a signed-in dashboard. */
 
 import type { FormatId } from '@/lib/boards';
 
-export type Tier = 'peak' | 'off';
 export type Daypart = 'lunch' | 'afternoon' | 'evening';
-export type PriceUnit = 'minute' | 'play';
+export type PriceUnit = 'year' | 'hour';
 
 /** A spot is fifteen seconds, so four of them fill a minute. */
 export const SPOT_SECONDS = 15;
@@ -31,27 +33,19 @@ export const PLAYS_PER_MINUTE = 60 / SPOT_SECONDS;
 
 /* ---- the rate card ------------------------------------------------------ */
 
-export const FORMAT_PRICES: Record<
-  FormatId,
-  { unit: PriceUnit; rates: Record<Tier, number> }
-> = {
-  /* A strip under the menu. The board stays readable, so it is the least we
-     ask the room for and the least we charge. */
-  banner: { unit: 'minute', rates: { peak: 0.15, off: 0.08 } },
-  /* The right third, top to bottom, beside the menu. */
-  rail: { unit: 'minute', rates: { peak: 0.24, off: 0.13 } },
-  /* The whole board for your turn. The menu is gone while it runs. */
-  full: { unit: 'minute', rates: { peak: 0.33, off: 0.18 } },
-  /* Fifteen seconds of motion. Quoted and billed by the minute like the
-     rest, which is the same money as the old per-play rate -- four plays
-     fill a minute -- and the only unit that can describe a spot inside a
-     looping reel, where no discrete "play" exists to count. */
-  video: { unit: 'minute', rates: { peak: 0.4, off: 0.24 } },
-};
+/** One permanent bottom-banner spot, on one screen, for twelve months. */
+export const SPOT_YEARLY = 1000;
 
-/* The format a shop's earnings estimate is quoted on. It is the cheapest one,
-   so the figure a shop is shown is a floor rather than a best case. */
-export const BASELINE_FORMAT: FormatId = 'banner';
+/** Video, per hour the spot was actually on screen. */
+export const VIDEO_HOURLY = 20;
+
+/** The same video rate by the minute, which is how delivery is counted. */
+export const VIDEO_PER_MINUTE = VIDEO_HOURLY / 60;
+
+export const FORMAT_PRICES: Record<FormatId, { unit: PriceUnit; rate: number }> = {
+  banner: { unit: 'year', rate: SPOT_YEARLY },
+  video: { unit: 'hour', rate: VIDEO_HOURLY },
+};
 
 /** Never rendered. Turns what advertisers pay into what the shop is paid. */
 const SHOP_SHARE = 0.65;
@@ -59,44 +53,48 @@ const SHOP_SHARE = 0.65;
 /** Ads take a third of the board; the shop's own content keeps the rest. */
 export const DEFAULT_AD_SHARE = 1 / 3;
 
+export function unitOf(format: FormatId) {
+  return FORMAT_PRICES[format].unit;
+}
+
+/** True for the thing that is a place rather than a quantity of time. */
+export function isPermanent(format: FormatId) {
+  return FORMAT_PRICES[format].unit === 'year';
+}
+
+/** The price of one unit of this format: a year for a spot, an hour of video. */
+export function rateFor(format: FormatId) {
+  return FORMAT_PRICES[format].rate;
+}
+
+/** Per minute, which is the unit delivery is counted in. Zero for a spot,
+    which is bought outright and never metered. */
+export function perMinuteRate(format: FormatId) {
+  return isPermanent(format) ? 0 : FORMAT_PRICES[format].rate / 60;
+}
+
+/* ---- the shop day -------------------------------------------------------
+   Dayparts survive the flat rate because reporting still splits a week by
+   them: an advertiser wants to know which hours their video actually landed
+   in, even when every hour costs the same. Nothing here prices anything. */
+
 export const DAYPARTS: {
   id: Daypart;
   label: string;
   window: string;
-  tier: Tier;
   /** Hours this daypart runs on a day the shop is open. */
   hours: number;
 }[] = [
-  { id: 'lunch', label: 'Lunch', window: '11am-2pm', tier: 'peak', hours: 3 },
-  { id: 'afternoon', label: 'Afternoon', window: '2pm-5pm', tier: 'off', hours: 3 },
-  { id: 'evening', label: 'Evening', window: '5pm-9pm', tier: 'peak', hours: 4 },
+  { id: 'lunch', label: 'Lunch', window: '11am-2pm', hours: 3 },
+  { id: 'afternoon', label: 'Afternoon', window: '2pm-5pm', hours: 3 },
+  { id: 'evening', label: 'Evening', window: '5pm-9pm', hours: 4 },
 ];
-
-export const PEAK_DAYPARTS = DAYPARTS.filter((part) => part.tier === 'peak');
-export const OFF_DAYPARTS = DAYPARTS.filter((part) => part.tier === 'off');
 
 export function daypartById(id: Daypart) {
   return DAYPARTS.find((part) => part.id === id) ?? DAYPARTS[0];
 }
 
-export function unitOf(format: FormatId) {
-  return FORMAT_PRICES[format].unit;
-}
-
-/** The price of one unit of this format: a minute, or a play for video. */
-export function rateFor(format: FormatId, daypart: Daypart) {
-  return FORMAT_PRICES[format].rates[daypartById(daypart).tier];
-}
-
-/** The same price expressed per minute, so formats can be compared. */
-export function perMinuteRate(format: FormatId, daypart: Daypart) {
-  const rate = rateFor(format, daypart);
-  return unitOf(format) === 'play' ? rate * PLAYS_PER_MINUTE : rate;
-}
-
-/** Cheapest and dearest across the whole card, for "from X" lines. */
-export const RATE_FLOOR = FORMAT_PRICES.banner.rates.off;
-export const RATE_CEILING = FORMAT_PRICES.full.rates.peak;
+const ALL_DAYPARTS: Daypart[] = DAYPARTS.map((part) => part.id);
 
 /* ---- inventory ---------------------------------------------------------- */
 
@@ -106,7 +104,31 @@ export type Priceable = {
   daysOpen: number;
   /** Share of screen time sold as ads. Defaults to a third. */
   adShare?: number;
+  /** Permanent spots already sold on this board. */
+  spotsTaken?: number;
 };
+
+/* Permanent bottom-banner spots one screen carries before it is full. Four
+   advertisers sharing the strip means each one holds it a quarter of the
+   time, which is often enough to be seen and rare enough to be worth a year's
+   fee. It is also what sets a shop's floor: four spots at SPOT_YEARLY, at the
+   shop's share, is what a board pays its owner before a minute of video
+   sells. */
+export const SPOTS_PER_SCREEN = 4;
+
+/** How many permanent spots this venue has in total. */
+export function spotsOn(venue: Priceable) {
+  return venue.screens * SPOTS_PER_SCREEN;
+}
+
+/** How many are still there to buy. */
+export function spotsFree(venue: Priceable) {
+  return Math.max(0, spotsOn(venue) - (venue.spotsTaken ?? 0));
+}
+
+export function totalSpotsFree(venues: Priceable[]) {
+  return venues.reduce((total, venue) => total + spotsFree(venue), 0);
+}
 
 /** Minutes of ad time one venue has to sell in a daypart, each week. */
 export function weeklyMinutes(venue: Priceable, id: Daypart) {
@@ -114,99 +136,66 @@ export function weeklyMinutes(venue: Priceable, id: Daypart) {
   return Math.round(daypartById(id).hours * 60 * venue.daysOpen * venue.screens * share);
 }
 
-const ALL_DAYPARTS: Daypart[] = DAYPARTS.map((part) => part.id);
-
-/** What is available across some venues and dayparts, priced for a format. */
-export function inventory(
-  venues: Priceable[],
-  dayparts: Daypart[] = ALL_DAYPARTS,
-  format: FormatId = BASELINE_FORMAT,
-) {
+/** Minutes of video these venues can carry in a week, and what that is worth. */
+export function inventory(venues: Priceable[], dayparts: Daypart[] = ALL_DAYPARTS) {
   const chosen = dayparts.length ? dayparts : ALL_DAYPARTS;
   let minutes = 0;
-  let value = 0;
   for (const venue of venues) {
-    for (const id of chosen) {
-      const mins = weeklyMinutes(venue, id);
-      minutes += mins;
-      value += mins * perMinuteRate(format, id);
-    }
+    for (const id of chosen) minutes += weeklyMinutes(venue, id);
   }
-  return { minutes, plays: Math.round(minutes * PLAYS_PER_MINUTE), value };
+  return { minutes, hours: minutes / 60, value: minutes * VIDEO_PER_MINUTE };
 }
 
-/** The average price of a minute across whatever is selected. */
-export function blendedRate(
-  venues: Priceable[],
-  dayparts: Daypart[] = ALL_DAYPARTS,
-  format: FormatId = BASELINE_FORMAT,
-) {
-  const { minutes, value } = inventory(venues, dayparts, format);
-  return minutes ? value / minutes : perMinuteRate(format, 'lunch');
+/** The most video hours a week on these screens could hold. */
+export function maxHours(venues: Priceable[], dayparts: Daypart[] = ALL_DAYPARTS) {
+  return Math.max(1, Math.floor(inventory(venues, dayparts).hours));
 }
 
-/** How many minutes a weekly spend buys, capped by what actually exists. */
-export function minutesFor(
-  spend: number,
-  venues: Priceable[],
-  dayparts: Daypart[] = ALL_DAYPARTS,
-  format: FormatId = BASELINE_FORMAT,
-) {
-  const rate = blendedRate(venues, dayparts, format);
-  const { minutes: available } = inventory(venues, dayparts, format);
-  return Math.min(available, Math.round(spend / rate));
+/** What a run of video hours costs. */
+export function videoCost(hours: number) {
+  return hours * VIDEO_HOURLY;
 }
 
-/** Plays that spend buys. The billed unit for video. */
-export function playsFor(
-  spend: number,
-  venues: Priceable[],
-  dayparts: Daypart[] = ALL_DAYPARTS,
-  format: FormatId = BASELINE_FORMAT,
-) {
-  return Math.round(minutesFor(spend, venues, dayparts, format) * PLAYS_PER_MINUTE);
-}
-
-/** The most a week on these screens can cost, because that is all there is. */
-export function maxSpend(
-  venues: Priceable[],
-  dayparts: Daypart[] = ALL_DAYPARTS,
-  format: FormatId = BASELINE_FORMAT,
-) {
-  return Math.floor(inventory(venues, dayparts, format).value);
+/** What a set of permanent spots costs for a year. */
+export function spotCost(spots: number) {
+  return spots * SPOT_YEARLY;
 }
 
 /* ---- the shop's side ----------------------------------------------------
    These return what the shop is paid. Nothing here exposes the share it is
-   worked out from, and no component should render anything but the result. */
+   worked out from, and no component should render anything but the result.
 
-/** What a shop takes home in a week, quoted on the cheapest format. */
-/** A shop's cut of one booking's weekly spend, split evenly across the boards
-    it named. Shop-facing: the share itself stays private. */
+   A shop's year is the permanent spots on its own boards plus whatever video
+   ran across them. The spots are the part that is predictable, so they are
+   what the estimate is built on and the video is quoted separately: a floor a
+   shop can count on rather than a best case. */
+
+/** A shop's cut of one booking, split evenly across the boards it named. */
 export function shopEarningsFromSpend(spend: number, boardsInBooking: number) {
   return (spend / Math.max(1, boardsInBooking)) * SHOP_SHARE;
 }
 
-export function weeklyEarnings(venue: Priceable) {
-  return inventory([venue], ALL_DAYPARTS, BASELINE_FORMAT).value * SHOP_SHARE;
-}
-
-/** The same week if every minute sold as the dearest format instead. */
-export function weeklyCeiling(venue: Priceable) {
-  return inventory([venue], ALL_DAYPARTS, 'full').value * SHOP_SHARE;
+/** What the permanent spots on this board pay their shop in a year. */
+export function yearlyEarnings(venue: Priceable) {
+  return spotsOn(venue) * SPOT_YEARLY * SHOP_SHARE;
 }
 
 export function monthlyEarnings(venue: Priceable) {
-  return weeklyEarnings(venue) * (52 / 12);
+  return yearlyEarnings(venue) / 12;
 }
 
-export function yearlyEarnings(venue: Priceable) {
-  return weeklyEarnings(venue) * 52;
+export function weeklyEarnings(venue: Priceable) {
+  return yearlyEarnings(venue) / 52;
 }
 
-/** What a shop is paid for one daypart's minutes, on the baseline format. */
+/** What a week of video on this board would add on top, if every minute sold. */
+export function weeklyVideoEarnings(venue: Priceable) {
+  return inventory([venue]).value * SHOP_SHARE;
+}
+
+/** What a shop is paid for one daypart's video minutes in a week. */
 export function daypartEarnings(venue: Priceable, id: Daypart) {
-  return weeklyMinutes(venue, id) * perMinuteRate(BASELINE_FORMAT, id) * SHOP_SHARE;
+  return weeklyMinutes(venue, id) * VIDEO_PER_MINUTE * SHOP_SHARE;
 }
 
 /* ---- formatting --------------------------------------------------------- */
@@ -217,7 +206,7 @@ export const money = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0,
 });
 
-/** Rates are cents, so they need the decimals the money formatter drops. */
+/** Rates that are not round dollars need the decimals the money formatter drops. */
 export const cents = new Intl.NumberFormat('en-US', {
   style: 'currency',
   currency: 'USD',
@@ -226,19 +215,9 @@ export const cents = new Intl.NumberFormat('en-US', {
 
 export const count = new Intl.NumberFormat('en-US');
 
-/** "$0.15 / min" or "$0.10 / play", whichever this format is billed in. */
-export function rateLabel(format: FormatId, daypart: Daypart) {
-  return `${cents.format(rateFor(format, daypart))} / ${unitOf(format)}`;
-}
-
-export function unitLabel(format: FormatId, plural = true) {
-  const unit = unitOf(format);
-  return plural ? `${unit}s` : unit;
-}
-
 export function hoursLabel(minutes: number) {
   const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
+  const rest = Math.round(minutes % 60);
   if (!hours) return `${rest} min`;
   return rest ? `${count.format(hours)} hr ${rest} min` : `${count.format(hours)} hr`;
 }

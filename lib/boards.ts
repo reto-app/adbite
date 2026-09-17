@@ -1,4 +1,4 @@
-/* Ad formats and the slot each board gives them.
+/* The two ad formats, and the slot each board gives them.
  *
  * Slot rects are percentages measured by hand against the poster frames in
  * `public/boards/*.jpg`. Re-render one of those Remotion boards and its
@@ -6,7 +6,7 @@
  * campaign builder and the advertiser-page flow map read them from here so
  * there is only one set to correct. */
 
-export type FormatId = 'banner' | 'rail' | 'full' | 'video';
+export type FormatId = 'banner' | 'video';
 
 export type Slot = { left: number; top: number; width: number; height: number };
 
@@ -22,32 +22,16 @@ export const FORMATS: {
 }[] = [
   {
     id: 'banner',
-    name: 'Bottom banner',
-    blurb: 'A strip under the shop’s menu. Their board stays readable the whole time.',
+    name: 'Permanent spot',
+    blurb: 'A static ad in the strip under the shop’s menu, held for a year. Their board stays readable the whole time.',
     spec: '1920 × 240 · still image',
     diagram: { left: '4%', top: '76%', width: '92%', height: '18%' },
     showcase: 'rosas',
   },
   {
-    id: 'rail',
-    name: 'Side rail',
-    blurb: 'The right third of a wide board, top to bottom, beside the menu.',
-    spec: '720 × 1080 · still image',
-    diagram: { left: '64%', top: '8%', width: '30%', height: '84%' },
-    showcase: 'roost',
-  },
-  {
-    id: 'full',
-    name: 'Full screen',
-    blurb: 'The whole screen for one turn of the rotation, then the menu returns.',
-    spec: '1920 × 1080 · still image',
-    diagram: { left: '4%', top: '8%', width: '92%', height: '84%' },
-    showcase: 'rosas',
-  },
-  {
     id: 'video',
     name: 'Short video',
-    blurb: 'Up to fifteen seconds of motion, muted, in the full-screen slot.',
+    blurb: 'Up to fifteen seconds of motion, muted, between turns of the shop’s own footage.',
     spec: '1920 × 1080 · up to 0:15',
     diagram: { left: '4%', top: '8%', width: '92%', height: '84%' },
     showcase: 'rosas',
@@ -69,7 +53,6 @@ export const BOARDS: Board[] = [
     screen: '55" wide board over the counter',
     slots: {
       banner: { left: 0.9, top: 84.3, width: 98.2, height: 14.5 },
-      full: { left: 0.9, top: 1.5, width: 98.2, height: 97 },
       video: { left: 0.9, top: 1.5, width: 98.2, height: 97 },
     },
   },
@@ -78,8 +61,6 @@ export const BOARDS: Board[] = [
     name: 'The Roost Shop',
     screen: '43" board, menu on the left',
     slots: {
-      rail: { left: 69.3, top: 2.2, width: 29.7, height: 95.6 },
-      full: { left: 5.7, top: 1.5, width: 93.7, height: 97 },
       video: { left: 5.7, top: 1.5, width: 93.7, height: 97 },
     },
   },
@@ -88,8 +69,6 @@ export const BOARDS: Board[] = [
     name: 'Forno Nove',
     screen: 'Two portrait screens, ad on the right',
     slots: {
-      rail: { left: 52.1, top: 7, width: 25.4, height: 86 },
-      full: { left: 52.1, top: 7, width: 25.4, height: 86 },
       video: { left: 52.1, top: 7, width: 25.4, height: 86 },
     },
   },
@@ -100,7 +79,6 @@ export const BOARDS: Board[] = [
     portrait: true,
     slots: {
       banner: { left: 1.5, top: 87.3, width: 97, height: 11.1 },
-      full: { left: 1.5, top: 1.5, width: 97, height: 97 },
       video: { left: 1.5, top: 1.5, width: 97, height: 97 },
     },
   },

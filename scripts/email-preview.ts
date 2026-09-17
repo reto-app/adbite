@@ -6,7 +6,16 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { html, text } from '../lib/email/layout';
-import { approvalNeeded, bookingReceived, campaignDecided, signInLink } from '../lib/email/templates';
+import { BANK } from '../lib/server/bank';
+import {
+  approvalNeeded,
+  bookingReceived,
+  campaignDecided,
+  invoiceIssued,
+  paymentReceived,
+  remittanceSent,
+  signInLink,
+} from '../lib/email/templates';
 
 const AUTH_LINK = '{{ .ConfirmationURL }}';
 
@@ -25,7 +34,7 @@ if (process.argv.includes('--auth')) {
   const samples = {
     'sign-in': signInLink(),
     'booking-received': bookingReceived({
-      campaignName: 'Side rail · Sep 16',
+      campaignName: 'Permanent spot · Sep 16',
       format: 'Side rail',
       venues: ['Bao Pao Wow'],
       dayparts: ['Lunch', 'Evening'],
@@ -33,8 +42,20 @@ if (process.argv.includes('--auth')) {
       minutes: 510,
     }),
     'approval-needed': approvalNeeded({ shopName: 'Bao Pao Wow', advertiser: 'sam@ironrosegym.com', format: 'Side rail', weeklyEarnings: 78 }),
-    'approved': campaignDecided({ campaignName: 'Side rail · Sep 16', shopName: 'Bao Pao Wow', approved: true }),
-    'rejected': campaignDecided({ campaignName: 'Side rail · Sep 16', shopName: 'Bao Pao Wow', approved: false }),
+    'approved': campaignDecided({ campaignName: 'Permanent spot · Sep 16', shopName: 'Bao Pao Wow', approved: true }),
+    'rejected': campaignDecided({ campaignName: 'Permanent spot · Sep 16', shopName: 'Bao Pao Wow', approved: false }),
+    /* The bank details are read from the environment, so a preview run without
+       them shows the empty rows -- which is the point: it is how you notice. */
+    'invoice': invoiceIssued({
+      number: 'AB-2026-0001',
+      amount: '$412.40',
+      dueOn: '2026-10-01',
+      lines: [['Iron Rose Gym · January intake', '$282.40'], ['Mia’s Flower Bar · weekend stems', '$130.00']],
+      bank: BANK,
+      note: 'Video shown between 2026-09-08 and 2026-09-15.',
+    }),
+    'receipt': paymentReceived({ number: 'AB-2026-0001', amount: '$412.40', paidOn: '2026-09-29' }),
+    'remittance': remittanceSent({ number: 'AB-2026-0002', shopName: 'Bao Pao Wow', amount: '$268.06', last4: '4417' }),
   };
   for (const [name, mail] of Object.entries(samples)) {
     writeFileSync(`out/email/${name}.html`, html(mail));

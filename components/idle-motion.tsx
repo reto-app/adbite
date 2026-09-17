@@ -13,7 +13,7 @@ import { useEffect } from 'react';
  * It marks sections rather than individual elements, and the CSS pauses their
  * subtree, so no component needs to know it is being watched. */
 
-const WATCH = '.formats, .venues, .network, .approval, .hero-band, .flow-section, .boards-section';
+const WATCH = '.formats, .venues, .approval, .hero-band, .boards-section';
 
 export function IdleMotion() {
   useEffect(() => {

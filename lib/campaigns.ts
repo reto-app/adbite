@@ -24,7 +24,7 @@ import { FORMATS, type FormatId } from '@/lib/boards';
 import { DAYPARTS } from '@/lib/pricing';
 import type { AgeBand } from '@/lib/network';
 import { LIVE_VENUES, VENUES } from '@/lib/network';
-import { blendedRate, minutesFor as minutesForSpend, type Daypart } from '@/lib/pricing';
+import { VIDEO_HOURLY, VIDEO_PER_MINUTE, isPermanent, spotCost, type Daypart } from '@/lib/pricing';
 
 const SAMPLES_KEY = 'adbite.samples';
 
@@ -32,7 +32,11 @@ export type Campaign = {
   id: string;
   name: string;
   createdAt: number;
+  /* What the advertiser committed to a week. Video only: a permanent spot is
+     bought outright rather than by the week, and carries zero here. */
   weeklySpend: number;
+  /* Permanent bottom-banner spots bought, one per screen. Zero for video. */
+  spots: number;
   format: FormatId;
   venues: string[];
   ages: AgeBand[];
@@ -67,23 +71,29 @@ function venuesOf(campaign: Pick<Campaign, 'venues'>) {
   return chosen.length ? chosen : LIVE_VENUES;
 }
 
-/* Minutes depend on when the ad runs now that peak costs more than the dead
-   middle of the afternoon, so a campaign has to be priced against its own
-   daypart mix rather than one flat rate. */
-export function campaignMinutes(
-  campaign: Pick<Campaign, 'venues' | 'dayparts' | 'weeklySpend' | 'format'>,
-) {
-  return minutesForSpend(
-    campaign.weeklySpend,
-    venuesOf(campaign),
-    campaign.dayparts,
-    campaign.format,
-  );
+/* Video is one flat rate at every hour, so the minutes a week buys is
+   division rather than a blend across dayparts. A permanent spot buys no
+   minutes at all: it is a place on the board for a year, and the strip it
+   sits in is up whenever the shop is open. */
+export function campaignMinutes(campaign: Pick<Campaign, 'weeklySpend' | 'format'>) {
+  if (isPermanent(campaign.format)) return 0;
+  return Math.round(campaign.weeklySpend / VIDEO_PER_MINUTE);
 }
 
-/** Always per minute. Divide by four for the per-play price of a video. */
-export function campaignRate(campaign: Pick<Campaign, 'venues' | 'dayparts' | 'format'>) {
-  return blendedRate(venuesOf(campaign), campaign.dayparts, campaign.format);
+/** Video hours a week, which is the unit it is bought and invoiced in. */
+export function campaignHours(campaign: Pick<Campaign, 'weeklySpend' | 'format'>) {
+  if (isPermanent(campaign.format)) return 0;
+  return campaign.weeklySpend / VIDEO_HOURLY;
+}
+
+/** What a permanent-spot campaign is invoiced, once, for its twelve months. */
+export function campaignSpotCost(campaign: Pick<Campaign, 'spots' | 'format'>) {
+  return isPermanent(campaign.format) ? spotCost(campaign.spots) : 0;
+}
+
+/** Always per minute. Zero for a spot, which is never metered. */
+export function campaignRate(campaign: Pick<Campaign, 'format'>) {
+  return isPermanent(campaign.format) ? 0 : VIDEO_PER_MINUTE;
 }
 
 /* ---- the store ----------------------------------------------------------- */
@@ -93,6 +103,7 @@ type Row = {
   name: string;
   created_at: string;
   weekly_spend: number | string;
+  spots?: number | null;
   format: FormatId;
   venues: string[];
   ages: AgeBand[];
@@ -143,6 +154,7 @@ function fromRow(row: Row, mine: string[] | null): Campaign {
     name: row.name,
     createdAt: Date.parse(row.created_at),
     weeklySpend: Number(row.weekly_spend),
+    spots: Number(row.spots ?? 0),
     format: row.format,
     venues: row.venues ?? [],
     ages: row.ages ?? [],
@@ -234,6 +246,7 @@ export async function addCampaign(campaign: Omit<Campaign, 'id' | 'createdAt'>):
       dayparts: campaign.dayparts,
       ages: campaign.ages,
       weekly_spend: campaign.weeklySpend,
+      spots: campaign.spots,
       creative_name: campaign.creativeName,
       creative_id: campaign.creativeId ?? null,
       email: campaign.email,
@@ -271,22 +284,6 @@ export async function removeCampaign(id: string) {
   await supabase().from('campaigns').delete().eq('id', id);
   previews.delete(id);
   reloadCampaigns();
-}
-
-/** Opens Stripe Checkout to save the card used for later usage-based charges.
-    The signed webhook, rather than this browser redirect, makes it playable. */
-export async function beginPaymentSetup(campaignId: string): Promise<void> {
-  const { data } = await supabase().auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) throw new Error('Sign in to add a payment method');
-  const response = await fetch('/api/stripe/checkout', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-    body: JSON.stringify({ campaignId }),
-  });
-  const body = (await response.json().catch(() => ({}))) as { url?: string; message?: string };
-  if (!response.ok || !body.url) throw new Error(body.message ?? 'Could not open secure checkout');
-  window.location.assign(body.url);
 }
 
 /* The shop owner's decision, made on their side of the product and read on the
@@ -344,9 +341,10 @@ const DAY = 24 * 60 * 60 * 1000;
    somebody asks for them, and every panel that draws one says Sample. */
 const SAMPLES: Omit<Campaign, 'id' | 'createdAt'>[] = [
   {
-    name: 'Rosewood Barbers · autumn walk-ins',
-    weeklySpend: 180,
-    format: 'full',
+    name: 'Rosewood Barbers · permanent spots',
+    weeklySpend: 0,
+    spots: 6,
+    format: 'banner',
     venues: [
       'baopaowow',
       'centerst-pizza',
@@ -362,11 +360,12 @@ const SAMPLES: Omit<Campaign, 'id' | 'createdAt'>[] = [
     email: 'hello@rosewoodbarbers.com',
     startedAt: Date.now() - 23 * DAY,
     sample: true,
-    note: 'Downtown and campus, peak hours only. Walk-ins, no appointment.',
+    note: 'Six boards downtown and around campus, held for the year. Walk-ins, no appointment.',
   },
   {
     name: 'North Park Dental · new patients',
-    weeklySpend: 95,
+    weeklySpend: 0,
+    spots: 4,
     format: 'banner',
     venues: ['baopaowow', 'summit-strength', 'campus-cuts', 'cougar-wings'],
     ages: ['25-34', '35-49'],
@@ -376,15 +375,16 @@ const SAMPLES: Omit<Campaign, 'id' | 'createdAt'>[] = [
     email: 'front@northparkdental.com',
     startedAt: Date.now() - 11 * DAY,
     sample: true,
-    note: 'A strip under the menu, every open hour, around the campus gate.',
+    note: 'A spot on four boards around the campus gate, every open hour, all year.',
   },
   {
     /* Left unapproved on purpose: the shop side needs something in its queue,
        and a booking that has not been said yes to yet is the honest shape of
        what an advertiser sees while they wait. */
     name: 'Iron Rose Gym · January intake',
-    weeklySpend: 70,
-    format: 'rail',
+    weeklySpend: 120,
+    spots: 0,
+    format: 'video',
     venues: ['baopaowow', 'summit-strength'],
     ages: ['18-24', '25-34'],
     dayparts: ['evening'],
@@ -393,11 +393,12 @@ const SAMPLES: Omit<Campaign, 'id' | 'createdAt'>[] = [
     email: 'sam@ironrosegym.com',
     startedAt: null,
     sample: true,
-    note: 'First class free, two doors down. Evenings only.',
+    note: 'Six hours of video a week, two boards, evenings only. First class free.',
   },
   {
     name: 'Mia’s Flower Bar · weekend stems',
-    weeklySpend: 45,
+    weeklySpend: 40,
+    spots: 0,
     format: 'video',
     venues: ['baopaowow'],
     ages: [],
@@ -407,7 +408,7 @@ const SAMPLES: Omit<Campaign, 'id' | 'createdAt'>[] = [
     email: 'mia@miasflowerbar.com',
     startedAt: Date.now() - 5 * DAY,
     sample: true,
-    note: 'One board, dinner only, fifteen seconds of motion.',
+    note: 'Two hours a week on one board, dinner only, fifteen seconds of motion.',
   },
 ];
 

@@ -2,22 +2,13 @@
 
 import { useState } from 'react';
 import { ArrowRight, Check, Mail } from 'lucide-react';
-import { SiteHeader } from '@/components/site-header';
+import { DashboardHeader } from '@/components/dashboard-header';
 import { AdvertiserDashboard } from '@/app/dashboard/advertiser-dashboard';
 import { ShopDashboard } from '@/app/dashboard/shop-dashboard';
 import { ACCOUNTS, setAccount, signIn, useAccount } from '@/lib/account';
 import { SUPPORT_MAIL, SUPPORT_MAILTO } from '@/lib/site';
 import { useCopy } from '@/lib/lang';
 import { SHARED } from '@/lib/copy/shared';
-
-function useNav() {
-  const t = useCopy(SHARED);
-  return [
-    { href: '/advertisers', label: t.nav.forAdvertisers },
-    { href: '/', label: t.nav.forShops },
-    { href: '/faq', label: t.nav.faq },
-  ];
-}
 
 /* The door. An email address and a link in the mail; no password. */
 function SignInPanel() {
@@ -93,12 +84,11 @@ function SignInPanel() {
 export function DashboardPage() {
   const { ready, kind, user } = useAccount();
   const t = useCopy(SHARED);
-  const NAV = useNav();
 
   if (!ready) {
     return (
       <main className="campaign-page">
-        <SiteHeader nav={NAV} />
+        <DashboardHeader />
         <div className="campaign-loading" aria-hidden="true" />
       </main>
     );
@@ -107,7 +97,7 @@ export function DashboardPage() {
   if (!user) {
     return (
       <main className="campaign-page choose">
-        <SiteHeader nav={NAV} />
+        <DashboardHeader />
         <SignInPanel />
       </main>
     );
@@ -118,7 +108,7 @@ export function DashboardPage() {
 
   return (
     <main className="campaign-page choose">
-      <SiteHeader nav={NAV} />
+      <DashboardHeader />
       <section className="choose-side wrap">
         <h1>{t.choose.title}</h1>
         <p>{t.choose.lede(user.email)}</p>
