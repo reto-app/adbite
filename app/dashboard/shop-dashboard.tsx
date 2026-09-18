@@ -66,6 +66,7 @@ import { POLL_MINUTES, isOnline, pairDevice, renameDevice, useDevices, type Devi
 import {
   removeShopMedia,
   setHoldSeconds,
+  setMediaDevices,
   uploadShopMedia,
   useShopMedia,
   type ShopMedia,
@@ -1043,6 +1044,42 @@ function MediaPanel() {
   );
 }
 
+/* One chip per TV. A piece plays on every TV unless the owner taps one off,
+   and tapping the last one back on puts it back to "every TV" rather than
+   leaving a list that happens to be complete, so a TV paired next month gets
+   it too. With one TV there is nothing to choose, so the row is not drawn. */
+function PlaysOn({ item }: { item: ShopMedia }) {
+  const t = useCopy(COPY).media;
+  const { devices } = useDevices();
+  if (devices.length < 2) return null;
+  const on = (id: string) => item.deviceIds === null || item.deviceIds.includes(id);
+  const toggle = (id: string) => {
+    const next = devices.map((d) => d.id).filter((d) => (d === id ? !on(d) : on(d)));
+    void setMediaDevices(item.id, next.length === devices.length ? null : next);
+  };
+  return (
+    <div className="media-tvs">
+      <span>{t.playsOn}</span>
+      <div className="chip-row">
+        {devices.map((device) => (
+          <button
+            key={device.id}
+            type="button"
+            className={`chip${on(device.id) ? ' on' : ''}`}
+            aria-pressed={on(device.id)}
+            onClick={() => toggle(device.id)}
+          >
+            <Tv size={12} /> {device.name}
+          </button>
+        ))}
+      </div>
+      {item.deviceIds !== null && item.deviceIds.length === 0 && (
+        <i className="media-tvs-none">{t.noTv}</i>
+      )}
+    </div>
+  );
+}
+
 function MediaCard({ item }: { item: ShopMedia }) {
   const t = useCopy(COPY).media;
   return (
@@ -1073,6 +1110,7 @@ function MediaCard({ item }: { item: ShopMedia }) {
             {t.seconds}
           </label>
         )}
+        <PlaysOn item={item} />
         <button type="button" onClick={() => void removeShopMedia(item.id)}>
           <Trash2 size={13} /> {t.remove}
         </button>

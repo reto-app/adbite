@@ -178,13 +178,16 @@ export async function POST(request: Request): Promise<Response> {
     }
   }
 
-  /* The shop's own media, which every screen carries and nobody is billed
-     for. A board the shop uploads is nothing but this plus the advertising. */
+  /* The shop's own media, which nobody is billed for. A piece plays on
+     every TV unless the shop narrowed it to some, in which case only those
+     screens get it. A board the shop uploads is nothing but this plus the
+     advertising. */
   const { data: mediaRows } = await db
     .from('shop_media')
     .select('id, name, kind, storage_path, sha256, bytes, seconds, hold_seconds')
     .eq('shop_id', device.shop_id)
     .eq('ready', true)
+    .or(`device_ids.is.null,device_ids.cs.{${device.id}}`)
     .order('position');
   const media = (mediaRows ?? [])
     .filter((row) => row.storage_path && row.sha256 && row.bytes)

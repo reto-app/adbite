@@ -26,6 +26,8 @@ export type ShopMedia = {
   holdSeconds: number;
   ready: boolean;
   position: number;
+  /** The TVs this plays on. Null is every TV the shop has, now and later. */
+  deviceIds: string[] | null;
 };
 
 type Cache = { ready: boolean; media: ShopMedia[] };
@@ -40,7 +42,7 @@ function announce() {
 async function load() {
   const { data } = await supabase()
     .from('shop_media')
-    .select('id, name, kind, storage_path, poster_path, seconds, hold_seconds, ready, position')
+    .select('id, name, kind, storage_path, poster_path, seconds, hold_seconds, ready, position, device_ids')
     .order('position');
   cache = {
     ready: true,
@@ -54,6 +56,7 @@ async function load() {
       holdSeconds: row.hold_seconds,
       ready: row.ready,
       position: row.position,
+      deviceIds: (row.device_ids as string[] | null) ?? null,
     })),
   };
   announce();
@@ -147,6 +150,16 @@ export async function removeShopMedia(id: string) {
 }
 
 /** How long a still is held on screen. Video plays for its own length. */
+/** Which TVs a piece plays on. Pass null to put it back on every TV. */
+export async function setMediaDevices(id: string, deviceIds: string[] | null) {
+  cache = {
+    ...cache,
+    media: cache.media.map((item) => (item.id === id ? { ...item, deviceIds } : item)),
+  };
+  announce();
+  await supabase().from('shop_media').update({ device_ids: deviceIds }).eq('id', id);
+}
+
 export async function setHoldSeconds(id: string, seconds: number) {
   await supabase().from('shop_media').update({ hold_seconds: Math.max(2, Math.min(60, seconds)) }).eq('id', id);
   reloadShopMedia();
