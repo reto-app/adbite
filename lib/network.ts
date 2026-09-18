@@ -96,9 +96,9 @@ export const NEIGHBORHOODS: {
   { id: 'saltlake', label: 'Salt Lake City', blurb: 'The Granary, west of downtown', at: [40.7623, -111.901], zoom: 14 },
 ];
 
-/* The shops on the network. Every one is a real restaurant; addresses are as
-   listed by the business. `status` says whether its board is up: live shops
-   carry bookings, prospects hold a place on a request until their screen is.
+/* The shops on the network. Every one is a real restaurant with a board up,
+   and addresses are as listed by the business. A shop that has signed but
+   whose screen is not yet on the wall would be a `prospect`; none is today.
 
    Thai Papaya was seeded under the id `baopaowow` before it had its own
    entry; the shop row and its bookings were renamed with it. */
@@ -139,8 +139,8 @@ export const VENUES: Venue[] = [
     board: 'Counter display',
     daysOpen: 6,
     adShare: DEFAULT_AD_SHARE,
-    since: 'In conversation',
-    status: 'prospect',
+    since: 'September 2026',
+    status: 'live',
     footfall: 2200,
   },
   {
@@ -159,8 +159,8 @@ export const VENUES: Venue[] = [
     board: 'Counter display',
     daysOpen: 6,
     adShare: DEFAULT_AD_SHARE,
-    since: 'In conversation',
-    status: 'prospect',
+    since: 'September 2026',
+    status: 'live',
     footfall: 2600,
   },
   {
@@ -179,8 +179,8 @@ export const VENUES: Venue[] = [
     board: 'Counter display',
     daysOpen: 6,
     adShare: DEFAULT_AD_SHARE,
-    since: 'In conversation',
-    status: 'prospect',
+    since: 'September 2026',
+    status: 'live',
     footfall: 2000,
   },
   {
@@ -199,8 +199,8 @@ export const VENUES: Venue[] = [
     board: 'Counter display',
     daysOpen: 6,
     adShare: DEFAULT_AD_SHARE,
-    since: 'In conversation',
-    status: 'prospect',
+    since: 'September 2026',
+    status: 'live',
     footfall: 4800,
   },
   {
@@ -219,8 +219,8 @@ export const VENUES: Venue[] = [
     board: 'Counter display',
     daysOpen: 6,
     adShare: DEFAULT_AD_SHARE,
-    since: 'In conversation',
-    status: 'prospect',
+    since: 'September 2026',
+    status: 'live',
     footfall: 3600,
   },
   {
@@ -239,8 +239,8 @@ export const VENUES: Venue[] = [
     board: 'Counter display',
     daysOpen: 6,
     adShare: DEFAULT_AD_SHARE,
-    since: 'In conversation',
-    status: 'prospect',
+    since: 'September 2026',
+    status: 'live',
     footfall: 3800,
   },
   {
@@ -259,8 +259,8 @@ export const VENUES: Venue[] = [
     board: 'Counter display',
     daysOpen: 6,
     adShare: DEFAULT_AD_SHARE,
-    since: 'In conversation',
-    status: 'prospect',
+    since: 'September 2026',
+    status: 'live',
     footfall: 3200,
   },
   {
@@ -279,8 +279,8 @@ export const VENUES: Venue[] = [
     board: 'Counter display',
     daysOpen: 6,
     adShare: DEFAULT_AD_SHARE,
-    since: 'In conversation',
-    status: 'prospect',
+    since: 'September 2026',
+    status: 'live',
     footfall: 3400,
   },
   {
@@ -299,8 +299,8 @@ export const VENUES: Venue[] = [
     board: 'Counter display',
     daysOpen: 6,
     adShare: DEFAULT_AD_SHARE,
-    since: 'In conversation',
-    status: 'prospect',
+    since: 'September 2026',
+    status: 'live',
     footfall: 5200,
   },
 ];
