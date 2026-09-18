@@ -76,6 +76,8 @@ import { useShopStatements } from '@/lib/statements';
 import { localeOf, useCopy, useLang } from '@/lib/lang';
 import { SHARED } from '@/lib/copy/shared';
 import { SHOP as COPY } from '@/lib/copy/shop';
+import { ONBOARDING } from '@/lib/copy/onboarding';
+import { useOnboarding } from '@/lib/onboarding';
 
 const SHOP = LIVE_VENUES[0];
 
@@ -101,6 +103,7 @@ type TabId = (typeof TABS)[number]['id'];
 
 export function ShopDashboard() {
   const { ready, board, save } = useBoard();
+  const { placed } = useOnboarding('shop');
   const { campaigns } = useCampaigns();
   const [tab, setTab] = useState<TabId>('board');
   const [slot, setSlot] = useState<SlotId>('midday');
@@ -171,7 +174,7 @@ export function ShopDashboard() {
       {tab === 'board' && (
         <BoardTab board={board} save={save} slot={slot} onSlot={setSlot} onChange={set} />
       )}
-      {tab === 'ads' && <AdsTab waiting={waiting} campaigns={campaigns} />}
+      {tab === 'ads' && <AdsTab waiting={waiting} campaigns={campaigns} placed={placed} />}
       {tab === 'money' && <MoneyTab board={board} priced={priced} />}
       {tab === 'tvs' && <TvTab />}
     </main>
@@ -595,8 +598,18 @@ function BankPanel() {
 
 /* ---- the approval queue -------------------------------------------------- */
 
-function AdsTab({ waiting, campaigns }: { waiting: Campaign[]; campaigns: Campaign[] }) {
+function AdsTab({
+  waiting,
+  campaigns,
+  placed,
+}: {
+  waiting: Campaign[];
+  campaigns: Campaign[];
+  /** Whether this shop is on the advertiser network yet. */
+  placed: boolean;
+}) {
   const t = useCopy(COPY).queue;
+  const onboard = useCopy(ONBOARDING);
   const shared = useCopy(SHARED);
   const day = useDay(DAY);
   const mine = campaigns.filter((campaign) => campaign.venues.includes(SHOP.id));
@@ -609,7 +622,13 @@ function AdsTab({ waiting, campaigns }: { waiting: Campaign[]; campaigns: Campai
         <p>{t.lede}</p>
       </div>
 
-      {waiting.length === 0 ? (
+      {/* A shop that is not on the network yet can never get an approval row,
+          because an advertiser cannot target a board that is not in the venue
+          list. Saying so is the difference between "nothing yet" and a queue
+          the owner slowly works out is broken. */}
+      {!placed ? (
+        <p className="queue-empty">{onboard.notPlaced}</p>
+      ) : waiting.length === 0 ? (
         <p className="queue-empty">
           {t.empty}
         </p>
@@ -634,7 +653,21 @@ function AdsTab({ waiting, campaigns }: { waiting: Campaign[]; campaigns: Campai
                   </div>
                   <div>
                     <dt>{t.from}</dt>
-                    <dd>{campaign.email ?? t.anAdvertiser}</dd>
+                    {/* A name and a website, not an email address. You are
+                        deciding whether to put this business on your wall. */}
+                    <dd>
+                      {campaign.advertiserName || campaign.email || t.anAdvertiser}
+                      {campaign.advertiserSite && (
+                        <a
+                          className="queue-site"
+                          href={campaign.advertiserSite}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                        >
+                          {campaign.advertiserSite.replace(/^https?:\/\//, '')}
+                        </a>
+                      )}
+                    </dd>
                   </div>
                 </dl>
                 {campaign.note && <p className="queue-note">{campaign.note}</p>}

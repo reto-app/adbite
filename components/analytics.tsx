@@ -65,7 +65,46 @@ export function Analytics() {
     };
 
     document.addEventListener('click', onClick);
-    return () => document.removeEventListener('click', onClick);
+
+    /* ---- did anyone actually read it ----------------------------------
+       Vercel counts a bounce as a session with one page view, and this site
+       is two long scrolling documents with in-page anchors. Somebody who
+       lands on the home page, reads all of it and submits the waitlist form
+       fires exactly one page view, so the bounce rate counts our best
+       visitor as a failure and there is no way to configure that away.
+
+       So measure the thing the bounce rate is standing in for: fire once per
+       page view, on whichever comes first -- half the page scrolled, or
+       twenty seconds. `engaged` against page views for the same window is
+       the number the bounce rate was supposed to be. A page shorter than the
+       window has nothing to scroll, which is why the timer is not merely a
+       backstop. */
+    let engaged = false;
+    const reached = () => {
+      if (engaged) return;
+      engaged = true;
+      track('engaged', { path: window.location.pathname });
+      stop();
+    };
+
+    const onScroll = () => {
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      /* Nothing to scroll: the timer owns this page. */
+      if (scrollable < 200) return;
+      if (window.scrollY / scrollable >= 0.5) reached();
+    };
+
+    const timer = window.setTimeout(reached, 20_000);
+    function stop() {
+      window.clearTimeout(timer);
+      window.removeEventListener('scroll', onScroll);
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    return () => {
+      document.removeEventListener('click', onClick);
+      stop();
+    };
   }, []);
 
   return <VercelAnalytics />;

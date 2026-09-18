@@ -149,6 +149,8 @@ export function invoiceIssued(facts: {
   dueOn: string;
   lines: [string, string][];
   bank: BankDetails;
+  /** Who it is addressed to. An invoice without this is a receipt for nobody. */
+  billTo?: string[];
   note?: string;
 }): Mail {
   return {
@@ -160,6 +162,9 @@ export function invoiceIssued(facts: {
         kind: 'lead',
         text: `${facts.amount} for what ran, due ${facts.dueOn}. Pay by bank transfer and quote ${facts.number} as the reference so we can match it.`,
       },
+      ...(facts.billTo?.length
+        ? [{ kind: 'rows' as const, rows: [['Billed to', facts.billTo.join(', ')] as [string, string]] }]
+        : []),
       { kind: 'rows', rows: facts.lines },
       {
         kind: 'rows',

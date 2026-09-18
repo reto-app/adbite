@@ -6,6 +6,8 @@ import { DashboardHeader } from '@/components/dashboard-header';
 import { AdvertiserDashboard } from '@/app/dashboard/advertiser-dashboard';
 import { ShopDashboard } from '@/app/dashboard/shop-dashboard';
 import { ACCOUNTS, setAccount, signIn, useAccount } from '@/lib/account';
+import { BusinessForm } from '@/components/onboarding/business-form';
+import { useOnboarding } from '@/lib/onboarding';
 import { SUPPORT_MAIL, SUPPORT_MAILTO } from '@/lib/site';
 import { useCopy } from '@/lib/lang';
 import { SHARED } from '@/lib/copy/shared';
@@ -83,6 +85,10 @@ function SignInPanel() {
  * advertiser is buying. */
 export function DashboardPage() {
   const { ready, kind, user } = useAccount();
+  const onboarding = useOnboarding(kind);
+  /* Bumped when the form saves, so the next render reads the fresh row rather
+     than the one the hook loaded before there was anything in it. */
+  const [saved, setSaved] = useState(false);
   const t = useCopy(SHARED);
 
   if (!ready) {
@@ -101,6 +107,31 @@ export function DashboardPage() {
         <SignInPanel />
       </main>
     );
+  }
+
+  if (kind) {
+    /* Wait for the row rather than flashing the form at somebody who answered
+       these questions months ago. */
+    if (!onboarding.ready) {
+      return (
+        <main className="campaign-page">
+          <DashboardHeader />
+          <div className="campaign-loading" aria-hidden="true" />
+        </main>
+      );
+    }
+    /* A hard gate. An invoice is addressed to a legal name at an address, and
+       a form you can skip at signup is a form nobody fills in. */
+    if (!onboarding.onboardedAt && !saved) {
+      return (
+        <BusinessForm
+          kind={kind}
+          initial={onboarding.business}
+          initialShop={onboarding.shop}
+          onDone={() => setSaved(true)}
+        />
+      );
+    }
   }
 
   if (kind === 'shop') return <ShopDashboard />;

@@ -110,9 +110,15 @@ export async function setAccount(kind: AccountKind) {
     const { data: existing } = await db.from('shops').select('id').eq('owner_id', user.id).limit(1);
     if (!existing?.length) {
       const board = starterBoard();
+      /* The row is created nameless. It used to be seeded with the starter
+         board's shop name, which is why the first real shop that ever signed
+         up was called Bao Pao Wow in the database: the demo leaked into their
+         record. Onboarding names it, a screen later, from what they type.
+         The board itself still opens on the example, which is the point of it
+         -- an editor that opens on an empty grid teaches nobody. */
       const { data: shop } = await db
         .from('shops')
-        .insert({ owner_id: user.id, name: board.shopName, ad_placement: board.adPlacement })
+        .insert({ owner_id: user.id, name: '', ad_placement: board.adPlacement })
         .select('id')
         .single();
       if (shop) await db.from('boards').insert({ shop_id: shop.id, board });

@@ -36,6 +36,11 @@ export type Campaign = {
   creativeId?: string | null;
   /** Where to send the booking confirmation. */
   email: string | null;
+  /* Who booked it, as the shop's approval queue shows them. Snapshotted at
+     booking time: a shop can only read its own row in `accounts`, and a name
+     and a website is all it needs to decide. */
+  advertiserName?: string | null;
+  advertiserSite?: string | null;
   /** Set once the shop approves and the board starts playing it. */
   startedAt?: number | null;
   /** A worked example rather than a booking somebody made. */
@@ -99,6 +104,8 @@ type Row = {
   creative_id: string | null;
   creatives?: { storage_path: string | null; kind: string } | null;
   email: string | null;
+  advertiser_name?: string | null;
+  advertiser_site?: string | null;
   note: string | null;
   approvals?: Approval[];
 };
@@ -154,6 +161,8 @@ function fromRow(row: Row, mine: string[] | null): Campaign {
       ? `${ASSETS_ORIGIN}/${row.creatives.storage_path}`
       : previews.get(row.id) ?? null,
     email: row.email,
+    advertiserName: row.advertiser_name ?? null,
+    advertiserSite: row.advertiser_site ?? null,
     note: row.note,
     startedAt,
     rejected,
@@ -223,10 +232,19 @@ export async function addCampaign(campaign: Omit<Campaign, 'id' | 'createdAt'>):
   const { data: auth } = await db.auth.getUser();
   if (!auth.user) throw new Error('Sign in to book a campaign');
 
+  /* The name the shop will see in its queue, as it stands today. */
+  const { data: me } = await db
+    .from('accounts')
+    .select('business_name, website')
+    .eq('id', auth.user.id)
+    .maybeSingle();
+
   const { data: row, error } = await db
     .from('campaigns')
     .insert({
       advertiser_id: auth.user.id,
+      advertiser_name: me?.business_name ?? null,
+      advertiser_site: me?.website ?? null,
       name: campaign.name,
       format: campaign.format,
       venues: campaign.venues,

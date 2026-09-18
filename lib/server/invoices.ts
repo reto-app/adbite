@@ -100,9 +100,24 @@ export async function invoiceCharge(
 
   const { data: account } = await db
     .from('accounts')
-    .select('email')
+    .select('email, business_name, contact_name, address_line1, address_line2, city, region, postal_code')
     .eq('id', advertiserId)
     .maybeSingle();
+
+  /* The name and address the advertiser gave at signup. Without them this is
+     a demand for money addressed to an email address, which is not something
+     a bookkeeper can act on. */
+  const billTo = account
+    ? [
+        account.business_name,
+        account.contact_name,
+        account.address_line1,
+        account.address_line2,
+        [account.city, account.region, account.postal_code].filter(Boolean).join(' '),
+      ]
+        .map((part) => String(part ?? '').trim())
+        .filter(Boolean)
+    : [];
 
   if (account?.email && bankConfigured()) {
     const sent = await send(
@@ -113,6 +128,7 @@ export async function invoiceCharge(
         dueOn: invoice.due_on as string,
         lines: lines.map((line) => [line.description, money(line.amountCents)] as [string, string]),
         bank: BANK,
+        billTo,
         note,
       }),
     );

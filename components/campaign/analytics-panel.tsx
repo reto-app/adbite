@@ -14,7 +14,7 @@ import {
 import { VenueMap } from '@/components/venue-map';
 import { FORMATS, boardById, type FormatId } from '@/lib/boards';
 import { type Venue } from '@/lib/network';
-import { cents, count, hoursLabel, money, unitOf } from '@/lib/pricing';
+import { cents, count, hoursLabel, money } from '@/lib/pricing';
 import { useCopy } from '@/lib/lang';
 import { CAMPAIGN } from '@/lib/copy/campaign';
 import { SHARED } from '@/lib/copy/shared';

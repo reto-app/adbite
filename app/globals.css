@@ -7793,6 +7793,111 @@ text.vs-small {
   }
 }
 
+/* ---- The questions on the way in ----------------------------------------
+   A form standing between somebody and the thing they signed up for, so it is
+   one column, wide-set, and every field says what its answer is for. */
+
+.onboard {
+  max-width: 620px;
+  padding: clamp(28px, 5vh, 56px) 0 64px;
+}
+
+.onboard h1 {
+  margin-bottom: 10px;
+}
+
+.onboard-lede {
+  margin: 0 0 clamp(20px, 3vh, 32px);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--ash);
+}
+
+.onboard-form {
+  display: grid;
+  gap: 18px;
+}
+
+.onboard-form fieldset {
+  margin: 0;
+  padding: 16px 18px 18px;
+  border: 2px solid var(--rule);
+  border-radius: 14px;
+  background: var(--chalk);
+  display: grid;
+  gap: 12px;
+}
+
+.onboard-form legend {
+  padding: 0 6px;
+  margin-left: -6px;
+  font-family: var(--font-display), sans-serif;
+  font-size: 14px;
+  letter-spacing: -0.02em;
+}
+
+/* The hint under a field. `shop-field` already styles the label and input. */
+.onboard-form .shop-field i {
+  font-style: normal;
+  font-size: 11.5px;
+  color: var(--ash-light);
+}
+
+.onboard-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.onboard-row.three {
+  grid-template-columns: 1.4fr 0.6fr 0.8fr;
+}
+
+.onboard-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0;
+  padding: 13px 15px;
+  border-radius: 12px;
+  background: var(--paper-sky);
+  color: var(--ink-sky);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.onboard-note svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.onboard-form .form-warn ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.onboard-form .button {
+  justify-self: start;
+}
+
+/* The advertiser's own web address, under their name in the approval queue. */
+.queue-site {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sky-deep);
+  border-bottom: 1px solid currentColor;
+  width: fit-content;
+}
+
+@media (max-width: 620px) {
+  .onboard-row,
+  .onboard-row.three {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ---- Picking a side ------------------------------------------------------ */
 
 .campaign-page.choose {
