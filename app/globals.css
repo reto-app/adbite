@@ -9902,6 +9902,31 @@ text.vs-small {
   font-variant-numeric: tabular-nums;
 }
 
+/* The money blue is drawn for paper. On the dark cards it read as navy on
+   black, so on those surfaces it takes the lighter blue instead. This sits
+   after `.money` on purpose: that rule used to win over the card's own
+   colour by coming later in the file. */
+.buy-hero .money,
+.spend-hero .money,
+.campaign-bar .money,
+.dash-head .money {
+  color: var(--money-on-dark);
+}
+
+/* Continue is white with black text on the dark bar, and stays that way
+   whatever else `.button` picks up. Disabled keeps the colours and only
+   fades, so it still reads as the same button. */
+.campaign-bar .button.invert {
+  background: var(--chalk);
+  color: var(--board);
+}
+
+.campaign-bar .button.invert:disabled {
+  background: var(--chalk);
+  color: var(--board);
+  opacity: 0.5;
+}
+
 .numbers-band .money,
 .campaign-bar .money,
 .site-footer .money,
