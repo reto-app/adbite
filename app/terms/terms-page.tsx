@@ -25,8 +25,8 @@ export function TermsPage() {
 
   return <main className="simple-page legal-page">
     <SiteHeader nav={[
-      { href: '/', label: shared.nav.forShops },
-      { href: '/advertisers', label: shared.nav.forAdvertisers },
+      { href: '/shops', label: shared.nav.forShops },
+      { href: '/', label: shared.nav.forAdvertisers },
       { href: '/faq', label: shared.nav.faq },
     ]}/>
 
@@ -47,8 +47,8 @@ export function TermsPage() {
     </section>
 
     <SiteFooter links={[
-      { href: '/', label: shared.nav.forShops },
-      { href: '/advertisers', label: shared.nav.forAdvertisers },
+      { href: '/shops', label: shared.nav.forShops },
+      { href: '/', label: shared.nav.forAdvertisers },
       { href: '/faq', label: shared.nav.faq },
       { href: MAILTO, label: shared.nav.contact },
     ]}/>

@@ -31,11 +31,11 @@ export function AboutPage() {
   return <main className="simple-page">
     <SiteHeader
       nav={[
-        { href: '/', label: shared.nav.forShops },
-        { href: '/advertisers', label: shared.nav.forAdvertisers },
+        { href: '/shops', label: shared.nav.forShops },
+        { href: '/', label: shared.nav.forAdvertisers },
         { href: '/faq', label: shared.nav.faq },
       ]}
-      cta={{ href: '/#join', label: shared.header.joinWaitlist }}
+      cta={{ href: '/shops#join', label: shared.header.joinWaitlist }}
     />
 
     <section className="simple-hero wrap">
@@ -69,14 +69,14 @@ export function AboutPage() {
       <Bite className="bite"/>
       <h2>{t.ctaTitle}</h2>
       <div>
-        <Link className="button invert" href="/#join">{t.joinShop} <ArrowRight size={16}/></Link>
-        <Link className="button ghost" href="/advertisers">{t.reach}</Link>
+        <Link className="button invert" href="/shops#join">{t.joinShop} <ArrowRight size={16}/></Link>
+        <Link className="button ghost" href="/">{t.reach}</Link>
       </div>
     </section>
 
     <SiteFooter links={[
-      { href: '/', label: shared.nav.forShops },
-      { href: '/advertisers', label: shared.nav.forAdvertisers },
+      { href: '/shops', label: shared.nav.forShops },
+      { href: '/', label: shared.nav.forAdvertisers },
       { href: '/faq', label: shared.nav.faq },
       { href: MAILTO, label: shared.nav.contact },
     ]}/>

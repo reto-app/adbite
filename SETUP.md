@@ -323,8 +323,8 @@ it through `useCopy(DICT)` from `lib/lang.ts`.
 | File | Covers |
 | --- | --- |
 | `shared.ts` | Header, footer, sign-in door, and the names of everything the data files define by id (formats, dayparts, placements, slots, themes, badges, groups, areas) |
-| `home.ts` | The shop landing page, format previews, board showcase |
-| `advertisers.ts` | The advertiser landing page, `/signin`, the network map |
+| `home.ts` | The shop landing page at `/shops`, format previews, board showcase |
+| `advertisers.ts` | The advertiser landing page at `/`, `/signin`, the network map |
 | `shop.ts` | The shop dashboard: editor, queue, earnings, TVs |
 | `campaign.ts` | The advertiser dashboard, the three-step builder, reporting, the flow and tour widgets |
 | `faq.ts`, `pages.ts` | FAQ; About, terms, privacy |
@@ -472,7 +472,7 @@ moving that slider moves the money. That loop is the point of the screen.
 
 ## Screenshots on the advertiser page
 
-`/advertisers` shows the real dashboard rather than a drawing of one.
+The advertiser page at `/` shows the real dashboard rather than a drawing of one.
 `public/shots/*.webp` are captured from the running product and played by
 `components/dashboard-reel.tsx`.
 

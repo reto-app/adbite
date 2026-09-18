@@ -105,7 +105,7 @@ function JoinForm() {
   );
 }
 
-export function HomePage() {
+export function ShopsPage() {
   const t = useCopy(HOME);
   const shared = useCopy(SHARED);
   const ads = t.ads.map((ad, i) => ({ ...ad, color: AD_COLORS[i] }));
@@ -125,7 +125,7 @@ export function HomePage() {
         { href: '/faq', label: shared.nav.faq },
       ]}
       cta={{ href: '#join', label: shared.header.joinWaitlist }}
-      aside={{ href: '/advertisers', label: shared.header.imAnAdvertiser }}
+      aside={{ href: '/', label: shared.header.imAnAdvertiser }}
     />
 
     <div className="hero-band">
@@ -197,7 +197,7 @@ export function HomePage() {
     <SiteFooter links={[
       { href: '/about', label: shared.nav.about },
       { href: '/faq', label: shared.nav.faq },
-      { href: '/advertisers', label: shared.nav.forAdvertisers },
+      { href: '/', label: shared.nav.forAdvertisers },
       { href: MAILTO, label: shared.nav.contact },
     ]}/>
   </main>;

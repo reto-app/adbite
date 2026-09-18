@@ -144,7 +144,7 @@ export function SignInPage() {
           <h2>{t.panelTitle}</h2>
           <AccessForm />
           <p className="signin-foot">
-            {t.runningAShop} <Link href="/#join">{t.joinShop}</Link>
+            {t.runningAShop} <Link href="/shops#join">{t.joinShop}</Link>
           </p>
         </div>
       </section>

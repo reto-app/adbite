@@ -96,7 +96,7 @@ export function AdvertisersPage() {
         { href: '/faq', label: shared.nav.faq },
       ]}
       cta={{ href: '/dashboard', label: shared.header.buildCampaign }}
-      aside={{ href: '/', label: shared.header.imAShopOwner }}
+      aside={{ href: '/shops', label: shared.header.imAShopOwner }}
     />
 
     <div className="hero-band">
@@ -128,7 +128,7 @@ export function AdvertisersPage() {
     <section id="advertise" className="advertise wrap"><SkyShapes /><div className="advertise-copy"><span className="eyebrow">{t.advertise.eyebrow}</span><h2>{t.advertise.title}</h2><p>{t.advertise.lede}</p></div><AdvertiseForm/></section>
 
     <SiteFooter links={[
-      { href: '/', label: shared.nav.forShops },
+      { href: '/shops', label: shared.nav.forShops },
       { href: '/about', label: shared.nav.about },
       { href: '/faq', label: shared.nav.faq },
       { href: MAILTO, label: shared.nav.contact },

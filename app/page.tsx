@@ -1,20 +1,26 @@
 import type { Metadata } from 'next';
 import { ORIGIN } from '@/lib/site';
-import { HomePage } from './home-page';
+import { AdvertisersPage } from './advertisers-page';
 
-/* A thin server shell so the page can carry its own metadata. The body is a
-   client component because the hero scene and the join form need state. Four
-   of the six routes used to share the root title, which meant the advertiser
-   page was indexed under copy written for shop owners. */
+/* The front door is the advertiser page. Shops are onboarded in person and
+   by outreach and land on /shops; the people who find AdBite by searching
+   are the ones with money to spend on it. /advertisers, where this lived,
+   redirects here (vercel.json) so old links and indexed pages still land. */
 export const metadata: Metadata = {
-  title: {
-    absolute: 'AdBite · Your menu board, earning between orders',
-  },
+  title: { absolute: 'AdBite · A spot on the shop down the street' },
   description:
-    'AdBite turns a slice of your shop screen into local ad space you approve, one creative at a time. Up to $3,000 a year from the TV you already run.',
+    'Two ways onto a local menu board: a permanent spot on one screen for the year, or short video at $20 an hour shown. One flat rate at every hour, no auction, and you pay only for time that actually ran.',
   alternates: { canonical: `${ORIGIN}/` },
+  openGraph: {
+    type: 'website',
+    siteName: 'AdBite',
+    title: 'Show up where your neighbors already look',
+    description:
+      'Buy a slice of the menu board at the shop down the street. A spot held for the year, or video by the hour, billed only when it plays.',
+    images: [{ url: '/brand/adbite-og.png', width: 1200, height: 630 }],
+  },
 };
 
 export default function Page() {
-  return <HomePage />;
+  return <AdvertisersPage />;
 }

@@ -1,22 +1,18 @@
 import type { Metadata } from 'next';
 import { ORIGIN } from '@/lib/site';
-import { AdvertisersPage } from './advertisers-page';
+import { Bounce } from './bounce';
 
+/* The advertiser page used to live here and now lives at /. On Vercel the
+   redirect in vercel.json answers first, with a 308, and this is never
+   served; it exists so the route still resolves under `vinext dev` and on
+   any host without that config, and so a crawler that does reach it is told
+   where the page went rather than shown a copy of it. */
 export const metadata: Metadata = {
-  title: { absolute: 'AdBite for advertisers · A spot on the shop down the street' },
-  description:
-    'Two ways onto a local menu board: a permanent spot on one screen for the year, or short video at $20 an hour shown. One flat rate at every hour, no auction, and you pay only for time that actually ran.',
-  alternates: { canonical: `${ORIGIN}/advertisers` },
-  openGraph: {
-    type: 'website',
-    siteName: 'AdBite',
-    title: 'Show up where your neighbors already look',
-    description:
-      'Buy a slice of the menu board at the shop down the street. A spot held for the year, or video by the hour, billed only when it plays.',
-    images: [{ url: '/brand/adbite-og.png', width: 1200, height: 630 }],
-  },
+  title: { absolute: 'AdBite' },
+  robots: { index: false, follow: true },
+  alternates: { canonical: `${ORIGIN}/` },
 };
 
 export default function Page() {
-  return <AdvertisersPage />;
+  return <Bounce />;
 }

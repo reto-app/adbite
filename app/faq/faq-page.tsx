@@ -35,11 +35,11 @@ export function FaqPage() {
   return <main className="simple-page">
     <SiteHeader
       nav={[
-        { href: '/', label: shared.nav.forShops },
-        { href: '/advertisers', label: shared.nav.forAdvertisers },
+        { href: '/shops', label: shared.nav.forShops },
+        { href: '/', label: shared.nav.forAdvertisers },
         { href: '/about', label: shared.nav.about },
       ]}
-      cta={{ href: '/#join', label: shared.header.joinWaitlist }}
+      cta={{ href: '/shops#join', label: shared.header.joinWaitlist }}
     />
 
     <section className="faq-head wrap">
@@ -58,14 +58,14 @@ export function FaqPage() {
       <Bite className="bite"/>
       <h2>{t.still}</h2>
       <div>
-        <Link className="button invert" href="/#join">{t.talk} <ArrowRight size={16}/></Link>
-        <Link className="button ghost" href="/advertisers">{t.advertise}</Link>
+        <Link className="button invert" href="/shops#join">{t.talk} <ArrowRight size={16}/></Link>
+        <Link className="button ghost" href="/">{t.advertise}</Link>
       </div>
     </section>
 
     <SiteFooter links={[
-      { href: '/', label: shared.nav.forShops },
-      { href: '/advertisers', label: shared.nav.forAdvertisers },
+      { href: '/shops', label: shared.nav.forShops },
+      { href: '/', label: shared.nav.forAdvertisers },
       { href: '/about', label: shared.nav.about },
       { href: MAILTO, label: shared.nav.contact },
     ]}/>
