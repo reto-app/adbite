@@ -108,13 +108,12 @@ export type Priceable = {
   spotsTaken?: number;
 };
 
-/* Permanent bottom-banner spots one screen carries before it is full. Four
-   advertisers sharing the strip means each one holds it a quarter of the
-   time, which is often enough to be seen and rare enough to be worth a year's
-   fee. It is also what sets a shop's floor: four spots at SPOT_YEARLY, at the
-   shop's share, is what a board pays its owner before a minute of video
-   sells. */
-export const SPOTS_PER_SCREEN = 4;
+/* Permanent bottom-banner spots one screen carries before it is full. This
+   is inventory, not marketing: the builder counts what is free against it
+   and the shop's floor is built on it, but the number is not quoted anywhere
+   on the site. What a board holds and what it pays are settled with each
+   shop as it joins. */
+export const SPOTS_PER_SCREEN = 10;
 
 /** How many permanent spots this venue has in total. */
 export function spotsOn(venue: Priceable) {

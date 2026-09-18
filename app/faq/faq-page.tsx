@@ -8,7 +8,7 @@ import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { MAIL, MAILTO } from '@/lib/site';
 import { VENUES } from '@/lib/network';
-import { SPOTS_PER_SCREEN, VIDEO_HOURLY, money, weeklyEarnings, yearlyEarnings } from '@/lib/pricing';
+import { VIDEO_HOURLY, money } from '@/lib/pricing';
 import { useCopy } from '@/lib/lang';
 import { FAQ } from '@/lib/copy/faq';
 import { SHARED } from '@/lib/copy/shared';
@@ -20,10 +20,7 @@ const SHOP = VENUES[0];
    languages at once. */
 const FIGURES = {
   hours: SHOP.hours,
-  weekly: money.format(weeklyEarnings(SHOP)),
-  yearly: money.format(yearlyEarnings(SHOP)),
   videoHour: money.format(VIDEO_HOURLY),
-  spots: SPOTS_PER_SCREEN,
   mail: MAIL,
 };
 

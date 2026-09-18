@@ -1,8 +1,8 @@
 /* The three plain pages: About, the pilot terms, and privacy. Figures come in
  * from the page so the money still lives in lib/pricing.ts. */
 
-type AboutFigures = { city: string; since: string; shop: string; street: string; cityLine: string; weekly: string };
-type TermsFigures = { weekly: string; yearly: string; videoHour: string; spots: number; minutes: string };
+type AboutFigures = { city: string; since: string; shop: string; street: string; cityLine: string };
+type TermsFigures = { videoHour: string; minutes: string };
 
 const en = {
   about: {
@@ -17,7 +17,7 @@ const en = {
     facts: (f: AboutFigures): [string, string][] => [
       ['Stage', `Pilot. Boards going in across Salt Lake, Utah and Cache counties, the first live since ${f.since}.`],
       ['Where it started', `${f.shop}, ${f.street}, ${f.cityLine}.`],
-      ['What a shop earns', `About ${f.weekly} a week per board once its permanent spots are sold, with video paid on top of that, and both again on a second screen.`],
+      ['What a shop earns', 'Worked out with each shop as it joins, from the screen, its hours and what the boards near it sell for. Video is paid on top of the permanent spots, and a second screen earns again.'],
       ['What we charge advertisers', 'Two things: a permanent spot on one screen for a year, priced over a conversation, or short video by the hour it was actually on screen.'],
     ],
     note: 'The illustrated shops elsewhere on this site are examples of the kinds of businesses AdBite is built for, not customers. The board screenshots are concept mockups. When that changes, this page changes with it.',
@@ -31,10 +31,10 @@ const en = {
     title: 'Pilot terms',
     date: 'Last updated September 2026. These are the commitments the site makes, written plainly. A signed agreement follows when a shop or an advertiser joins, and it will say the same things in more words.',
     shopTitle: 'If you run a shop',
-    shop: (f: TermsFigures) => [
+    shop: () => [
       'You approve every creative before it is scheduled. You can reject anything, for any reason, without explaining yourself.',
       'You set where on the screen ads may sit: a strip under your menu, a rail down the right, a full turn between your boards, or nowhere at all in any given week.',
-      `Each board carries ${f.spots} permanent spots. Sold, they pay you about ${f.yearly} a year, or ${f.weekly} a week, whatever your footfall does. Video is paid on top, by the minute it was on your screen.`,
+      'Your board carries permanent spots, each sold to a local business for a year, and what they pay you is worked out with you when you join. That figure does not move with your footfall. Video is paid on top, by the minute it was on your screen.',
       'You are paid monthly by bank transfer, itemised by spot, so you can see what each advertiser and each hour earned.',
       'The board software, the screen monitoring, finding advertisers and collecting the money are all included. There is nothing to pay us and nothing deducted from your side.',
       'There is no contract term, no hardware to buy, and no exit fee. Tell us to stop and we stop.',
@@ -42,7 +42,7 @@ const en = {
     adTitle: 'If you buy ads',
     ads: (f: TermsFigures) => [
       'There are two things to buy. A permanent spot is a place: the strip under one shop’s menu, on one screen, for a year. Short video is time, bought by the hour. You pick the shops, the neighborhoods or the whole county either way.',
-      `A board holds ${f.spots} permanent spots. They are priced per screen for twelve months and arranged over a conversation, because which boards have one free changes week to week.`,
+      'A board holds a handful of permanent spots. They are priced per screen for twelve months and arranged over a conversation, because which boards have one free changes week to week.',
       `Short video is ${f.videoHour} an hour actually shown, one flat rate at every hour of the day. Fifteen muted seconds between turns of the shop’s own footage.`,
       'There is no peak rate and no auction. The number above is the number, and it does not move because of who else booked that week.',
       'The shop owner can reject your creative. If they do, nothing runs and nothing is billed.',
@@ -89,7 +89,7 @@ const es: typeof en = {
     facts: (f: AboutFigures): [string, string][] => [
       ['Etapa', `Piloto. Tableros instalándose en los condados de Salt Lake, Utah y Cache, el primero activo desde ${f.since}.`],
       ['Dónde empezó', `${f.shop}, ${f.street}, ${f.cityLine}.`],
-      ['Cuánto gana un negocio', `Cerca de ${f.weekly} a la semana por tablero cuando sus espacios permanentes están vendidos, con el video aparte, y las dos cosas otra vez con una segunda pantalla.`],
+      ['Cuánto gana un negocio', 'Se calcula con cada negocio cuando se une, según la pantalla, sus horas y lo que se venden los tableros cercanos. El video se paga aparte de los espacios permanentes, y una segunda pantalla gana otra vez.'],
       ['Qué cobramos a los anunciantes', 'Dos cosas: un espacio permanente en una pantalla por un año, cotizado hablando, o video corto por hora realmente mostrada.'],
     ],
     note: 'Los negocios ilustrados en este sitio son ejemplos del tipo de negocios para los que está hecho AdBite, no clientes. Las capturas de los tableros son maquetas conceptuales. Cuando eso cambie, esta página cambia también.',
@@ -103,10 +103,10 @@ const es: typeof en = {
     title: 'Términos del piloto',
     date: 'Última actualización: septiembre de 2026. Estos son los compromisos que asume el sitio, escritos en lenguaje claro. Cuando un negocio o un anunciante se une, sigue un acuerdo firmado que dirá lo mismo con más palabras.',
     shopTitle: 'Si tienes un negocio',
-    shop: (f: TermsFigures) => [
+    shop: () => [
       'Apruebas cada anuncio antes de que se programe. Puedes rechazar cualquiera, por cualquier motivo, sin dar explicaciones.',
       'Tú decides dónde van los anuncios en la pantalla: una franja debajo de tu menú, una columna a la derecha, un turno completo entre tus tableros, o ningún lado en cualquier semana.',
-      `Cada tablero tiene ${f.spots} espacios permanentes. Vendidos, te pagan cerca de ${f.yearly} al año, o ${f.weekly} a la semana, pase lo que pase con tu clientela. El video se paga aparte, por minuto mostrado en tu pantalla.`,
+      'Tu tablero tiene espacios permanentes, cada uno vendido a un negocio local por un año, y lo que te pagan se acuerda contigo cuando te unes. Esa cifra no cambia con tu clientela. El video se paga aparte, por minuto mostrado en tu pantalla.',
       'Cobras cada mes por transferencia bancaria, detallado por espacio, para que veas cuánto generó cada anunciante y cada hora.',
       'El software del tablero, el monitoreo de la pantalla, conseguir anunciantes y cobrar el dinero están incluidos. No nos pagas nada y no se te descuenta nada.',
       'No hay plazo de contrato, no hay equipo que comprar y no hay cargo por salir. Dinos que paremos y paramos.',
@@ -114,7 +114,7 @@ const es: typeof en = {
     adTitle: 'Si compras anuncios',
     ads: (f: TermsFigures) => [
       'Hay dos cosas que comprar. Un espacio permanente es un lugar: la franja debajo del menú de un negocio, en una pantalla, por un año. El video corto es tiempo, comprado por hora. En los dos casos eliges los negocios, los vecindarios o el condado entero.',
-      `Un tablero tiene ${f.spots} espacios permanentes. Se cotizan por pantalla por doce meses y se acuerdan hablando, porque qué tableros tienen uno libre cambia cada semana.`,
+      'Un tablero tiene varios espacios permanentes. Se cotizan por pantalla por doce meses y se acuerdan hablando, porque qué tableros tienen uno libre cambia cada semana.',
       `El video corto cuesta ${f.videoHour} por hora realmente mostrada, una tarifa plana a cualquier hora del día. Quince segundos sin sonido entre turnos del propio video del negocio.`,
       'No hay tarifa de hora pico ni subasta. El número de arriba es el número, y no cambia según quién más reservó esa semana.',
       'El dueño del negocio puede rechazar tu anuncio. Si lo hace, no se muestra nada y no se cobra nada.',

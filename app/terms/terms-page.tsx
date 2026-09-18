@@ -4,7 +4,7 @@ import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { MAIL, MAILTO } from '@/lib/site';
 import { VENUES } from '@/lib/network';
-import { SPOTS_PER_SCREEN, VIDEO_HOURLY, count, inventory, money, weeklyEarnings, yearlyEarnings } from '@/lib/pricing';
+import { VIDEO_HOURLY, count, inventory, money } from '@/lib/pricing';
 import { useCopy } from '@/lib/lang';
 import { PAGES } from '@/lib/copy/pages';
 import { SHARED } from '@/lib/copy/shared';
@@ -12,10 +12,7 @@ import { SHARED } from '@/lib/copy/shared';
 const SHOP = VENUES[0];
 
 const FIGURES = {
-  weekly: money.format(weeklyEarnings(SHOP)),
-  yearly: money.format(yearlyEarnings(SHOP)),
   videoHour: money.format(VIDEO_HOURLY),
-  spots: SPOTS_PER_SCREEN,
   minutes: count.format(inventory([SHOP]).minutes),
 };
 
@@ -35,7 +32,7 @@ export function TermsPage() {
       <p className="legal-date">{t.date}</p>
 
       <h2>{t.shopTitle}</h2>
-      <ul>{t.shop(FIGURES).map((line) => <li key={line}>{line}</li>)}</ul>
+      <ul>{t.shop().map((line) => <li key={line}>{line}</li>)}</ul>
 
       <h2>{t.adTitle}</h2>
       <ul>{t.ads(FIGURES).map((line) => <li key={line}>{line}</li>)}</ul>

@@ -7,7 +7,6 @@ import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { MAIL, MAILTO } from '@/lib/site';
 import { PILOT_CITY, VENUES } from '@/lib/network';
-import { money, weeklyEarnings } from '@/lib/pricing';
 import { useCopy } from '@/lib/lang';
 import { PAGES } from '@/lib/copy/pages';
 import { SHARED } from '@/lib/copy/shared';
@@ -21,7 +20,6 @@ const FIGURES = {
   shop: SHOP.name,
   street: SHOP.street,
   cityLine: SHOP.city,
-  weekly: money.format(weeklyEarnings(SHOP)),
 };
 
 export function AboutPage() {
