@@ -4,9 +4,8 @@
  *
  * Sign-in is a magic link: an email address, a mail, a click. There is no
  * password to forget. The side (advertiser or shop) is chosen once on the
- * dashboard and kept on the account row, and it stays switchable because both
- * halves of AdBite are worth looking at; the shop a person creates and the
- * campaigns they book both survive the switch.
+ * dashboard, kept on the account row, and never changes: a shop is a shop and
+ * an advertiser is an advertiser. Someone who needs both uses two emails.
  *
  * `useAccount()` keeps the shape the dashboards already read, with `user`
  * added: `ready` is false through the first paint so the prerender matches,
@@ -96,11 +95,14 @@ export async function signIn(email: string): Promise<{ ok: true } | { ok: false;
   return { ok: true };
 }
 
-/** Choose or switch sides. A shop owner gets a shop and a starter board the
-    first time they pick that side, so the editor opens on something. */
+/** Choose a side, once. An account is a shop or an advertiser for good; the
+    row is only written while it has no role, and the database policy in
+    supabase/migrations refuses the change after that too. A shop owner gets
+    a shop and a starter board with the choice, so the editor opens on
+    something. */
 export async function setAccount(kind: AccountKind) {
   const user = state.user;
-  if (!user) return;
+  if (!user || state.kind) return;
   const db = supabase();
   await db.from('accounts').update({ role: kind }).eq('id', user.id);
 

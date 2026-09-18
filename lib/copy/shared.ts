@@ -38,9 +38,6 @@ const en = {
     stage: 'Pilot stage. Screen shots on this page are concept mockups.',
   },
   side: {
-    switchTitle: 'Switch which workspace opens. Nothing on either side is lost.',
-    iRunAShop: 'I run a shop',
-    iAdvertise: 'I advertise',
     signedInAs: (email: string) => `Signed in as ${email}`,
     signOut: 'Sign out',
   },
@@ -61,7 +58,7 @@ const en = {
   },
   choose: {
     title: 'Which side of the board are you on?',
-    lede: (email: string) => `This picks which workspace opens for ${email}. You can swap it whenever you like; nothing you make on either side is lost.`,
+    lede: (email: string) => `This sets what ${email} is for good: a shop that runs a board, or a business that advertises on them. It cannot be changed later, so if you do both, use a second email for the other.`,
   },
   accounts: {
     advertiser: {
@@ -200,9 +197,6 @@ const es: typeof en = {
     stage: 'Programa piloto. Las capturas de pantalla son maquetas conceptuales.',
   },
   side: {
-    switchTitle: 'Cambia qué espacio de trabajo se abre. No se pierde nada de ningún lado.',
-    iRunAShop: 'Tengo un negocio',
-    iAdvertise: 'Quiero anunciarme',
     signedInAs: (email: string) => `Sesión iniciada como ${email}`,
     signOut: 'Cerrar sesión',
   },
@@ -223,7 +217,7 @@ const es: typeof en = {
   },
   choose: {
     title: '¿De qué lado del tablero estás?',
-    lede: (email: string) => `Esto elige qué espacio de trabajo se abre para ${email}. Puedes cambiarlo cuando quieras; nada de lo que hagas de ningún lado se pierde.`,
+    lede: (email: string) => `Esto define para siempre qué es ${email}: un negocio que tiene un tablero, o una empresa que se anuncia en ellos. No se puede cambiar después, así que si haces las dos cosas, usa otro correo para la otra.`,
   },
   accounts: {
     advertiser: {
