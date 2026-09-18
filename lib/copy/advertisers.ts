@@ -10,10 +10,9 @@ const en = {
   hero: {
     title1: 'Show up where your neighbors ',
     title2: 'already look.',
-    lede: (video: string) => `Buy a slice of the menu board at a shop in your neighborhood. Your ad plays while someone is standing at the counter, already deciding what to spend money on. Video is ${video} an hour shown; a permanent spot on one screen is priced per board, so ask us.`,
+    lede: 'Buy a slice of the menu board at a shop in your neighborhood. Your ad plays while someone is standing at the counter, already deciding what to spend money on.',
     build: 'Build your campaign',
     orContact: 'Or have us set it up',
-    foot: 'Making an account takes an email address and a link in the mail, no password. From there you price it, put your artwork on a real board, and send it to us when you want it to run.',
   },
   boards: {
     title: 'See it running.',
@@ -21,7 +20,7 @@ const en = {
   },
   buy: {
     title: 'How it works. Two ways to buy.',
-    lede: 'One is a place on a screen, held for a year. The other is time, bought by the hour and billed on what actually ran. Pick either, put your artwork up, and the shop it lands on says yes before anything plays.',
+    lede: 'One is a place on a screen, held for a year. The other is time, bought by the hour and billed on what actually ran.',
     banner: {
       eyebrow: 'A place on a screen',
       name: 'Permanent spot',
@@ -30,6 +29,7 @@ const en = {
       sell: 'A static ad in the strip under one shop’s menu. It is on that screen every hour the shop is open, for twelve months, and the menu above it stays readable the whole time. Each board holds a handful, so what it costs depends on which board, and which boards have one free changes week to week.',
       points: [
         'One shop, one screen, twelve months',
+        'Shown at least 60 times an hour',
         'Still image, 1920 × 240',
         'Invoiced once. Nothing to watch week to week',
       ],
@@ -129,10 +129,9 @@ const es: typeof en = {
   hero: {
     title1: 'Aparece donde tus vecinos ',
     title2: 'ya están mirando.',
-    lede: (video: string) => `Compra una parte del tablero de menú de un negocio de tu vecindario. Tu anuncio se muestra mientras alguien está parado en el mostrador, decidiendo en qué gastar. El video cuesta ${video} por hora mostrada; un espacio permanente en una pantalla se cotiza por tablero, así que pregúntanos.`,
+    lede: 'Compra una parte del tablero de menú de un negocio de tu vecindario. Tu anuncio se muestra mientras alguien está parado en el mostrador, decidiendo en qué gastar.',
     build: 'Crea tu campaña',
     orContact: 'O deja que la armemos por ti',
-    foot: 'Crear una cuenta solo pide tu correo y un enlace por mail, sin contraseña. Desde ahí calculas el precio, pones tu arte en un tablero real, y nos la mandas cuando quieras que se muestre.',
   },
   boards: {
     title: 'Míralo funcionando.',
@@ -140,7 +139,7 @@ const es: typeof en = {
   },
   buy: {
     title: 'Cómo funciona. Dos formas de comprar.',
-    lede: 'Una es un lugar en una pantalla, apartado por un año. La otra es tiempo, comprado por hora y cobrado por lo que realmente se mostró. Elige cualquiera, sube tu arte, y el negocio donde caiga lo aprueba antes de que se muestre.',
+    lede: 'Una es un lugar en una pantalla, apartado por un año. La otra es tiempo, comprado por hora y cobrado por lo que realmente se mostró.',
     banner: {
       eyebrow: 'Un lugar en una pantalla',
       name: 'Espacio permanente',
@@ -149,6 +148,7 @@ const es: typeof en = {
       sell: 'Un anuncio fijo en la franja debajo del menú de un negocio. Está en esa pantalla cada hora que el negocio abre, durante doce meses, y el menú de arriba se sigue leyendo todo el tiempo. Cada tablero tiene unos pocos, así que el precio depende de cuál, y qué tableros tienen uno libre cambia cada semana.',
       points: [
         'Un negocio, una pantalla, doce meses',
+        'Se muestra al menos 60 veces por hora',
         'Imagen fija, 1920 × 240',
         'Se factura una vez. Nada que vigilar cada semana',
       ],

@@ -16,7 +16,6 @@ import { field, submitLead } from '@/lib/leads';
 import { useCopy, useLang } from '@/lib/lang';
 import { ADVERTISERS } from '@/lib/copy/advertisers';
 import { SHARED } from '@/lib/copy/shared';
-import { VIDEO_HOURLY, money } from '@/lib/pricing';
 
 const AD_COLORS = ['coral', 'sun', 'blue'];
 
@@ -104,12 +103,11 @@ export function AdvertisersPage() {
       <section className="ad-hero wrap">
         <div>
           <h1>{t.hero.title1}<em>{t.hero.title2}<Bite className="bite"/></em></h1>
-          <p className="hero-lede">{t.hero.lede(money.format(VIDEO_HOURLY))}</p>
+          <p className="hero-lede">{t.hero.lede}</p>
           <div className="hero-actions">
             <Link href="/dashboard" className="button primary" data-track="adv-hero-build">{t.hero.build} <ArrowRight size={17}/></Link>
             <a className="text-link" href="#advertise" data-track="adv-hero-contact">{t.hero.orContact}</a>
           </div>
-          <p className="hero-foot">{t.hero.foot}</p>
         </div>
         <ShopScene ads={ads} activeAd={activeAd} onSelectAd={setActiveAd} shop={NORTH_PARK_NOODLE} />
       </section>
