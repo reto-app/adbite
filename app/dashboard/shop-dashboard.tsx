@@ -17,7 +17,6 @@ import {
   X,
 } from 'lucide-react';
 import { DashboardHeader } from '@/components/dashboard-header';
-import { SideSwitch } from '@/components/side-switch';
 import { BoardCanvas } from '@/components/board/board-canvas';
 import { MenuEditor } from '@/components/board/menu-editor';
 import {
@@ -27,7 +26,6 @@ import {
   placementById,
   THEMES,
   flushBoard,
-  itemCount,
   newId,
   showsMenu,
   resetBoard,
@@ -152,25 +150,6 @@ export function ShopDashboard() {
             </span>
             <h1>{t.head.yourScreen}</h1>
           </div>
-          <dl className="dash-totals">
-            <div>
-              <dt>{t.head.onTheBoard}</dt>
-              <dd>{itemCount(board)}</dd>
-            </div>
-            <div>
-              <dt>{t.head.adsSit}</dt>
-              <dd>{shared.placements[board.adPlacement].short}</dd>
-            </div>
-            <div>
-              <dt>{t.head.waitingOnYou}</dt>
-              <dd>{waiting.length}</dd>
-            </div>
-            <div>
-              <dt>{t.head.youArePaid}</dt>
-              <dd className="money">{money.format(weeklyEarnings(priced))} {t.head.perWeek}</dd>
-            </div>
-          </dl>
-          <SideSwitch />
           <nav className="tabs head-tabs" aria-label={t.head.workspace}>
             {TABS.map((item) => (
               <button

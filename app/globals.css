@@ -6658,12 +6658,15 @@ text.vs-small {
   color: var(--chalk);
 }
 
+/* One line: the title on the left, whatever the workspace carries on the
+   right. The tabs and the advertiser's summary only wrap under it when the
+   window is too narrow for both, never by default. */
 .dash-head-inner {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 14px 26px;
-  padding: 12px 0;
+  gap: 10px 26px;
+  padding: 8px 0;
 }
 
 .dash-head-inner > div:first-child {
@@ -7802,7 +7805,7 @@ text.vs-small {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 7px 14px;
+  padding: 6px 13px;
   border: 1px solid var(--board-line);
   border-radius: 999px;
   background: transparent;

@@ -49,7 +49,6 @@ import {
 import { totalsOf } from '@/lib/delivery';
 import { usePlays } from '@/lib/plays';
 import { useAdvertiserStatements } from '@/lib/statements';
-import { SideSwitch } from '@/components/side-switch';
 import { localeOf, useCopy, useLang } from '@/lib/lang';
 import { CAMPAIGN } from '@/lib/copy/campaign';
 import { SHARED } from '@/lib/copy/shared';
@@ -428,7 +427,6 @@ export function AdvertiserDashboard() {
             </div>
           </dl>
           <div className="dash-head-actions">
-            <SideSwitch />
             <button type="button" className="button invert" onClick={() => setCreating(true)}>
               <Plus size={17} /> {t.newCampaign}
             </button>
