@@ -13,7 +13,6 @@ const boards = [
   { id: 'rosas', name: 'Rosas Taqueria' },
   { id: 'spot', name: 'Full-screen spot' },
   { id: 'roost', name: 'The Roost Shop' },
-  { id: 'forno', name: 'Forno Nove' },
   { id: 'meridian', name: 'Meridian Café', portrait: true },
 ] as const;
 
