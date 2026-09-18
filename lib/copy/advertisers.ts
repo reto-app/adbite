@@ -57,12 +57,10 @@ const en = {
     cta: 'Build your campaign',
   },
   reporting: {
-    eyebrow: 'The dashboard, not a drawing of it',
     title: 'Know exactly where your money went.',
     ledeBefore: 'Every screen below is the real builder and the real report, captured from the product. You can open the ',
     ledeLink: 'dashboard',
     ledeAfter: ' and build a campaign right now. It takes an account, which is an email address and a link in the mail.',
-    foot: 'Video is billed on one thing and reported on it: the minutes your spot was actually on screen, per shop and per hour, at one flat rate. A permanent spot is not metered at all — it is invoiced once and it is yours for the year. Anything worked out rather than counted — heads past the board, cost per thousand — is labelled as such on the screen it appears on. There are no impressions here, and no reach estimates dressed up as measurements.',
   },
   advertise: {
     eyebrow: 'Pilot access',
@@ -176,12 +174,10 @@ const es: typeof en = {
     cta: 'Crea tu campaña',
   },
   reporting: {
-    eyebrow: 'El panel real, no un dibujo',
     title: 'Sabe exactamente a dónde fue tu dinero.',
     ledeBefore: 'Cada pantalla de abajo es el creador y el reporte reales, capturados del producto. Puedes abrir el ',
     ledeLink: 'panel',
     ledeAfter: ' y crear una campaña ahora mismo. Necesitas una cuenta: tu correo y un enlace por mail.',
-    foot: 'El video se cobra por una sola cosa y se reporta por ella: los minutos que tu anuncio estuvo realmente en pantalla, por negocio y por hora, a una tarifa plana. Un espacio permanente no se mide: se factura una vez y es tuyo por el año. Todo lo que se calcula en vez de contarse (personas que pasan frente al tablero, costo por mil) está marcado como tal en la pantalla donde aparece. Aquí no hay impresiones, ni estimaciones de alcance disfrazadas de mediciones.',
   },
   advertise: {
     eyebrow: 'Acceso al piloto',

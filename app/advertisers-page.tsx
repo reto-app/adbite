@@ -118,9 +118,8 @@ export function AdvertisersPage() {
     <section className="boards-section"><div className="wrap"><div className="section-head"><h2>{t.boards.title}</h2><p>{t.boards.lede}</p></div><BoardReel only={['rosas', 'spot']}/></div></section>
 
     <section id="reporting" className="reporting-band"><div className="wrap">
-      <div className="section-head"><span className="eyebrow light">{t.reporting.eyebrow}</span><h2>{t.reporting.title}</h2><p>{t.reporting.ledeBefore}<Link href="/dashboard">{t.reporting.ledeLink}</Link>{t.reporting.ledeAfter}</p></div>
+      <div className="section-head"><h2>{t.reporting.title}</h2><p>{t.reporting.ledeBefore}<Link href="/dashboard">{t.reporting.ledeLink}</Link>{t.reporting.ledeAfter}</p></div>
       <DashboardReel/>
-      <p className="tour-foot">{t.reporting.foot}</p>
     </div></section>
 
     <section id="advertise" className="advertise wrap"><SkyShapes /><div className="advertise-copy"><span className="eyebrow">{t.advertise.eyebrow}</span><h2>{t.advertise.title}</h2><p>{t.advertise.lede}</p></div><AdvertiseForm/></section>
