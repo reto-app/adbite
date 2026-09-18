@@ -1,21 +1,11 @@
 'use client';
 
-/* Campaigns the advertiser has booked in this browser.
+/* Campaigns the advertiser has booked.
  *
- * There is no server in the pilot, so this is the whole store. Two kinds of
- * row live here and they are never mixed up:
- *
- *   real    what the person actually built and sent. It starts `in review`,
- *           because that is true: a shop owner has to approve the creative
- *           before a board will play it.
- *
- *   sample  three worked examples, loaded on demand from the empty state and
- *           removable in one click. They carry `sample: true`, are drawn with
- *           a Sample badge everywhere they appear, and exist so the analytics
- *           can be read before you have a week of your own to read.
- *
- * Nothing is seeded automatically. An empty dashboard stays empty until
- * somebody asks for the examples. */
+ * Every row is what the person actually built and sent. It starts `in
+ * review`, because that is true: a shop owner has to approve the creative
+ * before a board will play it. There are no seeded or sample rows; an empty
+ * dashboard is empty. */
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -25,8 +15,6 @@ import { DAYPARTS } from '@/lib/pricing';
 import type { AgeBand } from '@/lib/network';
 import { LIVE_VENUES, VENUES } from '@/lib/network';
 import { VIDEO_HOURLY, VIDEO_PER_MINUTE, isPermanent, spotCost, type Daypart } from '@/lib/pricing';
-
-const SAMPLES_KEY = 'adbite.samples';
 
 export type Campaign = {
   id: string;
@@ -51,7 +39,6 @@ export type Campaign = {
   /** Set once the shop approves and the board starts playing it. */
   startedAt?: number | null;
   /** A worked example rather than a booking somebody made. */
-  sample?: boolean;
   /** The shop owner said no. It never runs and is never billed. */
   rejected?: boolean;
   /** Free text the advertiser gave the campaign at build time. */
@@ -215,7 +202,7 @@ async function load() {
     rows = ((data ?? []) as Row[]).map((row) => fromRow(row, null));
   }
 
-  cache = { ready: true, campaigns: [...samplesOn(), ...rows] };
+  cache = { ready: true, campaigns: rows };
   announce();
 }
 
@@ -280,7 +267,6 @@ export async function addCampaign(campaign: Omit<Campaign, 'id' | 'createdAt'>):
 }
 
 export async function removeCampaign(id: string) {
-  if (id.startsWith('sample-')) return;
   await supabase().from('campaigns').delete().eq('id', id);
   previews.delete(id);
   reloadCampaigns();
@@ -290,7 +276,6 @@ export async function removeCampaign(id: string) {
    advertiser's. Approving is what starts the clock: until a board is actually
    playing the spot there is nothing to report and nothing to bill. */
 async function decide(id: string, status: 'approved' | 'rejected') {
-  if (id.startsWith('sample-')) return;
   const db = supabase();
   const { data: auth } = await db.auth.getUser();
   if (!auth.user) return;
@@ -333,119 +318,3 @@ export function useCampaigns(): { ready: boolean; campaigns: Campaign[] } {
 }
 
 /* ---- the worked examples ------------------------------------------------ */
-
-const DAY = 24 * 60 * 60 * 1000;
-
-/* Three bookings that have been running long enough to have a shape: a wide
-   multi-shop buy, one neighbourhood, and a single board. Loaded only when
-   somebody asks for them, and every panel that draws one says Sample. */
-const SAMPLES: Omit<Campaign, 'id' | 'createdAt'>[] = [
-  {
-    name: 'Rosewood Barbers · permanent spots',
-    weeklySpend: 0,
-    spots: 6,
-    format: 'banner',
-    venues: [
-      'baopaowow',
-      'centerst-pizza',
-      'startup-coffee',
-      'mural-bakery',
-      'cougar-wings',
-      'north-gate-poke',
-    ],
-    ages: ['18-24', '25-34'],
-    dayparts: ['lunch', 'evening'],
-    creativeName: 'rosewood-autumn.png',
-    creativeSrc: null,
-    email: 'hello@rosewoodbarbers.com',
-    startedAt: Date.now() - 23 * DAY,
-    sample: true,
-    note: 'Six boards downtown and around campus, held for the year. Walk-ins, no appointment.',
-  },
-  {
-    name: 'North Park Dental · new patients',
-    weeklySpend: 0,
-    spots: 4,
-    format: 'banner',
-    venues: ['baopaowow', 'summit-strength', 'campus-cuts', 'cougar-wings'],
-    ages: ['25-34', '35-49'],
-    dayparts: ['lunch', 'afternoon', 'evening'],
-    creativeName: 'northpark-checkup.jpg',
-    creativeSrc: null,
-    email: 'front@northparkdental.com',
-    startedAt: Date.now() - 11 * DAY,
-    sample: true,
-    note: 'A spot on four boards around the campus gate, every open hour, all year.',
-  },
-  {
-    /* Left unapproved on purpose: the shop side needs something in its queue,
-       and a booking that has not been said yes to yet is the honest shape of
-       what an advertiser sees while they wait. */
-    name: 'Iron Rose Gym · January intake',
-    weeklySpend: 120,
-    spots: 0,
-    format: 'video',
-    venues: ['baopaowow', 'summit-strength'],
-    ages: ['18-24', '25-34'],
-    dayparts: ['evening'],
-    creativeName: 'ironrose-january.png',
-    creativeSrc: null,
-    email: 'sam@ironrosegym.com',
-    startedAt: null,
-    sample: true,
-    note: 'Six hours of video a week, two boards, evenings only. First class free.',
-  },
-  {
-    name: 'Mia’s Flower Bar · weekend stems',
-    weeklySpend: 40,
-    spots: 0,
-    format: 'video',
-    venues: ['baopaowow'],
-    ages: [],
-    dayparts: ['evening'],
-    creativeName: 'mias-stems-15s.mp4',
-    creativeSrc: null,
-    email: 'mia@miasflowerbar.com',
-    startedAt: Date.now() - 5 * DAY,
-    sample: true,
-    note: 'Two hours a week on one board, dinner only, fifteen seconds of motion.',
-  },
-];
-
-function samplesOn(): Campaign[] {
-  try {
-    if (window.localStorage.getItem(SAMPLES_KEY) !== '1') return [];
-  } catch {
-    return [];
-  }
-  return SAMPLES.map((sample, index) => ({
-    ...sample,
-    id: `sample-${index}`,
-    createdAt: (sample.startedAt ?? Date.now()) - 2 * DAY,
-  }));
-}
-
-/* The examples are a per-browser convenience, never a row. */
-export function loadSamples() {
-  try {
-    window.localStorage.setItem(SAMPLES_KEY, '1');
-  } catch {
-    /* storage unavailable; nothing to show */
-  }
-  cache = { ...cache, campaigns: [...samplesOn(), ...cache.campaigns.filter((c) => !c.sample)] };
-  announce();
-}
-
-export function clearSamples() {
-  try {
-    window.localStorage.removeItem(SAMPLES_KEY);
-  } catch {
-    /* nothing to clear */
-  }
-  cache = { ...cache, campaigns: cache.campaigns.filter((c) => !c.sample) };
-  announce();
-}
-
-export function hasSamples(campaigns: Campaign[]) {
-  return campaigns.some((campaign) => campaign.sample);
-}

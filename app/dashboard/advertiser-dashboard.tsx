@@ -9,7 +9,6 @@ import {
   Mail,
   Plus,
   Radio,
-  Sparkles,
   Trash2,
 } from 'lucide-react';
 import { Bite } from '@/components/brand';
@@ -42,9 +41,6 @@ import {
 import {
   addCampaign,
   campaignMinutes,
-  clearSamples,
-  hasSamples,
-  loadSamples,
   removeCampaign,
   statusOf,
   useCampaigns,
@@ -335,11 +331,6 @@ function CampaignDetail({ campaign, onDelete }: { campaign: Campaign; onDelete: 
         <div>
           <span className="detail-tags-row">
             <StatusTag campaign={campaign} />
-            {campaign.sample && (
-              <span className="status sample">
-                <Sparkles size={12} /> {t.status.sample}
-              </span>
-            )}
           </span>
           <h2>{campaign.name}</h2>
           <p>
@@ -470,7 +461,6 @@ export function AdvertiserDashboard() {
                   </span>
                   <span className="dash-item-tags">
                     <StatusTag campaign={campaign} />
-                    {campaign.sample && <span className="status sample">{t.status.sample}</span>}
                   </span>
                 </button>
               );
@@ -478,11 +468,6 @@ export function AdvertiserDashboard() {
             <button type="button" className="dash-add" onClick={() => setCreating(true)}>
               <Plus size={15} /> {t.newCampaign}
             </button>
-            {listReady && hasSamples(campaigns) && (
-              <button type="button" className="dash-add quiet" onClick={clearSamples}>
-                <Trash2 size={14} /> {t.list.removeSamples}
-              </button>
-            )}
           </div>
         </aside>
 
@@ -512,11 +497,7 @@ export function AdvertiserDashboard() {
                 <button type="button" className="button primary" onClick={() => setCreating(true)}>
                   <Plus size={17} /> {t.newCampaign}
                 </button>
-                <button type="button" className="button ghost" onClick={loadSamples}>
-                  <Sparkles size={16} /> {t.empty.samples}
-                </button>
               </div>
-              <p className="dash-empty-note">{t.empty.note}</p>
             </div>
           )}
         </div>

@@ -40,7 +40,7 @@ const en = {
       submit: 'Send this to AdBite',
       next: 'Continue',
     },
-    status: { onScreen: 'On screen', inReview: 'In review with the shop', sample: 'Sample' },
+    status: { onScreen: 'On screen', inReview: 'In review with the shop' },
     detail: {
       booked: (date: string) => `Booked ${date}`,
       playingSince: (date: string) => ` · playing since ${date}`,
@@ -60,14 +60,11 @@ const en = {
       label: 'Your campaigns',
       meta: (shops: number, minutes: string, spent: string | null) =>
         `${shops} ${plural(shops, 'shop', 'shops')} · ${minutes} min / wk${spent ? ` · ${spent} spent` : ''}`,
-      removeSamples: 'Remove the samples',
     },
     empty: {
       title: 'No campaigns yet.',
       text: (live: number, minutes: string, coming: number) =>
         `AdBite is going in across Salt Lake, Utah and Cache counties. ${live} ${plural(live, 'board is', 'boards are')} playing ads today, holding ${minutes} minutes of ad time a week, and another ${coming} shops are being installed and can be booked ahead.`,
-      samples: 'Load four worked examples',
-      note: 'Made-up bookings: three with a few weeks on the clock so the reporting has something to show, and one still waiting on the shop owner. They are badged Sample everywhere and clear in one click.',
     },
   },
   place: {
@@ -285,7 +282,7 @@ const es: typeof en = {
       submit: 'Enviar a AdBite',
       next: 'Continuar',
     },
-    status: { onScreen: 'En pantalla', inReview: 'En revisión con el negocio', sample: 'Ejemplo' },
+    status: { onScreen: 'En pantalla', inReview: 'En revisión con el negocio' },
     detail: {
       booked: (date: string) => `Reservado el ${date}`,
       playingSince: (date: string) => ` · en pantalla desde el ${date}`,
@@ -305,14 +302,11 @@ const es: typeof en = {
       label: 'Tus campañas',
       meta: (shops: number, minutes: string, spent: string | null) =>
         `${shops} ${plural(shops, 'negocio', 'negocios')} · ${minutes} min / sem${spent ? ` · ${spent} gastados` : ''}`,
-      removeSamples: 'Quitar los ejemplos',
     },
     empty: {
       title: 'Todavía no hay campañas.',
       text: (live: number, minutes: string, coming: number) =>
         `AdBite se está instalando en los condados de Salt Lake, Utah y Cache. Hoy ${live} ${plural(live, 'tablero está mostrando', 'tableros están mostrando')} anuncios, con ${minutes} minutos de tiempo de anuncios a la semana, y otros ${coming} negocios están en instalación y se pueden reservar por adelantado.`,
-      samples: 'Cargar cuatro ejemplos',
-      note: 'Reservas inventadas: tres con algunas semanas corridas para que los reportes tengan algo que mostrar, y una todavía esperando al dueño del negocio. Llevan la etiqueta Ejemplo en todos lados y se borran con un clic.',
     },
   },
   place: {

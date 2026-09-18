@@ -631,7 +631,7 @@ function AdsTab({ waiting, campaigns }: { waiting: Campaign[]; campaigns: Campai
 
       {waiting.length === 0 ? (
         <p className="queue-empty">
-          {t.empty} {mine.length === 0 && t.emptySamples}
+          {t.empty}
         </p>
       ) : (
         <div className="queue-grid">
