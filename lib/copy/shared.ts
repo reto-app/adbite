@@ -51,12 +51,12 @@ const en = {
   },
   door: {
     checkMail: 'Check your mail.',
-    sentTo: (email: string) => `We sent a sign-in link to ${email}. Open it on this device and you land back here, signed in. The link is good for an hour.`,
-    title: 'Sign in to your dashboard',
-    lede: 'Type the email you use for your business and we will send a link. No password to make up or forget.',
+    sentTo: (email: string) => `We sent a link to ${email}. Open it on this device and you land back here, signed in; if this is your first time, that click is what makes your account. The link is good for an hour.`,
+    title: 'Start with your email',
+    lede: 'New here or coming back, it is the same door: type the email you use for your business and we send a link. Clicking it makes your account the first time and signs you in every time after. No password to make up or forget.',
     email: 'Email',
     emailPlaceholder: 'you@yourbusiness.com',
-    send: 'Send me a sign-in link',
+    send: 'Send me a link',
     trouble: 'Trouble getting in? Write to',
   },
   choose: {
@@ -214,12 +214,12 @@ const es: typeof en = {
   },
   door: {
     checkMail: 'Revisa tu correo.',
-    sentTo: (email: string) => `Enviamos un enlace de acceso a ${email}. Ábrelo en este dispositivo y vuelves aquí con la sesión iniciada. El enlace dura una hora.`,
-    title: 'Inicia sesión en tu panel',
-    lede: 'Escribe el correo que usas para tu negocio y te mandamos un enlace. Sin contraseñas que inventar ni olvidar.',
+    sentTo: (email: string) => `Enviamos un enlace a ${email}. Ábrelo en este dispositivo y vuelves aquí con la sesión iniciada; si es tu primera vez, ese clic es lo que crea tu cuenta. El enlace dura una hora.`,
+    title: 'Empieza con tu correo',
+    lede: 'Seas nuevo o ya tengas cuenta, la puerta es la misma: escribe el correo que usas para tu negocio y te mandamos un enlace. Al abrirlo se crea tu cuenta la primera vez, y las siguientes solo inicia sesión. Sin contraseñas que inventar ni olvidar.',
     email: 'Correo',
     emailPlaceholder: 'tu@tunegocio.com',
-    send: 'Envíame un enlace de acceso',
+    send: 'Envíame un enlace',
     trouble: '¿Problemas para entrar? Escribe a',
   },
   choose: {
