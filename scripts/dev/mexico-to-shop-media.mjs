@@ -10,7 +10,7 @@ import { createClient } from '@supabase/supabase-js';
 const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 const apply = process.argv.includes('--apply');
 
-const { data: shop } = await db.from('shops').select('id, name').eq('venue_id', 'baopaowow').single();
+const { data: shop } = await db.from('shops').select('id, name').eq('venue_id', 'thai-papaya').single();
 
 /* The shop's own footage: scenery and food, not the two brand spots, which
    are real advertising and stay as campaigns. */

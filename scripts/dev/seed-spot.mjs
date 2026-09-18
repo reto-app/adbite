@@ -10,9 +10,9 @@ await s3.send(new PutObjectCommand({ Bucket: process.env.R2_BUCKET, Key: key, Bo
 console.log("uploaded", key, file.length, "bytes");
 const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 const { data: acct } = await admin.from("accounts").select("id").eq("email", "maxp68034@gmail.com").single();
-const { data: shop } = await admin.from("shops").select("id").eq("venue_id", "baopaowow").single();
+const { data: shop } = await admin.from("shops").select("id").eq("venue_id", "thai-papaya").single();
 const { data: cr } = await admin.from("creatives").insert({ advertiser_id: acct.id, kind: "video", name: "rosas-spot.mp4", storage_path: key, bytes: file.length, sha256: sha, width: 960, height: 540, seconds: 15, ready: true }).select("id").single();
-const { data: camp } = await admin.from("campaigns").insert({ advertiser_id: acct.id, name: "Rosa's Taqueria video (seed)", format: "video", venues: ["baopaowow"], dayparts: ["lunch", "evening"], weekly_spend: 45, creative_id: cr.id, creative_name: "rosas-spot.mp4", email: "maxp68034@gmail.com", status: "live" }).select("id").single();
+const { data: camp } = await admin.from("campaigns").insert({ advertiser_id: acct.id, name: "Rosa's Taqueria video (seed)", format: "video", venues: ["thai-papaya"], dayparts: ["lunch", "evening"], weekly_spend: 45, creative_id: cr.id, creative_name: "rosas-spot.mp4", email: "maxp68034@gmail.com", status: "live" }).select("id").single();
 await admin.from("approvals").insert({ campaign_id: camp.id, shop_id: shop.id, status: "approved", decided_at: new Date().toISOString() });
 console.log("campaign", camp.id, "approved for shop", shop.id);
 console.log("url https://assets.adbite.site/" + key);

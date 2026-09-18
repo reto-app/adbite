@@ -4433,6 +4433,74 @@ text.vs-small {
   color: var(--ash);
 }
 
+/* The one button that narrows the list. Filled when something is set, with
+   the count of choices on it. */
+.pick-search .pick-filters {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 6px 9px;
+  border: 1.5px solid var(--rule);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pick-filters:hover,
+.pick-filters.open {
+  border-color: var(--board);
+}
+
+.pick-filters.set {
+  background: var(--board);
+  border-color: var(--board);
+  color: var(--chalk);
+}
+
+.pick-filters i {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--chalk);
+  color: var(--board);
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pick-filters svg:last-child {
+  transition: transform 0.16s ease;
+}
+
+.pick-filters.open svg:last-child {
+  transform: rotate(180deg);
+}
+
+.pick-set-note {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--ash);
+}
+
+.pick-reset {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sky-deep);
+  cursor: pointer;
+}
+
 .pick-search input {
   flex: 1;
   min-width: 0;

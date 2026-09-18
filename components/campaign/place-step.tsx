@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import {
   Check,
+  ChevronDown,
   CircleDashed,
   Clock,
   Hand,
@@ -11,6 +12,7 @@ import {
   Monitor,
   Plus,
   Search,
+  SlidersHorizontal,
   Undo2,
   Users,
   X,
@@ -163,6 +165,7 @@ export function PlaceStep({
   const t = useCopy(CAMPAIGN).place;
   const shared = useCopy(SHARED);
   const [query, setQuery] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [areas, setAreas] = useState<AreaId[]>([]);
   const [groups, setGroups] = useState<GroupId[]>([]);
   const [tool, setTool] = useState<MapTool>('pan');
@@ -230,6 +233,21 @@ export function PlaceStep({
     <div className="place-step">
       <div className="pick-panel">
         <div className="pick-search">
+          {/* One button for everything that narrows the list: where, what
+              kind, and who you hope to reach. The count on it is how many
+              choices are set, so a narrowed list is never a mystery. */}
+          <button
+            type="button"
+            className={`pick-filters${filtersOpen ? ' open' : ''}${areas.length + groups.length + placement.ages.length ? ' set' : ''}`}
+            aria-expanded={filtersOpen}
+            onClick={() => setFiltersOpen((open) => !open)}
+          >
+            <SlidersHorizontal size={14} /> {t.filters}
+            {areas.length + groups.length + placement.ages.length > 0 && (
+              <i>{areas.length + groups.length + placement.ages.length}</i>
+            )}
+            <ChevronDown size={13} />
+          </button>
           <Search size={15} />
           <input
             type="search"
@@ -245,6 +263,7 @@ export function PlaceStep({
           )}
         </div>
 
+        {filtersOpen && (
         <div className="pick-sets">
           <div className="pick-set">
             <span className="pick-set-label">{t.neighbourhoods}</span>
@@ -278,10 +297,11 @@ export function PlaceStep({
             </div>
           </div>
 
+          {GROUPS.filter((group) => VENUES.some((venue) => venue.group === group.id)).length > 1 && (
           <div className="pick-set">
             <span className="pick-set-label">{t.kinds}</span>
             <div className="chip-row">
-              {GROUPS.map((group) => {
+              {GROUPS.filter((group) => VENUES.some((venue) => venue.group === group.id)).map((group) => {
                 const ids = VENUES.filter((venue) => venue.group === group.id).map(
                   (venue) => venue.id,
                 );
@@ -308,7 +328,41 @@ export function PlaceStep({
               })}
             </div>
           </div>
+          )}
+
+          <div className="pick-set">
+            <span className="pick-set-label">{t.whoTitle}</span>
+            <div className="chip-row">
+              {AGE_BANDS.map((band) => (
+                <button
+                  key={band.id}
+                  type="button"
+                  className={`chip${placement.ages.includes(band.id) ? ' on' : ''}`}
+                  aria-pressed={placement.ages.includes(band.id)}
+                  onClick={() => set({ ages: toggle(placement.ages, band.id) })}
+                >
+                  {band.label}
+                </button>
+              ))}
+            </div>
+            <p className="pick-set-note">{t.whoNote}</p>
+          </div>
+
+          {(areas.length > 0 || groups.length > 0 || placement.ages.length > 0) && (
+            <button
+              type="button"
+              className="pick-reset"
+              onClick={() => {
+                setAreas([]);
+                setGroups([]);
+                set({ ages: [] });
+              }}
+            >
+              {t.resetFilters}
+            </button>
+          )}
         </div>
+        )}
 
         <div className="pick-bulk">
           <span>{t.shown(visible.length, VENUES.length)}</span>
@@ -319,17 +373,6 @@ export function PlaceStep({
             <button type="button" onClick={() => replace([])}>
               {t.clear}
             </button>
-            {(areas.length > 0 || groups.length > 0) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setAreas([]);
-                  setGroups([]);
-                }}
-              >
-                {t.resetFilters}
-              </button>
-            )}
           </div>
         </div>
 
@@ -377,23 +420,6 @@ export function PlaceStep({
           {visible.length === 0 && <li className="pick-empty">{t.nothingMatches}</li>}
         </ul>
 
-        <fieldset className="pick-ages">
-          <legend>{t.whoTitle}</legend>
-          <div className="chip-row">
-            {AGE_BANDS.map((band) => (
-              <button
-                key={band.id}
-                type="button"
-                className={`chip${placement.ages.includes(band.id) ? ' on' : ''}`}
-                aria-pressed={placement.ages.includes(band.id)}
-                onClick={() => set({ ages: toggle(placement.ages, band.id) })}
-              >
-                {band.label}
-              </button>
-            ))}
-          </div>
-          <p>{t.whoNote}</p>
-        </fieldset>
       </div>
 
       <div className="pick-map">
