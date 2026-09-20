@@ -6,7 +6,7 @@
  * together if the domain moves. */
 
 export const ORIGIN = 'https://adbite.site';
-/** Sales and everything before an account exists. A person reads it. */
+/** Sales and everything before an account exists. */
 export const MAIL = 'info@adbite.site';
 export const MAILTO = `mailto:${MAIL}`;
 /** Once you are in: sign-in trouble, a board that will not update, a bill. */

@@ -17,7 +17,7 @@ import { LangSwitch } from '@/components/lang-switch';
  * This was a username and password form whose only valid credential was
  * hardcoded and never shown to anyone, so every advertiser who followed a CTA
  * hit a door that could not open. There is still no self-serve account: this
- * takes a request and mails info@adbite.site, where a person reads it. The copy
+ * takes a request and mails info@adbite.site. The copy
  * invites rather than gates, because a business reading this page is exactly
  * who we want on the network. */
 function AccessForm() {

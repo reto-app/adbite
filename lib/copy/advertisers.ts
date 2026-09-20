@@ -65,7 +65,7 @@ const en = {
   advertise: {
     eyebrow: 'Pilot access',
     title: 'Want to advertise?',
-    lede: 'Put your details in and we will get you onto the pilot. A person reads it, finds the boards that suit what you sell, and writes back with what is open and what it would cost.',
+    lede: 'Put your details in and we will get you onto the pilot. We find the boards that suit what you sell and write back with what is open and what it would cost.',
     form: {
       business: 'Business type',
       businessPlaceholder: 'Florist, dentist, gym…',
@@ -112,7 +112,7 @@ const en = {
       about: 'What you would want to run',
       aboutPlaceholder: 'A banner for the lunch rush, two blocks north',
       submit: 'Get me on a board',
-      note: (mail: string) => `Goes straight to ${mail}, where a person reads it. Nothing is charged and you are not committing to anything.`,
+      note: (mail: string) => `Goes straight to ${mail}. Nothing is charged and you are not committing to anything.`,
     },
   },
 };
@@ -182,7 +182,7 @@ const es: typeof en = {
   advertise: {
     eyebrow: 'Acceso al piloto',
     title: '¿Quieres anunciarte?',
-    lede: 'Déjanos tus datos y te subimos al piloto. Una persona lo lee, encuentra los tableros que van con lo que vendes, y te responde con lo que está disponible y cuánto costaría.',
+    lede: 'Déjanos tus datos y te subimos al piloto. Encontramos los tableros que van con lo que vendes y te respondemos con lo que está disponible y cuánto costaría.',
     form: {
       business: 'Tipo de negocio',
       businessPlaceholder: 'Florería, dentista, gimnasio…',
@@ -229,7 +229,7 @@ const es: typeof en = {
       about: 'Qué te gustaría mostrar',
       aboutPlaceholder: 'Una franja para la hora del almuerzo, dos cuadras al norte',
       submit: 'Súbeme a un tablero',
-      note: (mail: string) => `Llega directo a ${mail}, donde una persona lo lee. No se cobra nada y no te comprometes a nada.`,
+      note: (mail: string) => `Llega directo a ${mail}. No se cobra nada y no te comprometes a nada.`,
     },
   },
 };

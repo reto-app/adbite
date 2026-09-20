@@ -111,7 +111,7 @@ export function html(mail: Mail, raw?: { buttonHref?: string }): string {
   </td></tr>
   <tr><td style="background:${PAPER};border-top:1px solid #e3e7eb;border-radius:0 0 8px 8px;padding:20px 40px 26px;">
     <p style="margin:0 0 8px;font-size:13px;line-height:1.5;color:${MUTED};">${escape(mail.reason)}</p>
-    <p style="margin:0;font-size:13px;line-height:1.5;color:${MUTED};">Questions go to <a href="mailto:${SUPPORT_MAIL}" style="color:${INK};">${SUPPORT_MAIL}</a>. A person reads it.</p>
+    <p style="margin:0;font-size:13px;line-height:1.5;color:${MUTED};">Questions go to <a href="mailto:${SUPPORT_MAIL}" style="color:${INK};">${SUPPORT_MAIL}</a>.</p>
   </td></tr>
   <tr><td style="padding:18px 8px 0;font-size:12px;line-height:1.5;color:${MUTED};text-align:center;">AdBite · Local ads on screens people already watch · <a href="${ORIGIN}" style="color:${MUTED};">adbite.site</a></td></tr>
 </table>
