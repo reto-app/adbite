@@ -14,6 +14,10 @@
     <field id="slotId" type="string" value="midday" />
     <field id="paneWidth" type="float" value="1280" />
     <field id="paneHeight" type="float" value="1080" />
+    <!-- The width of the whole board the pane belongs to. The size table is
+         written for 1920; a portrait board is 1080 wide and everything on it
+         scales down with it, as the dashboard's preview does. -->
+    <field id="canvasWidth" type="float" value="1920" />
     <!-- Bumped by BoardScene once the four above are all set. Redrawing on
          each of them in turn rebuilds the menu four times and shows a frame of
          the previous board's layout on the way past. -->

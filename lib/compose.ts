@@ -98,6 +98,11 @@ export function compose(input: ComposeInput): RokuBoard {
   const { board } = input;
   const placement = board.adPlacement ?? 'rail';
   const share = SHARE[placement] ?? SHARE.rail;
+  /* On a screen hung on its end there is no rail: a column down one side of
+     a portrait board is a sliver. The dashboard draws both placements as a
+     strip along the foot, so the wall does the same. */
+  const portrait = board.orientation === 'portrait';
+  const strip = portrait && placement !== 'none' && placement !== 'rotation';
 
   /* Which spots can this screen actually show. A rail-only board has nowhere
      to put a banner; 'rotation' and 'none' have no slot at all, so only the
@@ -105,7 +110,7 @@ export function compose(input: ComposeInput): RokuBoard {
   const allowed = (format: Spot['format']) => {
     if (input.screen === 'reel') return format === 'full' || format === 'video';
     if (format === 'full' || format === 'video') return placement !== 'none';
-    if (placement === 'banner') return format === 'banner';
+    if (strip || placement === 'banner') return format === 'banner';
     if (placement === 'rail') return format === 'rail';
     return false;
   };
@@ -194,7 +199,7 @@ export function compose(input: ComposeInput): RokuBoard {
     refreshMinutes: input.pollMinutes,
     keepAwake: false,
     textScale: 1,
-    adLayout: placement === 'banner' ? 'banner' : 'rail',
+    adLayout: strip || placement === 'banner' ? 'banner' : 'rail',
     supplemental: input.screen === 'reel' || uploaded,
     spotSeconds: 15,
     reviewSeconds: 12,

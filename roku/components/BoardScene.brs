@@ -221,28 +221,49 @@ sub layout()
     ' lives on another wall. The pane stays built for OPTIONS diagnostics.
     m.menu.visible = not (m.config.supplemental = true)
 
+    ' On a TV hung on its end the board is laid out 1080 wide by 1920 tall
+    ' and the menu is rotated into the frame; the ad pane does its own
+    ' turning, because video will not rotate and has to be handled apart.
+    canvas = CanvasFor(board)
+    W = canvas.width
+    H = canvas.height
+    m.menu.canvasWidth = W
+    m.ads.canvas = [W, H]
+    m.ads.turn = canvas.turn
+    if canvas.turn = ""
+        m.menu.rotation = 0
+        m.menu.translation = [0, 0]
+    else
+        turned = PortraitTransform(canvas.turn, 0, 0)
+        m.menu.rotation = turned.rotation
+        m.menu.translation = turned.translation
+        ' There is no rail on a portrait board; the server sends banner, but
+        ' an old board in the cache might not.
+        if share > 0 then placement = "banner"
+    end if
+
     if share = 0
         ' No slot sold: the menu takes the whole screen. Full-screen spots
         ' still run, so the pane stays live with an empty slot to draw into.
-        m.menu.paneWidth = 1920
-        m.menu.paneHeight = 1080
+        m.menu.paneWidth = W
+        m.menu.paneHeight = H
         m.ads.visible = true
         m.ads.placement = "none"
-        m.ads.slot = [1920, 0, 0, 1080]
+        m.ads.slot = [W, 0, 0, H]
     else if placement = "banner"
-        adHeight = Int(1080 * share)
-        m.menu.paneWidth = 1920
-        m.menu.paneHeight = 1080 - adHeight
+        adHeight = Int(H * share)
+        m.menu.paneWidth = W
+        m.menu.paneHeight = H - adHeight
         m.ads.visible = true
         m.ads.placement = "banner"
-        m.ads.slot = [0, 1080 - adHeight, 1920, adHeight]
+        m.ads.slot = [0, H - adHeight, W, adHeight]
     else
-        adWidth = Int(1920 * share)
-        m.menu.paneWidth = 1920 - adWidth
-        m.menu.paneHeight = 1080
+        adWidth = Int(W * share)
+        m.menu.paneWidth = W - adWidth
+        m.menu.paneHeight = H
         m.ads.visible = true
         m.ads.placement = "rail"
-        m.ads.slot = [1920 - adWidth, 0, adWidth, 1080]
+        m.ads.slot = [W - adWidth, 0, adWidth, H]
     end if
 
     m.menu.slotId = m.slotId

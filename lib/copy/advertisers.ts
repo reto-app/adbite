@@ -30,7 +30,7 @@ const en = {
       points: [
         'One shop, one screen, twelve months',
         'Shown at least 60 times an hour',
-        'Still image, 1920 × 240',
+        'Still image, 1920 × 240 (1080 × 340 for a portrait screen)',
         'Invoiced once. Nothing to watch week to week',
       ],
       cta: 'Ask what is free near you',
@@ -42,7 +42,7 @@ const en = {
       cta: 'Build one now',
       sell: 'Fifteen muted seconds between turns of the shop’s own footage. Buy an hour or a hundred, on one board or across the pilot, and you are billed on the time your spot was actually on screen.',
       points: [
-        'Up to 0:15, muted, 1920 × 1080',
+        'Up to 0:15, muted, 1920 × 1080 (1080 × 1920 for a portrait screen)',
         'Billed on time actually shown',
         'Stop any week you like',
       ],
@@ -147,7 +147,7 @@ const es: typeof en = {
       points: [
         'Un negocio, una pantalla, doce meses',
         'Se muestra al menos 60 veces por hora',
-        'Imagen fija, 1920 × 240',
+        'Imagen fija, 1920 × 240 (1080 × 340 en pantalla vertical)',
         'Se factura una vez. Nada que vigilar cada semana',
       ],
       cta: 'Pregunta qué hay libre cerca de ti',
@@ -159,7 +159,7 @@ const es: typeof en = {
       cta: 'Crea uno ahora',
       sell: 'Quince segundos sin sonido entre turnos del propio video del negocio. Compra una hora o cien, en un tablero o en todo el piloto, y te cobramos por el tiempo que tu anuncio estuvo en pantalla.',
       points: [
-        'Hasta 0:15, sin sonido, 1920 × 1080',
+        'Hasta 0:15, sin sonido, 1920 × 1080 (1080 × 1920 en pantalla vertical)',
         'Se cobra por el tiempo realmente mostrado',
         'Párala la semana que quieras',
       ],

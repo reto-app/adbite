@@ -32,13 +32,28 @@ sub loadSizes()
 
         headH: 118       ' name, tagline, and the rule under them
         reviewH: 62
+        slotW: 260       ' the day-part label in the header
     }
+end sub
+
+' The table above is for a 1920-wide board. A TV hung on its end is a
+' 1080-wide board, and the dashboard's preview sizes everything by the width
+' of the board (`cqw`), so the wall does too: every figure shrinks by the
+' same ratio and the fit pass then grows the menu back to fill the height.
+sub sizeForCanvas(canvasWidth as Float)
+    loadSizes()
+    if canvasWidth <= 0 or canvasWidth >= 1920 then return
+    ratio = canvasWidth / 1920
+    for each key in m.SZ
+        m.SZ[key] = Int(m.SZ[key] * ratio)
+    end for
 end sub
 
 sub init()
     loadSizes()
     m.theme = BoardTheme("chalk")
     m.scale = 1.0
+    m.columns = 2
 
     m.bg = m.top.createChild("Rectangle")
     m.body = m.top.createChild("Group")
@@ -69,6 +84,12 @@ sub redraw()
     m.bg.height = H
     m.bg.color = m.theme.bg
 
+    ' A portrait board is one column, as the dashboard draws it: two columns
+    ' on a 1080-wide board leave neither wide enough for a dish and its price.
+    sizeForCanvas(m.top.canvasWidth)
+    m.columns = 2
+    if m.top.canvasWidth < 1400 then m.columns = 1
+
     ' The review labels are about to be destroyed with the rest of the body,
     ' so the rotation has to stop before it fires at a removed node.
     m.reviewTimer.control = "stop"
@@ -79,6 +100,7 @@ sub redraw()
     sections = sectionsFor(board, m.top.slotId)
     m.priceChars = longestPrice(sections)
     colWidth = (W - m.SZ.padX - m.SZ.padX + m.SZ.colGap) / 2 - m.SZ.colGap
+    if m.columns = 1 then colWidth = W - m.SZ.padX - m.SZ.padX
     if colWidth < 200 then colWidth = 200
 
     hasReview = drawableReviews(board).count() > 0
@@ -111,7 +133,7 @@ sub drawHeader(board as Object, W as Float)
     name.font = BoardFont(m.SZ.shop, true)
     name.color = m.theme.ink
     name.translation = [m.SZ.padX, m.SZ.padTop]
-    name.width = W - m.SZ.padX - m.SZ.padX - 260
+    name.width = W - m.SZ.padX - m.SZ.padX - m.SZ.slotW
     name.height = m.SZ.shop + 8
     name.wrap = false
     name.vertAlign = "bottom"
@@ -120,8 +142,8 @@ sub drawHeader(board as Object, W as Float)
     slot.text = UCase(slotLabel())
     slot.font = BoardFont(m.SZ.slot, true)
     slot.color = m.theme.accent
-    slot.translation = [W - m.SZ.padX - 260, m.SZ.padTop]
-    slot.width = 260
+    slot.translation = [W - m.SZ.padX - m.SZ.slotW, m.SZ.padTop]
+    slot.width = m.SZ.slotW
     slot.height = m.SZ.shop + 8
     slot.horizAlign = "right"
     slot.vertAlign = "bottom"
@@ -201,6 +223,7 @@ end sub
 ' The index of the first section in the right-hand column: whichever break
 ' leaves the taller of the two columns shortest. A section is never split.
 function balancePoint(heights as Object) as Integer
+    if m.columns = 1 then return heights.count()
     total = 0
     for each h in heights
         total = total + h

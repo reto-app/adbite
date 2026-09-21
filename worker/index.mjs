@@ -13,6 +13,12 @@
  *              clips. Built whenever the shop's approved set stops matching
  *              what the current reel was built from.
  *
+ *   turn       a finished file rotated ninety degrees for a TV hung on its
+ *              end. A Roku draws everything else rotated but never video, so
+ *              the frames themselves are turned and the panel turns them
+ *              back. Queued by the sync endpoint the first time a portrait
+ *              screen asks for a film it has no turned copy of.
+ *
  * Failures are recorded on the job and retried twice; a creative whose
  * transcode fails three times stays unplayable rather than reaching a wall
  * as a black rectangle. */
@@ -43,6 +49,19 @@ const VIDEO_ARGS = [
   '-movflags', '+faststart',
 ];
 const MAX_SPOT_SECONDS = 20;
+
+/* Frames for a portrait screen: fit the source into 1080x1920 without
+   cutting anything off (a landscape spot sits in the middle with bars, a
+   vertical one fills it), then rotate the whole frame the way the panel was
+   turned so the panel's own rotation brings it upright. 'left' means the
+   TV's top edge is now on the viewer's left, so the picture turns clockwise;
+   ffmpeg's transpose=1 is clockwise, 2 anticlockwise. */
+const PORTRAIT_FIT = 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2';
+const TRANSPOSE = { left: 'transpose=1', right: 'transpose=2' };
+function frameFilter(turn) {
+  if (!turn) return 'scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080';
+  return `${PORTRAIT_FIT},${TRANSPOSE[turn]}`;
+}
 const MAX_MEDIA_SECONDS = 60;
 const REEL_CRF = 25;
 const DISSOLVE = 0.5;
@@ -152,7 +171,7 @@ async function transcode(job, dir) {
 
   await db
     .from('creatives')
-    .update({ storage_path: key, poster_path: posterKey, sha256: sha, bytes, seconds, ready: true })
+    .update({ storage_path: key, original_path: creative.storage_path, poster_path: posterKey, sha256: sha, bytes, seconds, ready: true })
     .eq('id', creative.id);
   log(`transcoded ${creative.name}: ${(bytes / 1048576).toFixed(1)} MB, ${seconds.toFixed(1)}s`);
 }
@@ -197,9 +216,38 @@ async function transcodeMedia(job, dir) {
   await upload(poster, posterKey, 'image/jpeg');
   await db
     .from('shop_media')
-    .update({ storage_path: key, poster_path: posterKey, sha256: sha, bytes, seconds, ready: true })
+    .update({ storage_path: key, original_path: media.storage_path, poster_path: posterKey, sha256: sha, bytes, seconds, ready: true })
     .eq('id', media.id);
   log(`transcoded shop media ${media.name}: ${(bytes / 1048576).toFixed(1)} MB, ${seconds.toFixed(1)}s`);
+}
+
+/* ---- turning a file for a portrait screen --------------------------------- */
+
+async function turnVideo(job, dir) {
+  const turn = job.turn;
+  if (!TRANSPOSE[turn]) throw new Error(`unknown turn ${turn}`);
+  const { data: existing } = await db
+    .from('turned_videos')
+    .select('storage_path')
+    .eq('source_path', job.source_path)
+    .eq('turn', turn)
+    .maybeSingle();
+  if (existing) return;
+
+  const source = join(dir, 'in.mp4');
+  const output = join(dir, 'out.mp4');
+  await download(job.source_path, source);
+  const sourceSeconds = await probeSeconds(source);
+  if (sourceSeconds <= 0) throw new Error('video has no readable duration');
+  const cap = Number(job.max_seconds) > 0 ? Number(job.max_seconds) : MAX_MEDIA_SECONDS;
+  const seconds = Math.min(sourceSeconds, cap);
+  await run('ffmpeg', ['-y', '-v', 'error', '-i', source, '-t', String(seconds), '-vf', frameFilter(turn), ...VIDEO_ARGS, output]);
+
+  const sha = await hashOf(output);
+  const key = `turned/${sha}.mp4`;
+  const { bytes } = await upload(output, key, 'video/mp4');
+  await db.from('turned_videos').upsert({ source_path: job.source_path, turn, storage_path: key, sha256: sha, bytes, seconds });
+  log(`turned ${job.source_path} ${turn}: ${(bytes / 1048576).toFixed(1)} MB`);
 }
 
 /* ---- reels ---------------------------------------------------------------- */
@@ -208,7 +256,7 @@ async function transcodeMedia(job, dir) {
 async function approvedFor(shopId) {
   const { data } = await db
     .from('approvals')
-    .select('campaign_id, campaigns!inner(id, status, creatives(storage_path, kind, ready, seconds))')
+    .select('campaign_id, campaigns!inner(id, status, creatives(storage_path, original_path, kind, ready, seconds))')
     .eq('shop_id', shopId)
     .eq('status', 'approved');
   return (data ?? [])
@@ -221,7 +269,7 @@ async function approvedFor(shopId) {
 async function mediaFor(shopId) {
   const { data } = await db
     .from('shop_media')
-    .select('id, storage_path, kind, seconds, hold_seconds, ready')
+    .select('id, storage_path, original_path, kind, seconds, hold_seconds, ready')
     .eq('shop_id', shopId)
     .eq('ready', true)
     .order('position');
@@ -237,7 +285,7 @@ function fingerprint(parts) {
 /* `items` are the reel in order: each is a file, how long it holds, and the
    campaign it should be billed to, if any. A shop's own footage has none,
    which is what makes it free to run. */
-async function buildReel(shopId, items, dir) {
+async function buildReel(shopId, items, dir, turn) {
   const inputs = [];
   const parts = [];
   let index = 0;
@@ -255,7 +303,7 @@ async function buildReel(shopId, items, dir) {
   }
 
   const filters = parts.map(
-    (_, i) => `[${i}:v]scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,fps=30,format=yuv420p,setpts=PTS-STARTPTS,settb=AVTB[v${i}]`,
+    (_, i) => `[${i}:v]${frameFilter(turn)},fps=30,format=yuv420p,setpts=PTS-STARTPTS,settb=AVTB[v${i}]`,
   );
   let previous = 'v0';
   let total = parts[0].seconds;
@@ -283,27 +331,41 @@ async function buildReel(shopId, items, dir) {
   return { output, seconds: total, segments };
 }
 
+/** Which way the shop's screen is hung: null for landscape, else the turn. */
+async function turnFor(shopId) {
+  const { data } = await db.from('boards').select('board').eq('shop_id', shopId).maybeSingle();
+  const board = data?.board ?? {};
+  if (board.orientation !== 'portrait') return null;
+  return TRANSPOSE[board.turn] ? board.turn : 'left';
+}
+
 async function reelFor(shopId, dir) {
   const spots = await approvedFor(shopId);
   const media = await mediaFor(shopId);
+  const turn = await turnFor(shopId);
 
   /* The shop's own footage first, then what it was paid to carry. A board
      should read as the shop's, with advertising in it. */
+  /* A portrait reel is cut from the uploads themselves, not from the
+     landscape transcodes, so a vertical film keeps its whole picture. */
+  const pathOf = (row) => (turn && row.original_path ? row.original_path : row.storage_path);
   const items = [
     ...media.map((item) => ({
-      storagePath: item.storage_path,
+      storagePath: pathOf(item),
       kind: item.kind,
       seconds: item.kind === 'video' ? Math.max(2, Number(item.seconds) || 15) : Math.max(2, Number(item.hold_seconds) || 12),
       campaignId: null,
     })),
     ...spots.map((spot) => ({
-      storagePath: spot.creatives.storage_path,
+      storagePath: pathOf(spot.creatives),
       kind: spot.creatives.kind,
       seconds: spot.creatives.kind === 'video' ? Math.max(2, Number(spot.creatives.seconds) || 15) : 12,
       campaignId: spot.id,
     })),
   ];
-  const built = fingerprint(items.map((item) => `${item.storagePath}:${item.seconds}`));
+  /* The way the screen is hung is an input too: flip it and the reel is
+     rebuilt the other way up. */
+  const built = fingerprint([...items.map((item) => `${item.storagePath}:${item.seconds}`), `turn:${turn ?? 'none'}`]);
 
   const { data: existing } = await db.from('reels').select('built_from').eq('shop_id', shopId).maybeSingle();
   if (items.length === 0) {
@@ -312,7 +374,7 @@ async function reelFor(shopId, dir) {
   }
   if (existing?.built_from === built) return false;
 
-  const { output, seconds, segments } = await buildReel(shopId, items, dir);
+  const { output, seconds, segments } = await buildReel(shopId, items, dir, turn);
   const sha = await hashOf(output);
   const key = `reels/${sha}.mp4`;
   const { bytes } = await upload(output, key, 'video/mp4');
@@ -323,6 +385,7 @@ async function reelFor(shopId, dir) {
     bytes,
     seconds,
     segments,
+    turn,
     built_from: built,
     built_at: new Date().toISOString(),
   });
@@ -352,6 +415,7 @@ async function workOnce() {
     if (job.kind === 'transcode') await transcode(job, dir);
     else if (job.kind === 'transcode_media') await transcodeMedia(job, dir);
     else if (job.kind === 'reel') await reelFor(job.shop_id, dir);
+    else if (job.kind === 'turn') await turnVideo(job, dir);
     await db.from('render_jobs').update({ status: 'done', error: null, finished_at: new Date().toISOString() }).eq('id', job.id);
   } catch (failure) {
     const message = failure instanceof Error ? failure.message : String(failure);

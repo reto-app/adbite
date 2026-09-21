@@ -11,6 +11,7 @@ sub init()
     m.holdingPlate = false
     m.slotless = false
     m.loopAd = invalid
+    m.turn = ""
 
     ' --- the slot, drawn in place ---
     m.slotGroup = m.top.createChild("Group")
@@ -85,9 +86,34 @@ sub reload()
 
     slot = m.top.slot
     if slot = invalid or slot.count() < 4 then return
-    m.slotGroup.translation = [slot[0], slot[1]]
     m.slotW = slot[2]
     m.slotH = slot[3]
+
+    ' On a TV hung on its end the slot is measured on a 1080x1920 canvas and
+    ' the group that draws it is rotated into the frame. The full-screen
+    ' poster turns the same way. The video node does not: a Roku will not
+    ' rotate video, so a portrait screen is sent files already turned and the
+    ' player draws them straight into the frame.
+    m.turn = strOr(m.top.turn, "")
+    canvas = m.top.canvas
+    if m.turn <> "" and canvas <> invalid and canvas.count() >= 2
+        placed = PortraitTransform(m.turn, slot[0], slot[1])
+        m.slotGroup.rotation = placed.rotation
+        m.slotGroup.translation = placed.translation
+        whole = PortraitTransform(m.turn, 0, 0)
+        m.fullPoster.rotation = whole.rotation
+        m.fullPoster.translation = whole.translation
+        m.fullPoster.width = canvas[0]
+        m.fullPoster.height = canvas[1]
+    else
+        m.turn = ""
+        m.slotGroup.rotation = 0
+        m.slotGroup.translation = [slot[0], slot[1]]
+        m.fullPoster.rotation = 0
+        m.fullPoster.translation = [0, 0]
+        m.fullPoster.width = 1920
+        m.fullPoster.height = 1080
+    end if
 
     ' A zero-width slot means nothing was sold in the menu's frame; only the
     ' full-screen formats have anywhere to go.
@@ -105,7 +131,10 @@ sub reload()
     m.fullBg.color = m.theme.bg
 
     if not m.slotless
-        drawHatch()
+        ' The hatch is clipped to the slot, and a Roku does not clip inside a
+        ' rotated group; on a turned screen the empty slot is plain.
+        m.hatch.removeChildrenIndex(m.hatch.getChildCount(), 0)
+        if m.turn = "" then drawHatch()
         drawPlaceholder()
     end if
 

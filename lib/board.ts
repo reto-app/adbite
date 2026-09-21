@@ -168,6 +168,17 @@ export const ORIENTATIONS: { id: Orientation; label: string; note: string }[] = 
   { id: 'portrait', label: 'Portrait', note: 'Turned on its end, taller than wide. 9:16' },
 ];
 
+/* Which way a portrait TV was turned: with its top edge now on the viewer's
+   left, or on their right. A Roku cannot rotate video, so every film for a
+   portrait screen is rotated in the file, and the file has to be rotated the
+   way the panel was. Wrong, and the ad is upside down. */
+export type Turn = 'left' | 'right';
+
+export const TURNS: { id: Turn; label: string; note: string }[] = [
+  { id: 'left', label: 'Top to the left', note: 'Turned anticlockwise' },
+  { id: 'right', label: 'Top to the right', note: 'Turned clockwise' },
+];
+
 /* ---- how the board looks ------------------------------------------------- */
 
 export type ThemeId = 'chalk' | 'enamel' | 'warm' | 'garden';
@@ -219,6 +230,8 @@ export type Board = {
   theme: ThemeId;
   /** Which way the TV is hung. */
   orientation: Orientation;
+  /** For a portrait TV, which way it was turned. Ignored when landscape. */
+  turn: Turn;
   /** What the screen is for. Null until the shop has been asked. */
   kind: BoardKind | null;
   /** Whether the shop's half is typed here or uploaded. */
@@ -260,6 +273,7 @@ export function starterBoard(): Board {
     tagline: 'Filipino steamed buns · 660 N Freedom Blvd',
     theme: 'chalk',
     orientation: 'landscape',
+    turn: 'left',
     /* Null on purpose: the dashboard asks before it assumes. */
     kind: null,
     source: 'builder',
@@ -403,6 +417,7 @@ function migrated(saved: Board & { adShare?: number }): Board {
   if (saved.kind === undefined) saved = { ...saved, kind: 'menu' };
   if (!saved.source) saved = { ...saved, source: 'builder' };
   if (!saved.orientation) saved = { ...saved, orientation: 'landscape' };
+  if (!saved.turn) saved = { ...saved, turn: 'left' };
   if (saved.adPlacement) return saved;
   const share = typeof saved.adShare === 'number' ? saved.adShare : DEFAULT_AD_SHARE;
   const nearest = PLACEMENTS.reduce((best, place) =>

@@ -71,3 +71,40 @@ function BoardFont(size as Integer, bold as Boolean) as Object
     m.fontCache[key] = font
     return font
 end function
+
+' ---- a screen hung on its end ---------------------------------------------
+' A Roku always draws a 1920x1080 frame in the panel's own coordinates. On a
+' TV turned ninety degrees the person in front of it sees a 1080x1920 picture,
+' so the board is laid out in that space and the whole thing is rotated into
+' the frame. `turn` is which way the TV went: "left" means its top edge is now
+' at the viewer's left (turned anticlockwise), so the picture turns clockwise
+' to come out upright; "right" is the reverse. Empty means landscape.
+'
+' Returns the rotation and translation to put on a node whose own coordinate
+' space is the 1080x1920 canvas, with `offset` being where in that canvas the
+' node sits. SceneGraph's rotation is anticlockwise-positive about the node's
+' origin, applied before its translation.
+function PortraitTransform(turn as String, offsetX as Float, offsetY as Float) as Object
+    if turn = "right"
+        ' (x, y) -> (y, 1080 - x)
+        return { rotation: 1.5707963, translation: [offsetY, 1080 - offsetX] }
+    end if
+    ' (x, y) -> (1920 - y, x)
+    return { rotation: -1.5707963, translation: [1920 - offsetY, offsetX] }
+end function
+
+' The canvas a board is laid out on: the frame itself, or the frame on its end.
+function CanvasFor(board as Object) as Object
+    turn = ""
+    if board <> invalid and lowerText(board.orientation) = "portrait"
+        turn = "left"
+        if lowerText(board.turn) = "right" then turn = "right"
+    end if
+    if turn = "" then return { width: 1920, height: 1080, turn: "" }
+    return { width: 1080, height: 1920, turn: turn }
+end function
+
+function lowerText(value as Dynamic) as String
+    if type(value) = "String" or type(value) = "roString" then return LCase(value)
+    return ""
+end function

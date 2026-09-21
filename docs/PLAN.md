@@ -204,6 +204,35 @@ Still to do here: a "specials" board still uses the menu editor, which is
 probably right but has not been looked at with a shop; and the reel is built
 in upload order, with no way yet for a shop to reorder it.
 
+## Screens hung on their end (2026-09-21)
+
+A shop's board already said `orientation: portrait` and the dashboard drew
+it that way; the wall ignored it. Now the channel lays a portrait board out
+on a 1080x1920 canvas (one column, sizes scaled by width as the preview's
+`cqw` does, the ad as a strip along the foot at the same 18%) and rotates the
+menu and the posters into the 1920x1080 frame with `PortraitTransform` in
+`theme.brs`.
+
+**Video is the exception.** A Roku will not rotate a Video node, so every
+film for a portrait screen is rotated in the file: `render_jobs` has a
+`turn` kind, `turned_videos` records one copy per (source, direction), and
+`api/device/sync` swaps each film for its turned copy or drops it from that
+board until the worker has made one. Reels for a portrait shop are built
+turned from the start, and `reels.turn` stops a stale landscape reel being
+handed to a portrait screen. Turned copies are cut from the upload itself
+(`creatives.original_path`, `shop_media.original_path`), not the landscape
+transcode, so a vertical film keeps its whole picture; a landscape film sits
+in the middle with bars rather than being cropped.
+
+The direction matters: `board.turn` is `left` (TV's top edge now on the
+viewer's left) or `right`, chosen under the orientation chips. **The sign of
+SceneGraph's rotation has not been checked on a TV**: if a portrait board
+comes up upside down, the two branches of `PortraitTransform` and the two
+`transpose` values in the worker are swapped, and that is the whole fix.
+
+Artwork for a portrait strip is **1080 x 340** (the slot is 1080 x 346);
+portrait video is **1080 x 1920**. Both are in the format copy.
+
 ## Reels and billing (2026-09-16)
 
 A looping reel is one file made of several campaigns, so neither end can say

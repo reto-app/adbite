@@ -18,6 +18,12 @@
     <!-- [x, y, width, height] of the rail or banner slot -->
     <field id="slot" type="floatarray" />
     <field id="placement" type="string" value="rail" />
+    <!-- [width, height] of the canvas the slot is measured in: 1920x1080, or
+         1080x1920 for a TV hung on its end. -->
+    <field id="canvas" type="floatarray" />
+    <!-- Which way a portrait TV was turned ("left" or "right"); empty for
+         landscape. See PortraitTransform in theme.brs. -->
+    <field id="turn" type="string" value="" />
     <!-- Bumped by BoardScene once the slot and the board are both set. -->
     <field id="revision" type="integer" value="0" onChange="reload" />
     <!-- Read by BoardScene, which parks the keep-awake clip while a spot has

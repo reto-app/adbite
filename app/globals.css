@@ -8438,6 +8438,35 @@ text.vs-small {
   height: 40px;
 }
 
+.turn-row {
+  margin-top: 8px;
+}
+
+/* The little screen with a mark for where its top edge went. */
+.turn-mini {
+  position: relative;
+  width: 23px;
+  height: 40px;
+}
+
+.turn-mini::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--board);
+}
+
+.orient-chip.t-left .turn-mini::after {
+  left: 3px;
+}
+
+.orient-chip.t-right .turn-mini::after {
+  right: 3px;
+}
+
 .orient-chip b {
   font-family: var(--font-display), sans-serif;
   font-size: 13.5px;

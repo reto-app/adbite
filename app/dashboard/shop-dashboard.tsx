@@ -35,6 +35,8 @@ import {
   type Board,
   type Orientation,
   type SaveState,
+  type Turn,
+  TURNS,
   type SlotId,
   type ThemeId,
   BOARD_KINDS,
@@ -340,6 +342,26 @@ function BoardTab({
                 </button>
               ))}
             </div>
+            {/* A Roku will not rotate video, so every film for a portrait
+                screen is rotated in the file, and it has to be rotated the
+                way the TV was. Asked only once the answer matters. */}
+            {board.orientation === 'portrait' && (
+              <div className="orient-row turn-row">
+                {TURNS.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    className={`orient-chip t-${option.id}${(board.turn ?? 'left') === option.id ? ' on' : ''}`}
+                    aria-pressed={(board.turn ?? 'left') === option.id}
+                    onClick={() => onChange({ turn: option.id as Turn })}
+                  >
+                    <span className="orient-mini turn-mini" aria-hidden="true" />
+                    <b>{shared.turns[option.id].label}</b>
+                    <i>{shared.turns[option.id].note}</i>
+                  </button>
+                ))}
+              </div>
+            )}
           </section>
 
           <section className="shop-panel">

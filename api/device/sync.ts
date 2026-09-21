@@ -14,6 +14,7 @@
 
 import { compose, serialize, type Spot } from '../../lib/compose.js';
 import { json, lowerKeys, service, sha256 } from '../../lib/server/db.js';
+import { turnedFiles, type Turn } from '../../lib/server/turned.js';
 
 export const config = { runtime: 'nodejs' };
 
@@ -128,19 +129,28 @@ export async function POST(request: Request): Promise<Response> {
      finished processing. Nothing else reaches the wall. */
   const { data: approved } = await db
     .from('approvals')
-    .select('campaigns!inner(id, name, format, status, creatives(kind, storage_path, sha256, bytes, seconds, ready))')
+    .select('campaigns!inner(id, name, format, status, creatives(kind, storage_path, original_path, sha256, bytes, seconds, ready))')
     .eq('shop_id', device.shop_id)
     .eq('status', 'approved');
 
   const origin = process.env.ASSETS_ORIGIN ?? 'https://assets.adbite.site';
+  const url = (path: string) => `${origin}/${path.replace(/^\/+/, '')}`;
+
+  /* A TV hung on its end needs every film rotated in the file. The board
+     says which way it was turned; `null` is a landscape screen. */
+  const boardTurn: Turn | null =
+    boardRow.board?.orientation === 'portrait' ? ((boardRow.board.turn as Turn) ?? 'left') : null;
+
   const spots: Spot[] = [];
+  /* Each film's source and length, keyed by its spot or piece id, for the swap. */
+  const videoPaths = new Map<string, { path: string; seconds: number }>();
   for (const row of (approved ?? []) as unknown as {
     campaigns: {
       id: string;
       name: string;
       format: Spot['format'];
       status: string;
-      creatives: { kind: string; storage_path: string | null; sha256: string | null; bytes: number | null; seconds: number | null; ready: boolean } | null;
+      creatives: { kind: string; storage_path: string | null; original_path: string | null; sha256: string | null; bytes: number | null; seconds: number | null; ready: boolean } | null;
     };
   }[]) {
     const c = row.campaigns;
@@ -148,11 +158,14 @@ export async function POST(request: Request): Promise<Response> {
     if (!creative?.ready || !creative.storage_path || !creative.sha256 || !creative.bytes) continue;
     /* Only Checkout's signed webhook moves a campaign to live. */
     if (c.status !== 'live') continue;
+    /* Turned from the upload itself where we still have it, so a vertical
+       film is not first cropped to landscape. */
+    if (creative.kind === 'video') videoPaths.set(c.id, { path: creative.original_path ?? creative.storage_path, seconds: creative.seconds ?? 15 });
     spots.push({
       campaignId: c.id,
       name: c.name,
       format: c.format,
-      src: `${origin}/${creative.storage_path.replace(/^\/+/, '')}`,
+      src: url(creative.storage_path),
       sha256: creative.sha256,
       bytes: creative.bytes,
       seconds: creative.seconds,
@@ -165,12 +178,15 @@ export async function POST(request: Request): Promise<Response> {
   if (screen === 'reel') {
     const { data: row } = await db
       .from('reels')
-      .select('storage_path, sha256, bytes, seconds')
+      .select('storage_path, sha256, bytes, seconds, turn')
       .eq('shop_id', device.shop_id)
       .maybeSingle();
-    if (row) {
+    /* A reel built for the other way of hanging the screen would play
+       sideways. Skip it until the worker has rebuilt it; the fall-through is
+       the ordinary rotation, which is a worse picture but the right way up. */
+    if (row && (row.turn ?? null) === boardTurn) {
       reel = {
-        src: `${origin}/${row.storage_path.replace(/^\/+/, '')}`,
+        src: url(row.storage_path),
         sha256: row.sha256,
         bytes: row.bytes,
         seconds: Number(row.seconds),
@@ -184,32 +200,56 @@ export async function POST(request: Request): Promise<Response> {
      advertising. */
   const { data: mediaRows } = await db
     .from('shop_media')
-    .select('id, name, kind, storage_path, sha256, bytes, seconds, hold_seconds')
+    .select('id, name, kind, storage_path, original_path, sha256, bytes, seconds, hold_seconds')
     .eq('shop_id', device.shop_id)
     .eq('ready', true)
     .or(`device_ids.is.null,device_ids.cs.{${device.id}}`)
     .order('position');
   const media = (mediaRows ?? [])
     .filter((row) => row.storage_path && row.sha256 && row.bytes)
-    .map((row) => ({
-      id: row.id,
-      name: row.name,
-      kind: row.kind as 'image' | 'video',
-      src: `${origin}/${row.storage_path!.replace(/^\/+/, '')}`,
-      sha256: row.sha256!,
-      bytes: row.bytes!,
-      seconds: row.kind === 'video' ? Number(row.seconds) || 15 : row.hold_seconds,
-    }));
+    .map((row) => {
+      if (row.kind === 'video') videoPaths.set(row.id, { path: row.original_path ?? row.storage_path!, seconds: Number(row.seconds) || 15 });
+      return {
+        id: row.id,
+        name: row.name,
+        kind: row.kind as 'image' | 'video',
+        src: url(row.storage_path!),
+        sha256: row.sha256!,
+        bytes: row.bytes!,
+        seconds: row.kind === 'video' ? Number(row.seconds) || 15 : row.hold_seconds,
+      };
+    });
+
+  /* Portrait: every film is replaced by its turned copy, or dropped from
+     this board until the worker has made one. Stills rotate on the device. */
+  let shownSpots = spots;
+  let shownMedia = media;
+  if (boardTurn) {
+    const turned = await turnedFiles(db, [...videoPaths.values()], boardTurn);
+    const swap = <T extends { id: string; src: string; sha256: string; bytes: number }>(item: T, key: string): T | null => {
+      const source = videoPaths.get(key);
+      if (!source) return item;
+      const file = turned.get(source.path);
+      if (!file) return null;
+      return { ...item, src: url(file.storage_path), sha256: file.sha256, bytes: file.bytes, seconds: file.seconds };
+    };
+    shownSpots = spots
+      .map((spot) => swap({ ...spot, id: spot.campaignId }, spot.campaignId))
+      .filter((spot): spot is Spot & { id: string } => spot !== null);
+    shownMedia = media
+      .map((piece) => swap(piece, piece.id))
+      .filter((piece): piece is (typeof media)[number] => piece !== null);
+  }
 
   const board = compose({
     shopId: shop.id,
     board: boardRow.board,
     boardVersion: boardRow.version,
     updatedAt: boardRow.updated_at,
-    spots,
+    spots: shownSpots,
     screen,
     reel,
-    media,
+    media: shownMedia,
     pollMinutes: POLL_MINUTES,
   });
   const text = serialize(board);

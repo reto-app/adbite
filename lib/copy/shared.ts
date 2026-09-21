@@ -78,12 +78,12 @@ const en = {
     banner: {
       name: 'Permanent spot',
       blurb: 'A static ad in the strip under the shop’s menu, held for a year. Their board stays readable the whole time.',
-      spec: '1920 × 240 · still image',
+      spec: '1920 × 240 · still image · 1080 × 340 on a portrait screen',
     },
     video: {
       name: 'Short video',
       blurb: 'Up to fifteen seconds of motion, muted, between turns of the shop’s own footage.',
-      spec: '1920 × 1080 · up to 0:15',
+      spec: '1920 × 1080 · up to 0:15 · 1080 × 1920 on a portrait screen',
     },
   },
   dayparts: {
@@ -128,6 +128,10 @@ const en = {
   orientations: {
     landscape: { label: 'Landscape', note: 'Hung the usual way round · 16:9' },
     portrait: { label: 'Portrait', note: 'Turned on its end · 9:16' },
+  },
+  turns: {
+    left: { label: 'Top to the left', note: 'Turned anticlockwise' },
+    right: { label: 'Top to the right', note: 'Turned clockwise' },
   },
   badges: { none: 'No tag', new: 'New', popular: 'Popular', out: 'Sold out' },
   groups: {
@@ -239,12 +243,12 @@ const es: typeof en = {
     banner: {
       name: 'Espacio permanente',
       blurb: 'Un anuncio fijo en la franja debajo del menú del negocio, por un año. Su tablero sigue legible todo el tiempo.',
-      spec: '1920 × 240 · imagen fija',
+      spec: '1920 × 240 · imagen fija · 1080 × 340 en pantalla vertical',
     },
     video: {
       name: 'Video corto',
       blurb: 'Hasta quince segundos de movimiento, sin sonido, entre turnos del propio video del negocio.',
-      spec: '1920 × 1080 · hasta 0:15',
+      spec: '1920 × 1080 · hasta 0:15 · 1080 × 1920 en pantalla vertical',
     },
   },
   dayparts: {
@@ -289,6 +293,10 @@ const es: typeof en = {
   orientations: {
     landscape: { label: 'Horizontal', note: 'Colgada como siempre · 16:9' },
     portrait: { label: 'Vertical', note: 'Girada de canto · 9:16' },
+  },
+  turns: {
+    left: { label: 'Parte de arriba a la izquierda', note: 'Girada en sentido antihorario' },
+    right: { label: 'Parte de arriba a la derecha', note: 'Girada en sentido horario' },
   },
   badges: { none: 'Ninguna', new: 'Nuevo', popular: 'Popular', out: 'Agotado' },
   groups: {
