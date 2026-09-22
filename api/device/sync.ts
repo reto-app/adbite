@@ -129,7 +129,7 @@ export async function POST(request: Request): Promise<Response> {
      finished processing. Nothing else reaches the wall. */
   const { data: approved } = await db
     .from('approvals')
-    .select('campaigns!inner(id, name, format, status, creatives(kind, storage_path, original_path, sha256, bytes, seconds, ready))')
+    .select('campaigns!inner(id, name, format, status, device_ids, creatives(kind, storage_path, original_path, sha256, bytes, seconds, ready))')
     .eq('shop_id', device.shop_id)
     .eq('status', 'approved');
 
@@ -150,6 +150,7 @@ export async function POST(request: Request): Promise<Response> {
       name: string;
       format: Spot['format'];
       status: string;
+      device_ids: string[] | null;
       creatives: { kind: string; storage_path: string | null; original_path: string | null; sha256: string | null; bytes: number | null; seconds: number | null; ready: boolean } | null;
     };
   }[]) {
@@ -158,6 +159,10 @@ export async function POST(request: Request): Promise<Response> {
     if (!creative?.ready || !creative.storage_path || !creative.sha256 || !creative.bytes) continue;
     /* Only Checkout's signed webhook moves a campaign to live. */
     if (c.status !== 'live') continue;
+    /* A spot is bought per TV now, so a booking that named screens plays only
+       on those. Null is every TV the shop has, now and later, which is what
+       video means and what every row written before this meant. */
+    if (c.device_ids?.length && !c.device_ids.includes(device.id)) continue;
     /* Turned from the upload itself where we still have it, so a vertical
        film is not first cropped to landscape. */
     if (creative.kind === 'video') videoPaths.set(c.id, { path: creative.original_path ?? creative.storage_path, seconds: creative.seconds ?? 15 });
@@ -241,6 +246,25 @@ export async function POST(request: Request): Promise<Response> {
       .filter((piece): piece is (typeof media)[number] => piece !== null);
   }
 
+  /* Pictures on the board — the logo, a photo beside a section, an image
+     block — are a different question from the rotation above. They are not
+     narrowed to some TVs, because a shop's logo is its logo on every screen,
+     so this is the whole ready library keyed by the URL the board refers to
+     it by. compose() takes what it needs and drops any picture it cannot find
+     a hash for; nothing unverified goes to a wall. */
+  const { data: pictureRows } = await db
+    .from('shop_media')
+    .select('storage_path, sha256, bytes')
+    .eq('shop_id', device.shop_id)
+    .eq('kind', 'image')
+    .eq('ready', true);
+  const pictures = new Map<string, { sha256: string; bytes: number }>();
+  for (const row of pictureRows ?? []) {
+    if (row.storage_path && row.sha256 && row.bytes) {
+      pictures.set(url(row.storage_path), { sha256: row.sha256, bytes: row.bytes });
+    }
+  }
+
   const board = compose({
     shopId: shop.id,
     board: boardRow.board,
@@ -250,6 +274,7 @@ export async function POST(request: Request): Promise<Response> {
     screen,
     reel,
     media: shownMedia,
+    pictures,
     pollMinutes: POLL_MINUTES,
   });
   const text = serialize(board);

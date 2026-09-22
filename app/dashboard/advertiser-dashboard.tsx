@@ -6,37 +6,33 @@ import {
   ArrowRight,
   Check,
   Hourglass,
-  Mail,
   Plus,
   Radio,
   Trash2,
 } from 'lucide-react';
 import { Bite } from '@/components/brand';
 import { DashboardHeader } from '@/components/dashboard-header';
-import { CreativeStep, type Creative } from '@/components/campaign/creative-step';
 import {
   DEFAULT_PLACEMENT,
   PlaceStep,
   chosenVenues,
   type Placement,
 } from '@/components/campaign/place-step';
-import { BuyStep } from '@/components/campaign/buy-step';
+import { BoardStep } from '@/components/campaign/board-step';
+import { ArtworkStep } from '@/components/campaign/artwork-step';
+import { PayDone, PayStep } from '@/components/campaign/pay-step';
+import { booked, costOf, emptyLine, missingArtwork, totalOf, type Line } from '@/lib/booking';
 import { AnalyticsPanel } from '@/components/campaign/analytics-panel';
 import { FORMATS, type FormatId } from '@/lib/boards';
-import { LIVE_VENUES, VENUES, totalScreens } from '@/lib/network';
+import { LIVE_VENUES, VENUES, totalScreens, venueById } from '@/lib/network';
 import {
   DAYPARTS,
+  SPOT_QUARTERLY,
   SPOT_YEARLY,
   VIDEO_HOURLY,
   count,
-  hoursLabel,
   inventory,
-  isPermanent,
   money,
-  spotCost,
-  totalSpotsFree,
-  videoCost,
-  type Daypart,
 } from '@/lib/pricing';
 import {
   addCampaign,
@@ -51,7 +47,6 @@ import { usePlays } from '@/lib/plays';
 import { useAdvertiserStatements } from '@/lib/statements';
 import { localeOf, useCopy, useLang } from '@/lib/lang';
 import { CAMPAIGN } from '@/lib/copy/campaign';
-import { SHARED } from '@/lib/copy/shared';
 
 function useDay() {
   const { lang } = useLang();
@@ -61,10 +56,10 @@ function useDay() {
   );
 }
 
-/* Place comes first now. It used to be second, which meant the spend slider
-   was priced against a network you had not chosen yet and its ceiling jumped
+/* Place comes first. It used to be second, which meant the spend slider was
+   priced against a network you had not chosen yet and its ceiling jumped
    under you the moment you did. The step names are in lib/copy/campaign.ts. */
-const STEP_NUMBERS = ['01', '02', '03'];
+const STEP_NUMBERS = ['01', '02', '03', '04'];
 
 /* The name a campaign is filed under is data, not display, and stays English
    so the shop's queue and the mail read the same row. */
@@ -73,77 +68,139 @@ function formatName(id: FormatId) {
 }
 
 /* ---- the creation suite, opened by the New campaign button ---------------
-   The whole builder is one screen tall: head, stepper, a body that scrolls
-   inside itself if a step is taller than the room it has, and a bar pinned to
-   the bottom. It used to be a long page with a sticky footer, so the summary
-   you were deciding against sat below three screens of controls. */
+   Four steps, and the order is the order somebody actually decides in:
 
-function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () => void }) {
+     01  which shops
+     02  which space on each of their boards, and which of their TVs
+     03  the artwork for each, seen on that shop's own live board
+     04  everything at once, and what it costs
+
+   It used to be three, and the middle one asked what format you wanted
+   before you had seen a single board -- so an advertiser chose "a permanent
+   spot" against a footfall number and found out afterwards whether the shop
+   even had a strip to put one in. Now the board comes first and the format
+   falls out of the space: a shop running a bottom strip sells a still, a shop
+   running a full-screen turn sells fifteen seconds, and a shop carrying no
+   advertising this week says so on its own card.
+
+   The basket is a line per shop (lib/booking.ts), so two shops can be bought
+   two different ways in one pass. Each line becomes its own campaign row,
+   because each is approved by a different shop owner and invoiced separately.
+
+   The whole builder is one screen tall: head, stepper, a body that scrolls
+   inside itself, and a bar pinned to the bottom. */
+
+function NewCampaign({
+  onDone,
+  onCancel,
+}: {
+  /* The id of the first booking made, so closing the builder lands on that
+     campaign's reporting rather than on whatever was top of the list. */
+  onDone: (campaignId?: string) => void;
+  onCancel: () => void;
+}) {
   const t = useCopy(CAMPAIGN).dash;
-  const shared = useCopy(SHARED);
+  const pay = useCopy(CAMPAIGN).pay;
   const day = useDay();
   const [step, setStep] = useState(0);
-  const [spots, setSpots] = useState(1);
-  const [hours, setHours] = useState(4);
-  const [dayparts, setDayparts] = useState<Daypart[]>(DAYPARTS.map((part) => part.id));
   const [placement, setPlacement] = useState<Placement>(DEFAULT_PLACEMENT);
-  const [format, setFormat] = useState<FormatId>('banner');
-  const [creative, setCreative] = useState<Creative | null>(null);
+  /* Seeded from the same default the first step opens on, so stepping
+     straight through lands on the boards that are already selected rather
+     than on an empty step. */
+  const [lines, setLines] = useState<Line[]>(() =>
+    DEFAULT_PLACEMENT.venues.map((venueId) => emptyLine(venueId, null)),
+  );
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   const chosen = chosenVenues(placement);
-  const permanent = isPermanent(format);
-  /* A permanent spot is bought outright, so it commits nothing weekly; video
-     is the only thing with a weekly number, and it is hours times the rate. */
-  const free = totalSpotsFree(chosen);
-  const takenSpots = permanent ? Math.min(spots, free) : 0;
-  const weeklySpend = permanent ? 0 : videoCost(hours);
-  const booking = { weeklySpend, format };
-  const minutes = campaignMinutes(booking);
+
+  /* The basket follows the shops. A shop taken out of step 01 takes its line
+     with it; a shop put back in gets a fresh one rather than whatever it was
+     set to three minutes ago, because the board it is being judged against
+     has been refetched since. */
+  const syncLines = (next: Placement) => {
+    setPlacement(next);
+    setLines((current) =>
+      next.venues.map((venueId) => current.find((line) => line.venueId === venueId) ?? emptyLine(venueId, null)),
+    );
+  };
+
+  const mine = booked(lines);
+  const totals = totalOf(mine);
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
   const blocked =
     (step === 0 && chosen.length === 0) ||
-    (step === 1 && permanent && free === 0) ||
-    (step === 2 && (!creative || !emailOk || sending));
+    (step === 1 && mine.length === 0) ||
+    (step === 2 && missingArtwork(lines).length > 0) ||
+    (step === 3 && (mine.length === 0 || !emailOk || sending));
 
-  /* A booking is a row now, not a note to us: it lands in the database, the
-     shop sees it in their queue, and api/notify mails both sides. It used to
-     also go to info@ as a lead, which was the pilot's only record of it and
-     is now a second copy of something nobody needs to read. */
+  /* One row per shop, because one shop owner approves each one and one
+     invoice is raised against each one. They are written in sequence rather
+     than in parallel: a half-written basket is easier to reason about than a
+     half-written basket with the failures in a different order than the
+     lines. */
   const save = async () => {
     setSending(true);
     setError('');
+    let first: string | undefined;
     try {
-      const saved = await addCampaign({
-        name: `${formatName(format)} · ${day.format(new Date())}`,
-        weeklySpend,
-        spots: takenSpots,
-        format,
-        venues: placement.venues,
-        ages: placement.ages,
-        dayparts,
-        creativeName: creative?.name ?? null,
-        creativeSrc: creative?.src ?? null,
-        creativeId: creative?.creativeId ?? null,
-        email: email.trim(),
-        startedAt: null,
-      });
-      /* Stripe is shelved: nothing is collected in the browser. The booking
-         is the thing that exists now, and an invoice follows it by mail once
-         the shop approves the artwork, payable by bank transfer. */
-      onDone();
-      return;
+      for (const line of mine) {
+        const cost = costOf(line);
+        const format: FormatId = line.space === 'video' ? 'video' : 'banner';
+        const saved = await addCampaign({
+          /* Named for the shop it is on, not for the day it was booked: a
+             basket of four lands as four rows in one list and they were all
+             called the same thing. */
+          name: `${formatName(format)} · ${venueById(line.venueId)?.name ?? line.venueId}`,
+          weeklySpend: cost.weekly,
+          spots: line.space === 'banner' ? line.deviceIds.length : 0,
+          format,
+          venues: [line.venueId],
+          ages: placement.ages,
+          dayparts: DAYPARTS.map((part) => part.id),
+          deviceIds: line.deviceIds,
+          term: line.space === 'banner' ? line.term : null,
+          amountCents: Math.round((cost.once || cost.weekly) * 100),
+          creativeName: line.creative?.name ?? null,
+          creativeSrc: line.creative?.src ?? null,
+          creativeId: line.creative?.creativeId ?? null,
+          email: email.trim(),
+          startedAt: null,
+        });
+        first ??= saved.id;
+      }
+      /* Nothing is collected in the browser. The bookings exist, the shops
+         have them in their queues, and an invoice follows by mail. */
+      setDone(first ?? '');
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : t.send.couldNotSave);
-      return;
     } finally {
       setSending(false);
     }
-    onDone();
   };
+
+  if (done !== null) {
+    return (
+      <div className="builder">
+        <div className="campaign-head">
+          <div className="wrap campaign-head-inner">
+            <div className="campaign-head-row">
+              <h1>{t.newCampaign}</h1>
+            </div>
+          </div>
+        </div>
+        <div className="campaign-body">
+          <div className="wrap campaign-body-inner">
+            <PayDone onGo={() => onDone(done || undefined)} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="builder">
@@ -173,54 +230,19 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
 
       <div className="campaign-body">
         <div className="wrap campaign-body-inner">
-          {step === 0 && <PlaceStep placement={placement} onChange={setPlacement} />}
-          {step === 1 && (
-            <BuyStep
-              format={format}
-              onFormat={setFormat}
-              spots={spots}
-              onSpots={setSpots}
-              hours={hours}
-              onHours={setHours}
-              dayparts={dayparts}
-              onDayparts={setDayparts}
-              venues={chosen}
+          {step === 0 && <PlaceStep placement={placement} onChange={syncLines} />}
+          {step === 1 && <BoardStep lines={lines} onChange={setLines} />}
+          {step === 2 && <ArtworkStep lines={lines} onChange={setLines} />}
+          {step === 3 && (
+            <PayStep
+              lines={lines}
+              email={email}
+              onEmail={(next) => {
+                setEmail(next);
+                setError('');
+              }}
+              error={error}
             />
-          )}
-          {step === 2 && (
-            <div className="make-step">
-              <CreativeStep format={format} creative={creative} onCreative={setCreative} />
-              <section className="send-block">
-                <div className="prefs-head">
-                  <h3>{t.send.title}</h3>
-                  <span className="prefs-hint">{t.send.hint}</span>
-                </div>
-                <label className="send-field" htmlFor="campaign-email">
-                  {t.send.email}
-                  <span className="field">
-                    <Mail size={16} />
-                    <input
-                      id="campaign-email"
-                      type="email"
-                      required
-                      autoComplete="email"
-                      placeholder={t.send.emailPlaceholder}
-                      value={email}
-                      onChange={(event) => {
-                        setEmail(event.target.value);
-                        setError('');
-                      }}
-                    />
-                  </span>
-                </label>
-                <p className="send-note">{t.send.note}</p>
-                {error && (
-                  <p className="prefs-warn" role="alert">
-                    {error}
-                  </p>
-                )}
-              </section>
-            </div>
           )}
         </div>
       </div>
@@ -230,42 +252,27 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
           <dl className="bar-summary">
             <div>
               <dt>{t.bar.shops}</dt>
-              <dd>{chosen.length || '0'}</dd>
+              <dd>{mine.length || chosen.length || '0'}</dd>
             </div>
             <div>
-              <dt>{t.bar.format}</dt>
-              <dd className="bar-word">{shared.formats[format].name}</dd>
+              <dt>{t.bar.screens}</dt>
+              <dd>{mine.reduce((sum, line) => sum + line.deviceIds.length, 0)}</dd>
             </div>
-            {permanent ? (
-              <>
-                <div>
-                  <dt>{t.bar.spots}</dt>
-                  <dd>{takenSpots}</dd>
-                </div>
-                <div>
-                  <dt>{t.bar.onceOff}</dt>
-                  <dd className="money">{money.format(spotCost(takenSpots))}</dd>
-                </div>
-              </>
-            ) : (
-              <>
-                <div>
-                  <dt>{t.bar.hours}</dt>
-                  <dd>{hoursLabel(minutes)}</dd>
-                </div>
-                <div>
-                  <dt>{t.bar.spend}</dt>
-                  <dd className="money">{money.format(weeklySpend)}</dd>
-                </div>
-              </>
+            {totals.once > 0 && (
+              <div>
+                <dt>{pay.once}</dt>
+                <dd className="money">{money.format(totals.once)}</dd>
+              </div>
+            )}
+            {totals.weekly > 0 && (
+              <div>
+                <dt>{t.bar.spend}</dt>
+                <dd className="money">{money.format(totals.weekly)}</dd>
+              </div>
             )}
             <div className="bar-rate">
               <dt>{t.bar.rate}</dt>
-              <dd>
-                {permanent
-                  ? t.bar.perSpot(money.format(SPOT_YEARLY))
-                  : t.bar.perHour(money.format(VIDEO_HOURLY))}
-              </dd>
+              <dd>{t.bar.rateCard(money.format(SPOT_QUARTERLY), money.format(SPOT_YEARLY), money.format(VIDEO_HOURLY))}</dd>
             </div>
           </dl>
           <div className="bar-actions">
@@ -274,8 +281,8 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
                 {step === 0
                   ? t.bar.pickOne
                   : step === 1
-                    ? t.bar.noSpots
-                    : !creative
+                    ? t.bar.pickSpace
+                    : step === 2
                       ? t.bar.upload
                       : t.bar.addEmail}
               </span>
@@ -290,11 +297,11 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
             <button
               type="button"
               className="button invert"
-              data-track={step === 2 ? 'campaign-submit' : 'campaign-next'}
+              data-track={step === 3 ? 'campaign-submit' : 'campaign-next'}
               disabled={blocked}
-              onClick={() => (step < 2 ? setStep(step + 1) : void save())}
+              onClick={() => (step < 3 ? setStep(step + 1) : void save())}
             >
-              {step === 2 ? (sending ? shared.form.sending : t.bar.submit) : t.bar.next}{' '}
+              {step === 3 ? (sending ? pay.submitting : pay.submit) : t.bar.next}{' '}
               <ArrowRight size={16} />
             </button>
           </div>
@@ -303,6 +310,7 @@ function NewCampaign({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
     </div>
   );
 }
+
 
 /* ---- the campaign the dashboard is showing ------------------------------ */
 
@@ -387,7 +395,13 @@ export function AdvertiserDashboard() {
     return (
       <main className="campaign-page building">
         <DashboardHeader />
-        <NewCampaign onDone={() => setCreating(false)} onCancel={() => setCreating(false)} />
+        <NewCampaign
+          onDone={(campaignId) => {
+            if (campaignId) setSelected(campaignId);
+            setCreating(false);
+          }}
+          onCancel={() => setCreating(false)}
+        />
       </main>
     );
   }

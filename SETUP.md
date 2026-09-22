@@ -1,5 +1,31 @@
 # AdBite setup
 
+## Running it locally
+
+```
+npm install
+npm run dev          # http://localhost:3000
+```
+
+**The `api/` directory is served by a dev-only Vite plugin**
+(`scripts/dev-api.mjs`, wired into `vite.config.ts`). In production Vercel
+finds every `api/**.ts` and routes `/api/<path>` to it as a Node function;
+`vinext dev` does not, and without the plugin every `/api` call in development
+came back as the app's 404 page -- which is how *every upload in the product*
+failed at its first request with "Could not start the upload", along with
+leads, notifications, the menu scanner and the device sync a sideloaded Roku
+talks to. The plugin bundles each handler with esbuild (Node cannot resolve
+the `../lib/server/db.js` spelling these files use) and loads `.env.local`
+into `process.env`, which is what Vercel gives the real functions.
+
+If an `/api` call answers with HTML, the plugin is not running: check that
+`devApi()` is still first in the plugin list in `vite.config.ts`.
+
+R2's CORS policy has to allow the dev origin as well as the live one -- see
+**Artwork storage** below. `http://localhost:3000` is on the list;
+`127.0.0.1` and Vercel preview hostnames are not, so a browser upload from
+one of those fails at the PUT even though the function worked.
+
 ## Supabase (required: accounts, boards, campaigns)
 
 Project `adbite` (ref `uvvjndrdetvvvyrmwhpu`, Oregon), in the AdBite org.
@@ -61,12 +87,51 @@ paste:
       "http://localhost:3000"
     ],
     "AllowedMethods": ["PUT", "GET", "HEAD"],
-    "AllowedHeaders": ["content-type"],
+    "AllowedHeaders": ["content-type", "x-amz-checksum-sha256"],
     "ExposeHeaders": ["ETag"],
     "MaxAgeSeconds": 3600
   }
 ]
 ```
+
+### Making R2 check the bytes
+
+A signed PUT answering 200 proves only that R2 accepted a request whose
+`content-length` matched the signature. The payload is signed as
+`UNSIGNED-PAYLOAD`, so nothing on that leg looks at the bytes, and the size
+check in `?done=1` compares two numbers the browser supplied. It catches a
+transfer that was cut off; it cannot catch one that arrived the right length
+and the wrong content. Neither can the channel: `ConfigTask.brs` verifies a
+download by size and uses the hash only to name the cached file.
+
+R2 *will* check, if the hash goes in as a signed header. Measured against the
+live bucket:
+
+| | default | `R2_CHECKSUM_SHA256=1` |
+| --- | --- | --- |
+| signed headers | `content-length;host` | `content-length;host;x-amz-checksum-sha256` |
+| intact body | 200 | 200 |
+| same length, wrong bytes | **200, stored** | **400 BadDigest** |
+| header omitted by the client | n/a | 403 SignatureDoesNotMatch |
+
+**Do these two things in this order, or every upload breaks.** A browser
+cannot send a header the preflight refuses, and with the current policy the
+preflight returns 403 with no `access-control-allow-headers` at all.
+
+1. R2 dashboard → bucket → Settings → CORS policy: add
+   `x-amz-checksum-sha256` to `AllowedHeaders` (it is in the block above).
+   An object-scoped API token cannot do this, which is why it is a dashboard
+   step.
+2. Then set `R2_CHECKSUM_SHA256=1` in the Vercel project.
+
+The browser sends whatever `POST /api/uploads` hands back in `uploadHeaders`,
+so step 2 is the only code-side switch and there is nothing to deploy.
+
+An object that fails the size check is now deleted rather than left in the
+bucket. That matters because the key is the file's own hash and therefore
+shared: a truncated upload of a file somebody already uploaded successfully
+lands on top of theirs. The delete is skipped if another `ready` row still
+points at the same key.
 
 Without it the signed PUT is refused by the browser (the server-side path,
 and therefore the seeded demo spot, still works).
@@ -247,6 +312,41 @@ them all to `out/email/` for a look. Domain `adbite.site` is verified in Resend.
 | `MAIL_FROM` | `AdBite <hello@adbite.site>` |
 | `MAIL_REPLY_TO` | `support@adbite.site`, which every mail also names in its footer. |
 
+## The board faces
+
+A Roku draws text with a Font node and a Font node takes a `uri`, so a board
+set in Playfair is only drawn in Playfair on the wall if the TTF is in the
+assets bucket with a hash and a size the channel can check.
+
+```bash
+node --env-file=.env.local scripts/board-fonts.mjs
+```
+
+That fetches the eleven faces from Google Fonts, uploads them to R2 under
+`fonts/` keyed by their own hash, and rewrites the table in
+`lib/board-fonts.ts` — commit that file. Re-run it after adding a face to
+`lib/fonts.ts`; it is safe to run again at any time, since an unchanged face
+uploads to the same key. The faces are OFL or Apache 2.0, both of which allow
+redistribution.
+
+A face with no entry in the table is drawn in the TV's own system font, which
+is what every board did before this existed.
+
+## Reading a menu off a photograph
+
+`/api/menu-scan` takes a photo of the menu a shop already has on the wall and
+hands back sections and prices for the board editor to show them. It writes
+nothing: the shop reviews what came out and chooses add-or-replace.
+
+| Variable | Purpose |
+| --- | --- |
+| `ANTHROPIC_API_KEY` | Reads the photograph. Without it the endpoint returns a 503 and the editor tells the shop to type their sections in for now — everything else in the builder works unchanged. |
+
+The picture is downscaled to 1600px in the browser, sent, read and dropped. It
+is never stored and never reaches R2. Pulling a shop's *colours* out of a photo
+is a different feature and needs no key at all: that runs entirely in the
+browser (`lib/palette.ts`) and the picture never leaves the phone.
+
 Addresses: `info@adbite.site` is sales and everything before an account
 exists; `support@adbite.site` is everything after. Both come from `lib/site.ts`.
 
@@ -340,50 +440,65 @@ the transactional mail in `lib/email/`.
 
 ## Pricing
 
-Every price on the site comes from `lib/pricing.ts`. Change a rate there and the
-money band, the rate cards, the packages grid, the spend slider, the campaign
-summary, the FAQ and the pilot terms all move together.
+Every price comes from `lib/pricing.ts`. There are exactly two things to buy
+and they are bought in different shapes, which is why it is not one rate
+table.
 
-Price moves on two axes. **When** it runs: peak is lunch and dinner, off-peak is
-the afternoon. **What shape** it is: the more of the board an ad takes, the more
-it costs.
+**A permanent spot** is a place, not a quantity: one still image in the ad
+space under (or beside) one shop's menu, on **one TV**, for a term. A shop
+with a board over the counter and another by the door sells two, and the
+builder prices the screens rather than the shop.
 
-| Format | Peak | Off-peak | Billed by |
-| --- | --- | --- | --- |
-| Bottom banner | $0.15 | $0.08 | minute |
-| Side rail | $0.24 | $0.13 | minute |
-| Full screen | $0.33 | $0.18 | minute |
-| Short video | $0.40 | $0.24 | minute |
+| Term | Price, per spot, per banner, per TV |
+| --- | --- |
+| Three months | $300 |
+| Twelve months | $1,000 |
 
-Everything is billed by the minute it was on screen. Video used to be quoted
-per play at $0.10, which is the same money -- four fifteen-second plays fill
-a minute -- but a spot inside a looping reel has no discrete play to count,
-only a share of the minutes the reel ran, so the minute is the only unit that
-describes every case.
+The year is the one to sell: the quarter renewed four times is $1,200, so the
+year is cheaper than the quarter and the quarter is the way in.
 
-Peak is lunch (11am-2pm) and evening (5pm-9pm) in the shop's own timezone.
-Any hour outside the rate card's three dayparts is charged off-peak: it is
-time nobody bought as peak, and the advertiser should not pay more because we
-have no name for it. Each play rounds up to the nearest cent.
+**Video** is time: up to fifteen muted seconds between turns of the shop's own
+footage, at **$20 an hour actually shown**. One flat rate at every hour of the
+day, billed weekly on the hours that ran; an hour that did not run is never
+invoiced.
+
+Neither number is quoted on a public page. The advertiser site quotes the
+video rate and refers the permanent spot to a conversation; the terms are
+rendered only inside a signed-in dashboard.
+
+What was quoted is written onto the booking (`campaigns.amount_cents`) along
+with its term, so moving the rate card cannot move what somebody already
+agreed to.
 
 ### The margin is private
 
 `SHOP_SHARE` in `lib/pricing.ts` is **not exported** and is never rendered. The
 shop side of the site shows only what a shop is paid; the advertiser side shows
-only what an advertiser pays. Keep it that way: use `weeklyEarnings`,
-`weeklyCeiling` and `daypartEarnings` for anything shop-facing, and never
-publish a gross figure alongside a minute count, since the two together let a
-reader divide out the share.
+only what an advertiser pays. Keep it that way: use `yearlyEarnings`,
+`monthlyEarnings`, `weeklyEarnings`, `weeklyVideoEarnings` and
+`daypartEarnings` for anything shop-facing, and never publish a gross figure
+alongside a minute count, since the two together let a reader divide out the
+share.
 
-Shop earnings are quoted on the cheapest format, so the figure is a floor:
+A shop's estimate is built on its permanent spots rather than on video, so it
+is a floor a shop can count on rather than a best case: `yearlyEarnings` is
+the spots one board holds (`SPOTS_PER_SCREEN`, ten per screen) at the yearly
+rate, times the share. Video is quoted separately by `weeklyVideoEarnings`,
+which is what a week would add if every minute sold.
 
-```
-Bao Pao Wow, 11am-9pm Mon-Sat, a third of the board sold as ads
-1,200 ad-minutes a week (840 peak, 360 off-peak)
+## What an advertiser sees of a shop
 
-  all banner  ->  paid about $100 / wk   ($436 / mo, ~$5,232 / yr)
-  all full    ->  paid about $222 / wk
-```
+`api/network.ts` (`GET /api/network?venues=a,b`) hands a signed-in advertiser
+each chosen shop's **live board** -- the same JSON its owner edits and its own
+TVs draw -- plus its TVs and how much of each banner is already sold. The
+builder renders it with `BoardCanvas`, the shop's own component, and drops the
+advertiser's artwork into the ad space, so what is approved is what goes up.
+
+It is a function rather than a query from the browser because row-level
+security lets a shop read its own board and nobody else's, and the fix for
+that would open `devices` -- which holds the secret a TV authenticates with --
+to every signed-in account. The service role reads; the function returns only
+what a buyer has any business seeing.
 
 ## The screen network
 
@@ -466,6 +581,19 @@ drift from the product the way a mockup would.
 Reordering items is native drag-and-drop **and** arrow keys on the grip. Keep
 both. Drag alone puts the one genuinely spatial task in the product out of
 reach of anyone not using a mouse.
+
+A board placed by hand (`lib/layout.ts`) is blocks on a grid, and a selected
+block carries its three grips on the board itself: the corner resizes, the
+stalk above it turns, and the bin beside that removes it. Turning is
+`block.rotate`, in degrees clockwise about the block's middle, and it is drawn
+three times over -- `transform: rotate()` in the preview, a rotated `Group`
+with `scaleRotateCenter` in `roku/components/MenuPane.brs` (SceneGraph is
+anticlockwise-positive, so the sign flips), and a rotated PIL tile in
+`roku/tools/preview.py`. Change one and change all three.
+
+**Edit full screen** on a placed board opens the same editor against the
+viewport -- same state, same selection, nothing unmounts -- because a cell on
+a 700px board is nine pixels. Escape closes it.
 
 Earnings on the shop side are priced against the shop's own `adShare`, so
 moving that slider moves the money. That loop is the point of the screen.

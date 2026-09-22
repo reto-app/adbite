@@ -3,10 +3,8 @@
 import { useRef, useState } from 'react';
 import { Image as ImageIcon, Trash2, Upload } from 'lucide-react';
 import { uploadCreative } from '@/lib/creatives';
-import { BOARDS, type FormatId } from '@/lib/boards';
 import { useCopy } from '@/lib/lang';
 import { CAMPAIGN } from '@/lib/copy/campaign';
-import { SHARED } from '@/lib/copy/shared';
 
 const MAX_IMAGE = 6 * 1024 * 1024;
 const MAX_VIDEO = 12 * 1024 * 1024;
@@ -17,17 +15,19 @@ const MAX_SECONDS = 20;
    URL, because the same file is what a TV downloads. */
 export type Creative = { name: string; src: string; creativeId: string; kind: 'image' | 'video' };
 
-export function CreativeStep({
-  format,
+/* The file-taking half on its own, because there are two places that need it
+   and they want different things around it. The old builder took one file for
+   the whole campaign and showed it on stock boards; the new one takes a file
+   per shop and shows it on that shop's real board. Both take the file the
+   same way, and neither should own a second copy of the size limits. */
+export function CreativeDrop({
   creative,
   onCreative,
 }: {
-  format: FormatId;
   creative: Creative | null;
   onCreative: (creative: Creative | null) => void;
 }) {
   const t = useCopy(CAMPAIGN).creative;
-  const shared = useCopy(SHARED);
   const input = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState('');
@@ -68,25 +68,9 @@ export function CreativeStep({
     });
   };
 
-  const playable = BOARDS.filter((board) => board.slots[format]);
-  const chosenFormat = shared.formats[format];
-
   return (
-    <div className="creative-step">
-      <section className="format-recap">
-        <div className="prefs-head">
-          <h3>{chosenFormat.name}</h3>
-          <span className="prefs-hint">{chosenFormat.spec}</span>
-        </div>
-        <p>{chosenFormat.blurb}{t.changeBack}</p>
-      </section>
-
-      <section className="upload">
-        <div className="prefs-head">
-          <h3>{t.upload}</h3>
-          <span className="prefs-hint">{chosenFormat.spec}</span>
-        </div>
-        <div
+    <>
+      <div
           className={`dropzone${dragging ? ' dragging' : ''}${creative ? ' filled' : ''}`}
           onDragOver={(event) => {
             event.preventDefault();
@@ -148,55 +132,11 @@ export function CreativeStep({
             onChange={(event) => void take(event.target.files?.[0])}
           />
         </div>
-        {error && (
-          <p className="prefs-warn" role="alert">
-            {error}
-          </p>
-        )}
-      </section>
-
-      <section className="previews">
-        <div className="prefs-head">
-          <h3>{t.previews}</h3>
-          <span className="prefs-hint">{t.previewsHint(playable.length, BOARDS.length)}</span>
-        </div>
-        <div className="preview-grid">
-          {BOARDS.map((board) => {
-            const slot = board.slots[format];
-            return (
-              <figure
-                key={board.id}
-                className={`preview${board.portrait ? ' portrait' : ''}${slot ? '' : ' off'}`}
-              >
-                <div className="preview-screen">
-                  <img src={`/boards/${board.id}.jpg`} alt={t.boardAlt(board.name)} />
-                  {slot && (
-                    <div
-                      className="preview-slot"
-                      style={{
-                        left: `${slot.left}%`,
-                        top: `${slot.top}%`,
-                        width: `${slot.width}%`,
-                        height: `${slot.height}%`,
-                      }}
-                    >
-                      {creative ? (
-                        <img src={creative.src} alt="" />
-                      ) : (
-                        <span>{t.yourAdHere}</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <figcaption>
-                  <b>{board.name}</b>
-                  <span>{slot ? board.screen : t.noFormat}</span>
-                </figcaption>
-              </figure>
-            );
-          })}
-        </div>
-      </section>
-    </div>
+      {error && (
+        <p className="prefs-warn" role="alert">
+          {error}
+        </p>
+      )}
+    </>
   );
 }

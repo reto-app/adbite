@@ -41,6 +41,14 @@ export type Campaign = {
      and a website is all it needs to decide. */
   advertiserName?: string | null;
   advertiserSite?: string | null;
+  /* The TVs this runs on. Null is every TV the shop has, now and later, which
+     is what a video booking means and what every row written before spots
+     were sold per screen meant. */
+  deviceIds?: string[] | null;
+  /** How long a permanent spot was bought for. Null for video. */
+  term?: 'quarter' | 'year' | null;
+  /** What was quoted when it was booked, in cents, so a rate card cannot move it. */
+  amountCents?: number | null;
   /** Set once the shop approves and the board starts playing it. */
   startedAt?: number | null;
   /** A worked example rather than a booking somebody made. */
@@ -78,9 +86,16 @@ export function campaignHours(campaign: Pick<Campaign, 'weeklySpend' | 'format'>
   return campaign.weeklySpend / VIDEO_HOURLY;
 }
 
-/** What a permanent-spot campaign is invoiced, once, for its twelve months. */
-export function campaignSpotCost(campaign: Pick<Campaign, 'spots' | 'format'>) {
-  return isPermanent(campaign.format) ? spotCost(campaign.spots) : 0;
+/* What a permanent-spot campaign is invoiced, once, for its term.
+ *
+ * The amount quoted at booking wins where there is one: the rate card can move
+ * and what somebody already agreed to cannot. Rows written before spots were
+ * sold per TV carry neither an amount nor a term, and a year is what they
+ * were all sold as. */
+export function campaignSpotCost(campaign: Pick<Campaign, 'spots' | 'format' | 'term' | 'amountCents'>) {
+  if (!isPermanent(campaign.format)) return 0;
+  if (campaign.amountCents != null) return campaign.amountCents / 100;
+  return spotCost(campaign.spots, campaign.term ?? 'year');
 }
 
 /** Always per minute. Zero for a spot, which is never metered. */
@@ -102,6 +117,9 @@ type Row = {
   dayparts: Daypart[];
   creative_name: string | null;
   creative_id: string | null;
+  device_ids?: string[] | null;
+  term?: 'quarter' | 'year' | null;
+  amount_cents?: number | null;
   creatives?: { storage_path: string | null; kind: string } | null;
   email: string | null;
   advertiser_name?: string | null;
@@ -155,6 +173,9 @@ function fromRow(row: Row, mine: string[] | null): Campaign {
     dayparts: row.dayparts ?? [],
     creativeName: row.creative_name,
     creativeId: row.creative_id,
+    deviceIds: row.device_ids ?? null,
+    term: row.term ?? null,
+    amountCents: row.amount_cents ?? null,
     /* The artwork itself, wherever it lives. A booking made in this tab
        before the row came back is previewed from the local copy. */
     creativeSrc: row.creatives?.storage_path
@@ -256,6 +277,9 @@ export async function addCampaign(campaign: Omit<Campaign, 'id' | 'createdAt'>):
       ages: campaign.ages,
       weekly_spend: campaign.weeklySpend,
       spots: campaign.spots,
+      device_ids: campaign.deviceIds ?? null,
+      term: campaign.term ?? null,
+      amount_cents: campaign.amountCents ?? null,
       creative_name: campaign.creativeName,
       creative_id: campaign.creativeId ?? null,
       email: campaign.email,

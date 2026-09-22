@@ -9,9 +9,15 @@
  * shapes, which is the whole reason this file is not one rate table:
  *
  *   A PERMANENT SPOT is a place, not a quantity. A static ad in the strip
- *   under one shop's menu, on one screen, for a year. A board holds a fixed
+ *   under one shop's menu, on one screen, for a term. A board holds a fixed
  *   number of them, so what an advertiser is choosing is which screens have
  *   one free. It is invoiced once, up front, and nothing about it is metered.
+ *   The unit is one spot, in one banner, on one TV: two screens in the same
+ *   shop are two spots, because they are two walls.
+ *
+ *   Two terms, and the year is the one we want sold: three months at $300 is
+ *   $1,200 a year, so the year at $1,000 is cheaper than the quarter renewed
+ *   and the quarter is the way in for a shop that wants to try it.
  *
  *   VIDEO is time. Fifteen muted seconds between turns of the shop's own
  *   footage, bought by the hour and billed on the hours that actually ran.
@@ -27,6 +33,9 @@ import type { FormatId } from '@/lib/boards';
 export type Daypart = 'lunch' | 'afternoon' | 'evening';
 export type PriceUnit = 'year' | 'hour';
 
+/** How long a permanent spot is bought for. */
+export type SpotTerm = 'quarter' | 'year';
+
 /** A spot is fifteen seconds, so four of them fill a minute. */
 export const SPOT_SECONDS = 15;
 export const PLAYS_PER_MINUTE = 60 / SPOT_SECONDS;
@@ -35,6 +44,23 @@ export const PLAYS_PER_MINUTE = 60 / SPOT_SECONDS;
 
 /** One permanent bottom-banner spot, on one screen, for twelve months. */
 export const SPOT_YEARLY = 1000;
+
+/** The same spot for three months. */
+export const SPOT_QUARTERLY = 300;
+
+export const SPOT_TERMS: { id: SpotTerm; months: number; price: number }[] = [
+  { id: 'quarter', months: 3, price: SPOT_QUARTERLY },
+  { id: 'year', months: 12, price: SPOT_YEARLY },
+];
+
+export function termById(id: SpotTerm) {
+  return SPOT_TERMS.find((term) => term.id === id) ?? SPOT_TERMS[1];
+}
+
+/** What one spot costs over a term. */
+export function spotPrice(term: SpotTerm) {
+  return termById(term).price;
+}
 
 /** Video, per hour the spot was actually on screen. */
 export const VIDEO_HOURLY = 20;
@@ -155,9 +181,10 @@ export function videoCost(hours: number) {
   return hours * VIDEO_HOURLY;
 }
 
-/** What a set of permanent spots costs for a year. */
-export function spotCost(spots: number) {
-  return spots * SPOT_YEARLY;
+/** What a set of permanent spots costs over a term. One spot is one banner on
+    one TV, so `spots` is normally how many screens were chosen. */
+export function spotCost(spots: number, term: SpotTerm = 'year') {
+  return spots * spotPrice(term);
 }
 
 /* ---- the shop's side ----------------------------------------------------
