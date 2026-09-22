@@ -1,6 +1,7 @@
 import { sites } from '@openai/sites-vite-plugin';
 import tailwindcss from '@tailwindcss/postcss';
 import vinext from 'vinext';
+import { devApi } from './scripts/dev-api.mjs';
 import { defineConfig } from 'vite';
 import hostingConfig from './.openai/hosting.json';
 
@@ -50,6 +51,10 @@ export default defineConfig(async () => {
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,
     plugins: [
+      // Vercel routes `api/**` to a function per file in production; the dev
+      // server has no such rule, so this adds it. Without it every /api call
+      // in development answers with the app's 404 page.
+      devApi(),
       // This is a marketing site with no server-side data dependency, so every
       // route can be emitted as HTML for both the Sites worker and Vercel.
       vinext({ prerender: { routes: '*' } }),
