@@ -2102,6 +2102,12 @@ h3 {
   color: #b0b9b5;
 }
 
+/* The shop page runs two of these back to back: the two formats, then the
+   other boards. One dark band, not two paddings stacked. */
+.boards-section + .boards-section {
+  padding-top: 0;
+}
+
 .reel {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
