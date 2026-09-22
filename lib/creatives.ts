@@ -82,15 +82,25 @@ export async function uploadCreative(
       height: dimensions.height,
     }),
   });
-  const started = (await start.json().catch(() => ({}))) as { creativeId?: string; uploadUrl?: string; key?: string; message?: string };
+  const started = (await start.json().catch(() => ({}))) as {
+    creativeId?: string;
+    uploadUrl?: string;
+    uploadHeaders?: Record<string, string>;
+    key?: string;
+    message?: string;
+  };
   if (!start.ok || !started.uploadUrl || !started.creativeId) {
     return { ok: false, message: started.message ?? 'Could not start the upload.' };
   }
   onProgress?.(0.2);
 
+  /* Whatever the server says the PUT must carry. It signs those headers, so
+     sending anything else is a signature mismatch rather than a silent
+     downgrade: if it asked for a checksum, R2 checks the bytes against it and
+     refuses a body that does not match. */
   const put = await fetch(started.uploadUrl, {
     method: 'PUT',
-    headers: { 'content-type': file.type },
+    headers: started.uploadHeaders ?? { 'content-type': file.type },
     body: file,
   });
   if (!put.ok) return { ok: false, message: 'The file did not reach storage. Check your connection and try again.' };

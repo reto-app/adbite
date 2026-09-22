@@ -122,13 +122,24 @@ export async function uploadShopMedia(
       height: dimensions.height,
     }),
   });
-  const started = (await start.json().catch(() => ({}))) as { mediaId?: string; uploadUrl?: string; message?: string };
+  const started = (await start.json().catch(() => ({}))) as {
+    mediaId?: string;
+    uploadUrl?: string;
+    uploadHeaders?: Record<string, string>;
+    message?: string;
+  };
   if (!start.ok || !started.uploadUrl || !started.mediaId) {
     return { ok: false, message: started.message ?? 'Could not start the upload.' };
   }
   onProgress?.(0.2);
 
-  const put = await fetch(started.uploadUrl, { method: 'PUT', headers: { 'content-type': file.type }, body: file });
+  /* The headers the server signed. See lib/creatives.ts for why they come
+     from there rather than being spelled out here. */
+  const put = await fetch(started.uploadUrl, {
+    method: 'PUT',
+    headers: started.uploadHeaders ?? { 'content-type': file.type },
+    body: file,
+  });
   if (!put.ok) return { ok: false, message: 'The file did not reach storage. Check your connection and try again.' };
   onProgress?.(0.9);
 

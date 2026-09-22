@@ -17,13 +17,36 @@
  * The object is keyed by its own hash, so the same artwork booked twice is
  * stored once and a re-cut is a different file. That hash is also what the
  * channel names its local copy, which is why the browser computes it.
+ *
+ * What "really that size" is worth, and what it is not: a signed PUT that
+ * answers 200 proves only that R2 accepted a request whose content-length
+ * matched the signature. The payload is signed as UNSIGNED-PAYLOAD, so
+ * nothing on that leg looks at the bytes. The size check below is therefore
+ * the only transport check in the product, and it compares two numbers the
+ * browser supplied. It catches a transfer that was cut off. It cannot catch
+ * one that arrived the right length and the wrong content, and the channel
+ * cannot either: ConfigTask.brs verifies a download by size and uses the hash
+ * only to name the cached file.
+ *
+ * R2 will do the real check if the hash is signed as a header —
+ * `x-amz-checksum-sha256` — and answers 400 BadDigest on a body that does not
+ * match. That is what CHECKSUMS below turns on. It is off by default because
+ * a browser cannot send a header the bucket's CORS policy does not allow, and
+ * an object-scoped API token cannot edit that policy: turning this on before
+ * the header is on the allow-list would fail every upload at the preflight.
+ * See SETUP.md, "Artwork storage".
  */
 
-import { HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { json, lowerKeys, service, userFrom } from '../lib/server/db.js';
 
 export const config = { runtime: 'nodejs' };
+
+/* Set R2_CHECKSUM_SHA256=1 once `x-amz-checksum-sha256` is in the bucket's
+   CORS AllowedHeaders. Then a corrupt upload is refused by R2 rather than
+   stored and noticed afterwards. */
+const CHECKSUMS = process.env.R2_CHECKSUM_SHA256 === '1';
 
 const MAX_IMAGE = 6 * 1024 * 1024;
 const MAX_VIDEO = 12 * 1024 * 1024;
@@ -48,8 +71,87 @@ function bucket() {
       region: 'auto',
       endpoint: `https://${account}.r2.cloudflarestorage.com`,
       credentials: { accessKeyId, secretAccessKey },
+      /* Without this the presigner hangs an `x-amz-checksum-crc32=AAAAAA==`
+         on the query string, which is the CRC32 of an empty body and which R2
+         ignores. A checksum that is never checked is worse than none: it
+         reads like an integrity guarantee in the URL and is not one. */
+      requestChecksumCalculation: 'WHEN_REQUIRED',
     }),
   };
+}
+
+type Store = ReturnType<typeof bucket>;
+
+/* Somewhere to PUT a file, and the headers the browser must send with it.
+   The headers come from here rather than being spelled out in the browser so
+   that turning CHECKSUMS on is a server-side change: the client sends what it
+   was handed, whatever that turns out to be. */
+async function signedPut(
+  store: Store,
+  key: string,
+  contentType: string,
+  bytes: number,
+  sha256: string,
+): Promise<{ uploadUrl: string; uploadHeaders: Record<string, string> }> {
+  const digest = CHECKSUMS ? Buffer.from(sha256, 'hex').toString('base64') : null;
+  const uploadUrl = await getSignedUrl(
+    store.client,
+    new PutObjectCommand({
+      Bucket: store.name,
+      Key: key,
+      ContentType: contentType,
+      ContentLength: bytes,
+      CacheControl: 'public, max-age=31536000, immutable',
+      ...(digest ? { ChecksumSHA256: digest } : {}),
+    }),
+    {
+      expiresIn: 600,
+      /* Keeps the checksum in the signed headers instead of the query string,
+         which is what makes it something the browser has to send and R2 has
+         to verify. */
+      ...(digest ? { unhoistableHeaders: new Set(['x-amz-checksum-sha256']) } : {}),
+    },
+  );
+  return {
+    uploadUrl,
+    uploadHeaders: {
+      'content-type': contentType,
+      ...(digest ? { 'x-amz-checksum-sha256': digest } : {}),
+    },
+  };
+}
+
+/* An object that failed its check is not left in the bucket.
+ *
+ * It matters more here than it would elsewhere because the key is the file's
+ * own hash, so it is shared: a truncated upload of a file somebody else
+ * already uploaded successfully lands on top of theirs. Clearing it keeps a
+ * failed attempt from outliving itself, and the guard keeps this from being
+ * the thing that deletes a file some other row is live on. */
+async function discard(store: Store, key: string | null, stillUsed: () => Promise<boolean>) {
+  if (!key) return;
+  if (await stillUsed()) return;
+  try {
+    await store.client.send(new DeleteObjectCommand({ Bucket: store.name, Key: key }));
+  } catch {
+    /* Best effort. The row is not marked ready either way, so nothing plays
+       it; a leftover object costs storage and not correctness. */
+  }
+}
+
+/* Two different failures wearing one sentence.
+ *
+ * Short means the transfer stopped partway, which retrying usually fixes and
+ * which is what the original message described. Any other mismatch does not
+ * mean that at all: the object under this key is a different length from the
+ * file the browser said it was sending, and since the key is the file's own
+ * hash, that is either a stale object from another attempt or two files
+ * disagreeing about the same hash. Telling somebody to "try again" when the
+ * problem is the wrong file at that address sends them round the loop. */
+function sizeComplaint(landed: number, declared: number) {
+  return landed < declared
+    ? 'The upload was cut short. Try again.'
+    : 'That file does not match what was sent. Upload it again.';
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -83,9 +185,26 @@ export async function POST(request: Request): Promise<Response> {
     const owner = (media as unknown as { shops?: { owner_id: string } } | null)?.shops?.owner_id;
     if (!media || owner !== user.id) return json(404, { message: 'No such upload' });
 
+    /* Another row already playing this exact file. The key is the file's own
+       hash, so that is a real possibility and not a defensive flourish. */
+    const mediaStillUsed = async () => {
+      const { data } = await db
+        .from('shop_media')
+        .select('id')
+        .eq('storage_path', media.storage_path!)
+        .eq('ready', true)
+        .neq('id', media.id)
+        .limit(1);
+      return Boolean(data?.length);
+    };
+
     try {
       const head = await store.client.send(new HeadObjectCommand({ Bucket: store.name, Key: media.storage_path! }));
-      if ((head.ContentLength ?? 0) !== media.bytes) return json(409, { message: 'The upload was cut short. Try again.' });
+      const landed = head.ContentLength ?? 0;
+      if (landed !== media.bytes) {
+        await discard(store, media.storage_path, mediaStillUsed);
+        return json(409, { message: sizeComplaint(landed, media.bytes ?? 0) });
+      }
     } catch {
       return json(409, { message: 'That file did not finish uploading. Try again.' });
     }
@@ -118,8 +237,18 @@ export async function POST(request: Request): Promise<Response> {
     } catch {
       return json(409, { message: 'That file did not finish uploading. Try again.' });
     }
-    if (size !== creative.bytes) {
-      return json(409, { message: 'The upload was cut short. Try again.' });
+    if (size !== (creative.bytes ?? 0)) {
+      await discard(store, creative.storage_path, async () => {
+        const { data } = await db
+          .from('creatives')
+          .select('id')
+          .eq('storage_path', creative.storage_path!)
+          .eq('ready', true)
+          .neq('id', creative.id)
+          .limit(1);
+        return Boolean(data?.length);
+      });
+      return json(409, { message: sizeComplaint(size, creative.bytes ?? 0) });
     }
 
     const origin = process.env.ASSETS_ORIGIN ?? 'https://assets.adbite.site';
@@ -180,18 +309,8 @@ export async function POST(request: Request): Promise<Response> {
       .single();
     if (mediaError || !media) return json(500, { message: mediaError?.message ?? 'Could not start the upload' });
 
-    const mediaUpload = await getSignedUrl(
-      store.client,
-      new PutObjectCommand({
-        Bucket: store.name,
-        Key: mediaKey,
-        ContentType: contentType,
-        ContentLength: bytes,
-        CacheControl: 'public, max-age=31536000, immutable',
-      }),
-      { expiresIn: 600 },
-    );
-    return json(200, { mediaId: media.id, uploadUrl: mediaUpload, key: mediaKey });
+    const put = await signedPut(store, mediaKey, contentType, bytes, sha256);
+    return json(200, { mediaId: media.id, key: mediaKey, ...put });
   }
 
   const key = `creatives/${sha256}.${type.ext}`;
@@ -213,17 +332,7 @@ export async function POST(request: Request): Promise<Response> {
     .single();
   if (error || !creative) return json(500, { message: error?.message ?? 'Could not start the upload' });
 
-  const uploadUrl = await getSignedUrl(
-    store.client,
-    new PutObjectCommand({
-      Bucket: store.name,
-      Key: key,
-      ContentType: contentType,
-      ContentLength: bytes,
-      CacheControl: 'public, max-age=31536000, immutable',
-    }),
-    { expiresIn: 600 },
-  );
+  const put = await signedPut(store, key, contentType, bytes, sha256);
 
-  return json(200, { creativeId: creative.id, uploadUrl, key });
+  return json(200, { creativeId: creative.id, key, ...put });
 }
