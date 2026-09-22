@@ -36,10 +36,6 @@ const en = {
       three: ['Two doors down', '214 N 400 W · open 5am to 10pm'],
     },
   },
-  boards: {
-    title: 'What it will look like.',
-    lede: 'AdBite boards, running. Watch where the ad sits, and how much of the screen stays the shop’s.',
-  },
   approval: {
     inReview: 'In review',
     queued: 'Queued today',
@@ -162,10 +158,6 @@ const es: typeof en = {
       two: ['Primera clase gratis', 'Mañanas entre semana, sin registro'],
       three: ['Dos puertas más allá', '214 N 400 W · abierto de 5am a 10pm'],
     },
-  },
-  boards: {
-    title: 'Así se va a ver.',
-    lede: 'Tableros de AdBite, funcionando. Fíjate dónde queda el anuncio y cuánta pantalla sigue siendo del negocio.',
   },
   approval: {
     inReview: 'En revisión',

@@ -47,6 +47,12 @@ export type Mail = {
   title: string;
   blocks: Block[];
   button?: { label: string; href: string };
+  /* A second way out of the mail, set beside the button rather than in it.
+     One mail needs two: the approval, where saying yes and looking first are
+     both reasonable answers and neither should be the small print. It is a
+     plain link, not a second block of sky, because two buttons of equal
+     weight in an inbox read as a choice nobody wants to make. */
+  secondary?: { label: string; href: string };
   /** Why the recipient is getting this. Always present, always honest. */
   reason: string;
 };
@@ -84,8 +90,14 @@ function block(item: Block): string {
     {{ .ConfirmationURL }}), which must not be escaped. */
 export function html(mail: Mail, raw?: { buttonHref?: string }): string {
   const href = raw?.buttonHref ?? (mail.button ? escape(mail.button.href) : '');
+  /* The button and the second link ride in one table so they sit on a line
+     together in every client, including the Outlooks that drop flexbox and
+     collapse margins between adjacent tables. */
+  const second = mail.secondary
+    ? `<td style="padding-left:18px;font-family:${FONT};font-size:15px;"><a href="${escape(mail.secondary.href)}" style="color:${INK};font-weight:600;">${escape(mail.secondary.label)}</a></td>`
+    : '';
   const button = mail.button
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 24px;"><tr><td style="background:${SKY};border-radius:6px;"><a href="${href}" style="display:inline-block;padding:14px 22px;font-family:${FONT};font-size:16px;font-weight:700;color:${INK};text-decoration:none;">${escape(mail.button.label)}</a></td></tr></table>`
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 24px;"><tr><td style="background:${SKY};border-radius:6px;"><a href="${href}" style="display:inline-block;padding:14px 22px;font-family:${FONT};font-size:16px;font-weight:700;color:${INK};text-decoration:none;">${escape(mail.button.label)}</a></td>${second}</tr></table>`
     : '';
 
   return `<!doctype html>
@@ -132,6 +144,7 @@ export function text(mail: Mail, raw?: { buttonHref?: string }): string {
     }
   }
   if (mail.button) lines.push(`${mail.button.label}: ${raw?.buttonHref ?? mail.button.href}`, '');
+  if (mail.secondary) lines.push(`${mail.secondary.label}: ${mail.secondary.href}`, '');
   lines.push(mail.reason, `Questions: ${SUPPORT_MAIL}`, '', `AdBite · ${ORIGIN}`);
   return lines.join('\n');
 }

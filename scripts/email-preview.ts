@@ -41,7 +41,19 @@ if (process.argv.includes('--auth')) {
       weeklySpend: 120,
       minutes: 510,
     }),
-    'approval-needed': approvalNeeded({ shopName: 'Bao Pao Wow', advertiser: 'sam@ironrosegym.com', format: 'Side rail', weeklyEarnings: 78 }),
+    /* A business name, not an address. The fixture used to be a Gmail, which
+       is how a preview stops warning you about the thing it is there to show. */
+    'approval-needed': approvalNeeded({
+      shopName: 'Bao Pao Wow',
+      campaignName: 'Iron Rose Gym · January intake',
+      advertiser: 'Iron Rose Gym',
+      format: 'Side rail',
+      weeklyEarnings: 78,
+      review: {
+        approve: 'https://adbite.site/review?t=preview&approve=1',
+        open: 'https://adbite.site/review?t=preview',
+      },
+    }),
     'approved': campaignDecided({ campaignName: 'Permanent spot · Sep 16', shopName: 'Bao Pao Wow', approved: true }),
     'rejected': campaignDecided({ campaignName: 'Permanent spot · Sep 16', shopName: 'Bao Pao Wow', approved: false }),
     /* The bank details are read from the environment, so a preview run without

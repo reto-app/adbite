@@ -66,11 +66,32 @@ export function bookingReceived(facts: BookingFacts): Mail {
   };
 }
 
-/** To the shop owner, when a booking lands in their queue. */
-export function approvalNeeded(facts: { shopName: string; advertiser: string; format: string; weeklyEarnings: number }): Mail {
+/** To the shop owner, when a booking lands in their queue.
+ *
+ * The ad is named and the advertiser is not mailable. A shop is deciding
+ * whether to put a business on its wall; a name and a website answer that,
+ * an address only invites the two of them to settle it off the network.
+ *
+ * `review` is a link minted for this one approval row, so the owner does not
+ * have to find a password to answer. Both links land on the same page -- the
+ * first with the Approve button already under the thumb, the second on the
+ * artwork -- because neither opening a link nor a mail scanner following one
+ * can decide anything. See api/queue/review.ts. Without a link (the mint
+ * failed) both fall back to the dashboard, which is where this mail pointed
+ * for its whole life before now. */
+export function approvalNeeded(facts: {
+  shopName: string;
+  campaignName: string;
+  advertiser: string;
+  format: string;
+  weeklyEarnings: number;
+  review?: { approve: string; open: string };
+}): Mail {
+  const approveHref = facts.review?.approve ?? DASHBOARD;
+  const openHref = facts.review?.open ?? DASHBOARD;
   return {
-    subject: `An ad is waiting for ${facts.shopName}`,
-    preview: `${facts.advertiser} wants a spot on your board.`,
+    subject: `${facts.campaignName} is waiting on ${facts.shopName}`,
+    preview: `A ${facts.format.toLowerCase()} worth about ${money(facts.weeklyEarnings)} a week. One tap to approve.`,
     title: 'An ad is waiting on you.',
     blocks: [
       {
@@ -80,14 +101,19 @@ export function approvalNeeded(facts: { shopName: string; advertiser: string; fo
       {
         kind: 'rows',
         rows: [
-          ['Advertiser', facts.advertiser],
+          ['Ad', facts.campaignName],
+          ['From', facts.advertiser],
           ['Format', facts.format],
           ['Pays you', `about ${money(facts.weeklyEarnings)} a week while it runs`],
         ],
       },
-      { kind: 'p', text: 'Open the queue to see the artwork exactly as it would appear on your screen, then approve it or turn it down. Either answer is fine; the advertiser hears back the same day.' },
+      {
+        kind: 'p',
+        text: 'Both links below open the artwork exactly as it would appear on your screen, and neither needs a password. Approve it there, or turn it down — either answer is fine, and the advertiser hears back the same day.',
+      },
     ],
-    button: { label: 'Review the ad', href: DASHBOARD },
+    button: { label: 'Approve it', href: approveHref },
+    secondary: { label: 'See it first', href: openHref },
     reason: `You are getting this because you run ${facts.shopName} on AdBite and a booking named your board.`,
   };
 }

@@ -13,9 +13,15 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { send } from '../lib/email/send.js';
-import { approvalNeeded, bookingReceived, campaignDecided } from '../lib/email/templates.js';
-import { SPOT_YEARLY, isPermanent, shopEarningsFromSpend } from '../lib/pricing.js';
-import { invoiceCharge } from '../lib/server/invoices.js';
+import { approvalNeeded, bookingReceived } from '../lib/email/templates.js';
+import { shopEarningsFromSpend } from '../lib/pricing.js';
+import {
+  CAMPAIGN_FIELDS,
+  mintLink,
+  reviewUrl,
+  settle,
+  type DecidableCampaign,
+} from '../lib/server/approvals.js';
 
 export const config = { runtime: 'nodejs' };
 
@@ -55,7 +61,7 @@ export async function POST(request: Request): Promise<Response> {
 
   const { data: campaign } = await db
     .from('campaigns')
-    .select('id, advertiser_id, advertiser_name, name, format, venues, weekly_spend, spots, email')
+    .select(CAMPAIGN_FIELDS)
     .eq('id', body.campaignId)
     .maybeSingle();
   if (!campaign) return json(404, { message: 'No such campaign' });
@@ -89,20 +95,29 @@ export async function POST(request: Request): Promise<Response> {
     }
     const boards = Math.max(1, (campaign.venues ?? []).length);
     for (const row of (approvals ?? []) as unknown as {
+      shop_id: string;
       shops: { name: string; accounts: { email: string } | null } | null;
     }[]) {
       const ownerEmail = row.shops?.accounts?.email;
       if (!ownerEmail) continue;
+      /* One secret per approval row, minted here because this is the only
+         place that knows a mail is about to carry it. A mint that fails
+         leaves the links pointing at the dashboard rather than dropping the
+         mail: a shop owner who has to sign in is inconvenienced, one who
+         never hears is not told at all. */
+      const token = await mintLink(db, campaign.id, row.shop_id);
       results.push(
         await send(
           ownerEmail,
           approvalNeeded({
             shopName: row.shops?.name ?? 'your shop',
+            campaignName: campaign.name,
             /* The same rule the approval queue follows: a shop deciding on
                a creative is told who is asking, not how to mail them. */
             advertiser: campaign.advertiser_name || 'An advertiser',
             format,
             weeklyEarnings: shopEarningsFromSpend(Number(campaign.weekly_spend), boards),
+            review: token ? { approve: reviewUrl(token, 'approve'), open: reviewUrl(token) } : undefined,
           }),
         ),
       );
@@ -111,7 +126,10 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   if (body.event === 'decision') {
-    /* The decider must own a shop with an approval row on this campaign. */
+    /* The decider must own a shop with an approval row on this campaign. The
+       browser has already written the row under row-level security; this is
+       that same authorisation re-established on the server, because what
+       follows mails an advertiser and can raise an invoice. */
     const { data: shop } = await db
       .from('approvals')
       .select('shop_id, status, shops!inner(name, owner_id)')
@@ -119,91 +137,21 @@ export async function POST(request: Request): Promise<Response> {
       .eq('shops.owner_id', user.id)
       .maybeSingle();
     if (!shop) return json(403, { message: 'Not your board' });
-    const shopName = (shop as unknown as { shops: { name: string } }).shops.name;
+    const row = shop as unknown as { shop_id: string; shops: { name: string } };
 
-    const { data: advertiser } = await db.from('accounts').select('email').eq('id', campaign.advertiser_id).maybeSingle();
-    const to = campaign.email || advertiser?.email;
-    if (!to) return json(200, { sent: false });
-    const sent = await send(to, campaignDecided({ campaignName: campaign.name, shopName, approved: Boolean(body.approved) }));
-
-    /* A permanent spot is bought outright rather than metered, so the moment
-       a shop says yes is the moment there is something to invoice. Video has
-       nothing to bill yet: it is invoiced weekly on what actually ran.
-       `invoiceCharge` is idempotent on the charge, so a second approval on a
-       multi-board booking does not raise a second invoice. */
-    if (body.approved && isPermanent(campaign.format)) {
-      try {
-        await invoiceSpots(db as unknown as Db, campaign as SpotCampaign);
-      } catch (failure) {
-        /* The approval stands. An invoice that did not go out is a thing a
-           person can raise again; an approval rolled back is not. */
-        console.error('could not invoice spot campaign', campaign.id, failure);
-      }
-    }
+    /* Shared with the mail's own landing endpoint, which arrives here with no
+       session at all. Both ways of saying yes have to end in the same three
+       things happening. See lib/server/approvals.ts. */
+    const { sent } = await settle(db, {
+      campaign: campaign as unknown as DecidableCampaign,
+      shopId: row.shop_id,
+      shopName: row.shops.name,
+      approved: Boolean(body.approved),
+    });
     return json(200, { sent });
   }
 
   return json(400, { message: 'Unknown event' });
-}
-
-type SpotCampaign = { id: string; advertiser_id: string; name: string; spots: number | null };
-
-/* Only the shape this function uses. Spelling out the full generated client
-   type here drags Supabase's generics through a signature that does not care
-   about them, and they do not line up across two call sites of createClient. */
-type Db = {
-  from: (table: string) => {
-    select: (columns: string) => {
-      eq: (column: string, value: unknown) => {
-        eq: (column: string, value: unknown) => { maybeSingle: () => Promise<{ data: unknown }> };
-      };
-    };
-    insert: (row: Record<string, unknown>) => {
-      select: (columns: string) => { single: () => Promise<{ data: unknown }> };
-    };
-  };
-};
-
-/* One charge and one invoice for the whole twelve months, written against the
-   ledger the weekly run also uses so both kinds of money live in one place.
-   The charge has no billing run: a spot is not a week. */
-async function invoiceSpots(db: Db, campaign: SpotCampaign) {
-  const spots = Math.max(1, Number(campaign.spots ?? 1));
-  const amountCents = Math.round(spots * SPOT_YEARLY * 100);
-
-  const { data: existing } = await db
-    .from('charges')
-    .select('id')
-    .eq('advertiser_id', campaign.advertiser_id)
-    .eq('campaign_id', campaign.id)
-    .maybeSingle();
-
-  let charge = existing as { id: string } | null;
-  if (!charge) {
-    const { data: created } = await db
-      .from('charges')
-      .insert({
-        advertiser_id: campaign.advertiser_id,
-        campaign_id: campaign.id,
-        amount_cents: amountCents,
-      })
-      .select('id')
-      .single();
-    charge = created as { id: string } | null;
-  }
-  if (!charge) return;
-
-  await invoiceCharge(
-    charge.id,
-    campaign.advertiser_id,
-    [
-      {
-        description: `${campaign.name} · ${spots} permanent ${spots === 1 ? 'spot' : 'spots'}, twelve months`,
-        amountCents,
-      },
-    ],
-    'A permanent spot is invoiced once and is yours for the year. Nothing further is charged for it.',
-  );
 }
 
 function json(status: number, body: unknown) {

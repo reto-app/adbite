@@ -13139,3 +13139,158 @@ text.vs-small {
 .shop-fold-body > .shop-media {
   margin: 0;
 }
+
+/* ---- deciding on an ad from the mail -------------------------------------
+   /review is the one page a shop owner reaches without signing in, often on a
+   phone, standing behind a counter, seconds after the mail arrived. So it is
+   a single column on one card with nothing else on the page to read: no nav,
+   no footer, no next step but the two buttons. It borrows the queue card's
+   artwork frame and buttons on purpose -- the same decision in the dashboard
+   should not look like a different product. */
+.review {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  min-height: 100dvh;
+  padding: 28px 16px 56px;
+  background: var(--paper);
+}
+
+.review-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  max-width: 520px;
+}
+
+.review-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 520px;
+  padding: 26px 24px 24px;
+  border: 2px solid var(--board);
+  border-radius: 18px;
+  background: var(--chalk);
+}
+
+.review-card h1 {
+  margin: 0;
+  font-family: var(--font-display), sans-serif;
+  font-size: 25px;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+}
+
+.review-lede {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--ash);
+}
+
+.review-facts {
+  display: grid;
+  gap: 7px;
+  margin: 4px 0 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--paper-warm);
+}
+
+.review-facts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  font-size: 13px;
+}
+
+.review-facts dt {
+  color: var(--ash);
+  flex: none;
+}
+
+.review-facts dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* Taller than the queue's thumbnail. This is the only look the owner gets
+   before they answer, so it is worth the scroll. */
+.review-art {
+  aspect-ratio: 16 / 9;
+}
+
+.review-art-note,
+.review-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ash);
+  text-align: center;
+}
+
+.review-actions {
+  grid-template-columns: 1fr 1.2fr;
+  margin-top: 6px;
+}
+
+.review-actions button {
+  padding: 13px;
+  font-size: 14px;
+}
+
+/* The focus ring is the whole point of the mail's Approve link: it lands with
+   this button ready, so it has to be visibly ready. */
+.review-actions button.yes:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 3px;
+}
+
+.review-actions button[disabled] {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.review-wait {
+  margin: 0;
+  padding: 26px 0;
+  font-size: 14px;
+  color: var(--ash);
+  text-align: center;
+}
+
+.review-tick {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: var(--board);
+  color: var(--chalk);
+}
+
+.review-tick.no {
+  background: var(--paper-warm);
+  color: var(--ash);
+}
+
+.review-out {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+@media (max-width: 420px) {
+  .review-card {
+    padding: 22px 18px 20px;
+  }
+
+  .review-card h1 {
+    font-size: 22px;
+  }
+}
