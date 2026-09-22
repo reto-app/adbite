@@ -160,7 +160,11 @@ function fromRow(row: Row, mine: string[] | null): Campaign {
     creativeSrc: row.creatives?.storage_path
       ? `${ASSETS_ORIGIN}/${row.creatives.storage_path}`
       : previews.get(row.id) ?? null,
-    email: row.email,
+    /* Never handed to a shop. The queue decides on a name and a website, and
+       an address that is merely undrawn is still in the page payload, so it
+       comes off the object rather than out of the JSX. `mine` is set only
+       when a shop owner is the one reading. */
+    email: mine ? null : row.email,
     advertiserName: row.advertiser_name ?? null,
     advertiserSite: row.advertiser_site ?? null,
     note: row.note,

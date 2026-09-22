@@ -678,7 +678,7 @@ function AdsTab({
                     {/* A name and a website, not an email address. You are
                         deciding whether to put this business on your wall. */}
                     <dd>
-                      {campaign.advertiserName || campaign.email || t.anAdvertiser}
+                      {campaign.advertiserName || t.anAdvertiser}
                       {campaign.advertiserSite && (
                         <a
                           className="queue-site"

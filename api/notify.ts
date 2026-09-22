@@ -55,7 +55,7 @@ export async function POST(request: Request): Promise<Response> {
 
   const { data: campaign } = await db
     .from('campaigns')
-    .select('id, advertiser_id, name, format, venues, weekly_spend, spots, email')
+    .select('id, advertiser_id, advertiser_name, name, format, venues, weekly_spend, spots, email')
     .eq('id', body.campaignId)
     .maybeSingle();
   if (!campaign) return json(404, { message: 'No such campaign' });
@@ -98,7 +98,9 @@ export async function POST(request: Request): Promise<Response> {
           ownerEmail,
           approvalNeeded({
             shopName: row.shops?.name ?? 'your shop',
-            advertiser: campaign.email || user.email || 'An advertiser',
+            /* The same rule the approval queue follows: a shop deciding on
+               a creative is told who is asking, not how to mail them. */
+            advertiser: campaign.advertiser_name || 'An advertiser',
             format,
             weeklyEarnings: shopEarningsFromSpend(Number(campaign.weekly_spend), boards),
           }),

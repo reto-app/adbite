@@ -492,14 +492,19 @@ Then `magick <shot>.png -resize 1360x -strip -quality 84 <shot>.webp`. Wait for
 map tiles to finish loading before capturing 02 and 04, or the frame ships with
 a grey map in it.
 
-**Two things these frames must not show.** There is no `05`, because step 02
+**Three things these frames must not show.** There is no `05`, because step 02
 quotes what a permanent spot costs and the public page deliberately does not:
 that number is settled in a conversation, and a screenshot of the builder would
 publish it. For the same reason, switch the format to Short video before taking
 `04` and `06` — the summary bar pinned to the bottom of the builder carries the
 spot price too. And whatever is in the capturing account's own campaign list
 ships with the frame, so load the samples and hide the rest; a real brand in
-that sidebar reads as a customer we do not have.
+that sidebar reads as a customer we do not have. Third, the dashboard header
+prints the signed-in address (`.dash-who`), top right, and it is legible at the
+size these ship at — the frames once went out carrying a personal Gmail. Take
+them from an account whose address is one we are happy to publish, or paint the
+header over afterwards: `you@yourbusiness.com` in Geist Medium 13px,
+`rgba(255,255,255,.72)`, right-aligned to x=1177 at 1360px wide.
 
 ## Vertical rhythm
 
