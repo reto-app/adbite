@@ -1,45 +1,54 @@
-' The four board themes, in the same colours the web preview draws.
+' The colours a board is drawn in.
 '
-' Kept in step with `.board-canvas.theme-*` in app/globals.css by hand. The
-' rgba() dims there become Roku's 0xRRGGBBAA, so a change on the site is a
-' change here: alpha is the last byte, and 0.58 opacity is 0x94.
+' A shop can now set these to anything, so the server resolves the palette and
+' sends it down in `config.palette` as 0xRRGGBBAA. BoardPalette() below is what
+' every pane should call; it reads that field and does no colour maths of its
+' own, which is the point — the arithmetic that turns three chosen colours into
+' seven lives in one place (lib/palette.ts) and runs once, on the server.
+'
+' BoardTheme() is the fallback underneath it: the four stock themes, for a
+' board saved before `palette` existed and for the moment before a pane's
+' first redraw. It stays in step with THEME_COLORS in lib/palette.ts by hand,
+' resolved at the same alphas lib/palette.ts uses (dim 0.60, rule 0.18,
+' ad 0.08), which is why these are flat bytes rather than the rgba() the
+' stylesheet used to carry.
 
 function BoardTheme(id as String) as Object
     themes = {
         chalk: {
             bg: &h14100DFF
             ink: &hFFFFFFFF
-            dim: &hFFFFFF94
-            rule: &hFFFFFF29
+            dim: &hA19F9EFF
+            rule: &h3E3B39FF
             accent: &hFFC72CFF
-            ad: &hFFFFFF12
+            ad: &h272320FF
             onAccent: &h14100DFF
         }
         enamel: {
             bg: &hF3EAD6FF
             ink: &h241D12FF
-            dim: &h241D1299
-            rule: &h241D1229
+            dim: &h776F60FF
+            rule: &hCEC5B3FF
             accent: &h8A6A2FFF
-            ad: &h241D120F
-            onAccent: &hF3EAD6FF
+            ad: &hE2DAC6FF
+            onAccent: &hFFFFFFFF
         }
         warm: {
             bg: &hB4502FFF
             ink: &hFDF3E7FF
-            dim: &hFDF3E7AD
-            rule: &hFDF3E73D
+            dim: &hE0B29DFF
+            rule: &hC16D50FF
             accent: &hFFD9A0FF
-            ad: &hFDF3E71A
-            onAccent: &hB4502FFF
+            ad: &hBA5D3EFF
+            onAccent: &h111111FF
         }
         garden: {
             bg: &h12372AFF
             ink: &hF4F1E4FF
-            dim: &hF4F1E49E
-            rule: &hF4F1E42E
+            dim: &h9AA79AFF
+            rule: &h3B584BFF
             accent: &hD9B45CFF
-            ad: &hF4F1E414
+            ad: &h244639FF
             onAccent: &h12372AFF
         }
     }
@@ -48,8 +57,100 @@ function BoardTheme(id as String) as Object
     return themes.chalk
 end function
 
-' A Font node at an arbitrary pixel size. The system font files are addressable
-' by URI, which is what keeps the package free of a bundled TTF.
+' The palette for a board, as the server resolved it. Falls back to the stock
+' theme when the field is missing, which is the only case a channel in the
+' field will meet: a TV that has not polled since the shop recoloured is
+' running last night's board, and last night's board had a theme.
+function BoardPalette(config as Object) as Object
+    if config <> invalid and config.palette <> invalid
+        sent = config.palette
+        ' Every key or none: a half-built palette would draw text the same
+        ' colour as the ground it sits on, which is worse than the old theme.
+        keys = ["bg", "ink", "accent", "dim", "rule", "ad", "onAccent"]
+        ok = true
+        for each key in keys
+            if type(sent[key]) <> "String" and type(sent[key]) <> "roString" then ok = false
+        end for
+        if ok
+            out = {}
+            for each key in keys
+                out[key] = HexToColor(sent[key])
+            end for
+            return out
+        end if
+    end if
+
+    id = "chalk"
+    if config <> invalid and config.board <> invalid and type(config.board.theme) = "roString"
+        id = config.board.theme
+    end if
+    return BoardTheme(id)
+end function
+
+' "0xRRGGBBAA" -> the Integer SceneGraph wants.
+'
+' Read in two halves because a BrightScript Integer is 32 bits *signed*, so
+' 0xFFFFFFFF is -1 and the whole eight digits do not fit through val() as one
+' number. The top half is sign-corrected by hand, which is the same thing the
+' literal &hFFFFFFFF elsewhere in this file already does silently.
+function HexToColor(text as String) as Integer
+    body = text
+    if Len(body) > 2 and LCase(Left(body, 2)) = "0x" then body = Mid(body, 3)
+    ' Opaque unless the sender said otherwise; nothing on a board is glass.
+    if Len(body) = 6 then body = body + "FF"
+    if Len(body) <> 8 then return &h000000FF
+
+    high = val(Left(body, 4), 16)
+    low = val(Mid(body, 5, 4), 16)
+    if high >= 32768 then high = high - 65536
+    return (high * 65536) + low
+end function
+
+' ---- the lettering -------------------------------------------------------
+'
+' A Font node takes a `uri`, so a board set in Playfair is drawn in Playfair
+' here too: ConfigTask downloads the two weights the shop chose and verifies
+' them, and BoardFace() below points this at the files. A face that did not
+' download, or a shop still on the stock face, falls through to the system
+' font — which is what every board did before this and is a perfectly good
+' menu board, just not the one they picked.
+'
+' NOTE the bold system URI is `font:BoldSystemFontFile`, not
+' `SystemBoldFontFile`. The wrong name fails silently: every bold label -- the
+' shop name, the sections, the item names, the prices -- simply does not draw
+' while the regular text does. It cost a trip to the TV once already.
+
+' Tell this component which files to draw with, before anything asks for a
+' font. Both arguments are cachefs: paths or "". Clears the cache, because the
+' sizes already in it are cut from the old face.
+sub SetBoardFaces(displayUri as String, bodyUri as String)
+    if m.displayUri = displayUri and m.bodyUri = bodyUri then return
+    m.displayUri = displayUri
+    m.bodyUri = bodyUri
+    m.fontCache = {}
+end sub
+
+' The two weights of one face, off the board's fontFiles. Returns "" for a
+' file that is missing or did not survive its download, which is the same
+' answer as "use the system font".
+function BoardFace(board as Object, role as String, bold as Boolean) as String
+    if board = invalid or board.fontFiles = invalid then return ""
+    face = board.fontFiles[role]
+    if face = invalid then return ""
+    weight = "regular"
+    if bold then weight = "bold"
+    file = face[weight]
+    if file = invalid then return ""
+    ' A local path only. A URL here means the download did not finish, and a
+    ' Font node pointed at a URL blocks the render thread on the network.
+    ' textOf() rather than a component's own strOr(): this file is included by
+    ' several components and each of those already defines one.
+    src = textOf(file.src)
+    if Left(LCase(src), 4) = "http" then return ""
+    return src
+end function
+
+' A Font node at an arbitrary pixel size.
 '
 ' Cached per component: a redraw asks for the same handful of sizes once per
 ' label and again on every pass of the fit loop, and each miss is a node.
@@ -60,8 +161,21 @@ function BoardFont(size as Integer, bold as Boolean) as Object
     if bold then key = key + "b"
     if m.fontCache.doesExist(key) then return m.fontCache[key]
 
-    font = CreateObject("roSGNode", "Font")
+    ' Bold is the board's display face -- the name, the sections, the item
+    ' names, the prices -- and regular is its body face. That is the same
+    ' split the web preview makes with --bd-display and --bd-body, and it is
+    ' why there is no third choice here.
+    uri = ""
     if bold
+        if m.displayUri <> invalid then uri = m.displayUri
+    else
+        if m.bodyUri <> invalid then uri = m.bodyUri
+    end if
+
+    font = CreateObject("roSGNode", "Font")
+    if uri <> ""
+        font.uri = uri
+    else if bold
         font.uri = "font:BoldSystemFontFile"
     else
         font.uri = "font:SystemFontFile"
@@ -102,6 +216,11 @@ function CanvasFor(board as Object) as Object
     end if
     if turn = "" then return { width: 1920, height: 1080, turn: "" }
     return { width: 1080, height: 1920, turn: turn }
+end function
+
+function textOf(value as Dynamic) as String
+    if type(value) = "String" or type(value) = "roString" then return value
+    return ""
 end function
 
 function lowerText(value as Dynamic) as String

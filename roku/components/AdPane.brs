@@ -81,7 +81,10 @@ sub reload()
     config = m.top.config
     if config = invalid or config.board = invalid then return
 
-    m.theme = BoardTheme(strOr(config.board.theme, "chalk"))
+    m.theme = BoardPalette(config)
+    ' The placeholder card in an empty slot is the shop's board, not ours, so
+    ' it is set in the shop's own lettering like everything else on the screen.
+    SetBoardFaces(BoardFace(config, "display", true), BoardFace(config, "body", false))
     m.spotSeconds = spotSeconds()
 
     slot = m.top.slot

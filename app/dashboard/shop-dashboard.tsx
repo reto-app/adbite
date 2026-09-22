@@ -1,31 +1,53 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   AlertCircle,
   Check,
+  ChevronDown,
+  Film,
+  Image as ImageIcon,
   Landmark,
   LayoutTemplate,
+  Maximize2,
+  Minimize2,
+  Move,
+  Palette,
   RotateCcw,
   Save,
   Sparkles,
   Star,
+  Store,
   Trash2,
   Tv,
+  Type,
   Upload,
   Wallet,
+  Wand2,
   X,
+  type LucideIcon,
 } from 'lucide-react';
 import { DashboardHeader } from '@/components/dashboard-header';
 import { BoardCanvas } from '@/components/board/board-canvas';
+import { BoardDesigner } from '@/components/board/board-designer';
+import { BlockPanel } from '@/components/board/block-panel';
+import { ColorPanel } from '@/components/board/color-panel';
+import { FontPanel } from '@/components/board/font-panel';
 import { MenuEditor } from '@/components/board/menu-editor';
+import { MenuScan } from '@/components/board/menu-scan';
+import { PicturePicker } from '@/components/board/picture-picker';
+import { faceById } from '@/lib/fonts';
+import { fromFlow, reconcile, type Block, type Layout } from '@/lib/layout';
 import {
   ORIENTATIONS,
   PLACEMENTS,
   SLOTS,
   placementById,
-  THEMES,
   flushBoard,
+  gridOf,
+  isFreeform,
+  isRecoloured,
+  layoutOf,
   newId,
   showsMenu,
   resetBoard,
@@ -38,7 +60,6 @@ import {
   type Turn,
   TURNS,
   type SlotId,
-  type ThemeId,
   BOARD_KINDS,
   BOARD_SOURCES,
   boardKindById,
@@ -210,6 +231,43 @@ function SaveButton({ save }: { save: SaveState }) {
   );
 }
 
+/* One fold of the editor.
+ *
+ * The board editor grew from "type a menu" into colour, lettering, pictures,
+ * placement and a whole second layout mode, and a phone cannot hold all of
+ * that open at once — nor should a laptop, because a shop opens this to
+ * change one price far more often than to redesign anything. Everything past
+ * the menu itself is folded away, and the summary line on the right says what
+ * is inside so nobody has to open a fold to find out.
+ */
+function Fold({
+  title,
+  summary,
+  icon: Icon,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  summary?: string;
+  icon: LucideIcon;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <section className={`shop-fold${open ? ' open' : ''}`}>
+      <button type="button" className="shop-fold-head" aria-expanded={open} onClick={onToggle}>
+        <Icon size={15} />
+        <b>{title}</b>
+        {summary && <i>{summary}</i>}
+        <ChevronDown size={16} className="shop-fold-chevron" />
+      </button>
+      {open && <div className="shop-fold-body">{children}</div>}
+    </section>
+  );
+}
+
 function BoardTab({
   board,
   save,
@@ -230,8 +288,195 @@ function BoardTab({
      their media instead; only a typed menu gets the grid. */
   const uploaded = !showsMenu(board);
 
+  /* On a phone the editor and the board cannot both be on screen, and the
+     board is the thing being edited, so it gets a pane of its own rather than
+     a thumbnail. Above 1040px the class does nothing and both are visible,
+     which is why this is one piece of state and not a media query in React. */
+  const [pane, setPane] = useState<'edit' | 'preview'>('edit');
+  const [open, setOpen] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [logoPicking, setLogoPicking] = useState(false);
+  /* Placing things by hand on a board inside a column beside a menu editor is
+     the one job in here that wants the whole window: the grid is the work, and
+     at 700px a cell is nine pixels. This is the same board and the same state
+     drawn against the viewport instead. */
+  const [full, setFull] = useState(false);
+
+  const fold = (id: string) => ({
+    open: open === id,
+    onToggle: () => setOpen(open === id ? null : id),
+  });
+
+  /* Escape is what everybody tries first, and a full-screen editor that
+     cannot be left by the key that leaves everything else is a trap. */
+  useEffect(() => {
+    if (!full) return;
+    const leave = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setFull(false);
+    };
+    window.addEventListener('keydown', leave);
+    /* The editor underneath is still a long page. Without this a scroll that
+       missed the panel scrolled it instead, and leaving full screen put you
+       somewhere you had never been. */
+    const was = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', leave);
+      document.body.style.overflow = was;
+    };
+  }, [full]);
+
+  const sections = board.slots[slot] ?? [];
+  const grid = gridOf(board);
+  const placed = isFreeform(board, slot);
+  const layout = placed ? reconcile(layoutOf(board, slot) ?? [], sections, grid) : null;
+
+  const setLayout = (next: Layout) => onChange({ layouts: { ...board.layouts, [slot]: next } });
+
+  /* Freezing the flow rather than starting from an empty board: the first
+     thing a shop sees after switching is the board they already had, with
+     handles on it. An editor that empties the screen the moment you touch it
+     teaches people not to touch it. */
+  const startPlacing = () => {
+    setLayout(fromFlow(sections, { grid, hasReviews: board.reviews.on && board.reviews.items.length > 0 }));
+    setPane('preview');
+  };
+
+  const stopPlacing = () => {
+    const layouts = { ...board.layouts };
+    delete layouts[slot];
+    onChange({ layouts });
+    setSelected(null);
+  };
+
+  const nameOf = (block: Block) => {
+    if (block.kind === 'section') {
+      return sections.find((entry) => entry.id === block.sectionId)?.title || t.design.kinds.section;
+    }
+    if (block.kind === 'text') return block.text?.trim().slice(0, 20) || t.design.kinds.text;
+    return t.design.kinds[block.kind];
+  };
+
+  /* One board and one panel, drawn either in the column or against the whole
+     window. They are built here rather than twice so the full-screen editor
+     cannot drift from the one beside the menu: it is the same board, the same
+     selection and the same handles, with more room. */
+  const boardView = (
+    <BoardCanvas
+      board={board}
+      slot={slot}
+      overlay={
+        layout ? (
+          <BoardDesigner
+            layout={layout}
+            grid={grid}
+            selected={selected}
+            onSelect={setSelected}
+            onChange={setLayout}
+            nameOf={nameOf}
+          />
+        ) : undefined
+      }
+    />
+  );
+
+  const blockPanel = layout ? (
+    <BlockPanel
+      layout={layout}
+      grid={grid}
+      sections={sections}
+      selected={selected}
+      onSelect={setSelected}
+      onChange={setLayout}
+      onDropLayout={() => {
+        stopPlacing();
+        setFull(false);
+      }}
+    />
+  ) : null;
+
+  const previewPane = (
+    <div className="shop-preview">
+      <div className="preview-head">
+        <span>
+          {t.preview.onTheWall}
+          {uploaded ? '' : ` · ${shared.slots[slot].label}`}
+        </span>
+        <i>{t.preview.updates}</i>
+      </div>
+      {/* A board the shop uploads has no menu on the wall, so showing one
+          here would promise something the screen will not do. */}
+      {uploaded ? <MediaPreview board={board} /> : boardView}
+
+      {!uploaded && (
+        <div className="preview-tools">
+          {placed ? (
+            <button type="button" className="button ghost" onClick={stopPlacing}>
+              <Wand2 size={15} /> {t.design.backToAuto}
+            </button>
+          ) : (
+            <button type="button" className="button ghost" onClick={startPlacing}>
+              <Move size={15} /> {t.design.start}
+            </button>
+          )}
+          {placed && (
+            <button type="button" className="button ghost" onClick={() => setFull(true)}>
+              <Maximize2 size={15} /> {t.design.fullscreen}
+            </button>
+          )}
+          <span>{placed ? t.design.placedNote : t.design.autoNote}</span>
+        </div>
+      )}
+
+      {blockPanel}
+
+      <fieldset className="place-pick">
+        <legend>{t.preview.where}</legend>
+        <div className="place-options">
+          {PLACEMENTS.map((place) => (
+            <button
+              key={place.id}
+              type="button"
+              className={board.adPlacement === place.id ? 'on' : undefined}
+              aria-pressed={board.adPlacement === place.id}
+              onClick={() => onChange({ adPlacement: place.id })}
+            >
+              <span className={`place-mini m-${place.id}`} aria-hidden="true">
+                <i />
+              </span>
+              <b>{shared.placements[place.id].label}</b>
+              <i>{shared.placements[place.id].note}</i>
+            </button>
+          ))}
+        </div>
+      </fieldset>
+      <p className="preview-note">{t.preview.note}</p>
+    </div>
+  );
+
   return (
-    <section className="shop-body">
+    <section className={`shop-body pane-${pane}`}>
+      {/* Two buttons, and on anything wider than a phone they are not there:
+          the pane class they set is only honoured under 1040px. */}
+      <nav className="pane-switch" aria-label={t.panes.label}>
+        <button
+          type="button"
+          className={pane === 'edit' ? 'on' : undefined}
+          aria-current={pane === 'edit'}
+          onClick={() => setPane('edit')}
+        >
+          <LayoutTemplate size={14} /> {t.panes.edit}
+        </button>
+        <button
+          type="button"
+          className={pane === 'preview' ? 'on' : undefined}
+          aria-current={pane === 'preview'}
+          onClick={() => setPane('preview')}
+        >
+          <Tv size={14} /> {t.panes.preview}
+        </button>
+      </nav>
+
       <div className="shop-edit">
         {/* The answer to "what is this screen for" decides what this half of
             the page is. A shop that uploads its board has no sections to
@@ -255,254 +500,284 @@ function BoardTab({
           </div>
         ) : (
           <>
-        <div className="slot-tabs" role="tablist" aria-label={t.editor.whichBoard}>
-          {SLOTS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              aria-selected={slot === item.id}
-              className={slot === item.id ? 'on' : undefined}
-              onClick={() => onSlot(item.id)}
-            >
-              <b>{shared.slots[item.id].label}</b>
-              <i>{shared.slots[item.id].window}</i>
-            </button>
-          ))}
-        </div>
-
-        <div className="shop-scroll">
-          <MenuEditor
-            board={board}
-            slot={slot}
-            onChange={(sections) => onChange({ slots: { ...board.slots, [slot]: sections } })}
-          />
-
-          <section className="shop-panel">
-            <div className="prefs-head">
-              <h3>{t.shop.title}</h3>
-              <span className="prefs-hint">{t.shop.hint}</span>
-            </div>
-            <label className="shop-field">
-              {t.shop.name}
-              <input
-                value={board.shopName}
-                onChange={(event) => onChange({ shopName: event.target.value })}
-              />
-            </label>
-            <label className="shop-field">
-              {t.shop.tagline}
-              <input
-                value={board.tagline}
-                placeholder={t.shop.taglinePlaceholder}
-                onChange={(event) => onChange({ tagline: event.target.value })}
-              />
-            </label>
-          </section>
-
-          <section className="shop-panel">
-            <div className="prefs-head">
-              <h3>{t.look.title}</h3>
-              <span className="prefs-hint">{t.look.hint}</span>
-            </div>
-            <div className="theme-row">
-              {THEMES.map((theme) => (
+            <div className="slot-tabs" role="tablist" aria-label={t.editor.whichBoard}>
+              {SLOTS.map((item) => (
                 <button
-                  key={theme.id}
+                  key={item.id}
                   type="button"
-                  className={`theme-chip theme-${theme.id}${board.theme === theme.id ? ' on' : ''}`}
-                  aria-pressed={board.theme === theme.id}
-                  onClick={() => onChange({ theme: theme.id as ThemeId })}
+                  role="tab"
+                  aria-selected={slot === item.id}
+                  className={slot === item.id ? 'on' : undefined}
+                  onClick={() => onSlot(item.id)}
                 >
-                  <span className="theme-swatch" aria-hidden="true" />
-                  <b>{shared.themes[theme.id].label}</b>
-                  <i>{shared.themes[theme.id].note}</i>
+                  <b>{shared.slots[item.id].label}</b>
+                  <i>{shared.slots[item.id].window}</i>
                 </button>
               ))}
             </div>
-          </section>
 
-          <section className="shop-panel">
-            <div className="prefs-head">
-              <h3>{t.screen.title}</h3>
-              <span className="prefs-hint">{t.screen.hint}</span>
-            </div>
-            <div className="orient-row">
-              {ORIENTATIONS.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  className={`orient-chip o-${option.id}${board.orientation === option.id ? ' on' : ''}`}
-                  aria-pressed={board.orientation === option.id}
-                  onClick={() => onChange({ orientation: option.id as Orientation })}
-                >
-                  <span className="orient-mini" aria-hidden="true" />
-                  <b>{shared.orientations[option.id].label}</b>
-                  <i>{shared.orientations[option.id].note}</i>
-                </button>
-              ))}
-            </div>
-            {/* A Roku will not rotate video, so every film for a portrait
-                screen is rotated in the file, and it has to be rotated the
-                way the TV was. Asked only once the answer matters. */}
-            {board.orientation === 'portrait' && (
-              <div className="orient-row turn-row">
-                {TURNS.map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    className={`orient-chip t-${option.id}${(board.turn ?? 'left') === option.id ? ' on' : ''}`}
-                    aria-pressed={(board.turn ?? 'left') === option.id}
-                    onClick={() => onChange({ turn: option.id as Turn })}
-                  >
-                    <span className="orient-mini turn-mini" aria-hidden="true" />
-                    <b>{shared.turns[option.id].label}</b>
-                    <i>{shared.turns[option.id].note}</i>
+            <div className="shop-scroll">
+              {/* Above the grid on purpose: the fastest way to fill a board is
+                  a photograph of the one already on the wall, and a shop
+                  setting up for the first time should meet that before it
+                  meets an empty row. */}
+              <MenuScan
+                onAdd={(scanned, replace) =>
+                  onChange({
+                    slots: { ...board.slots, [slot]: replace ? scanned : [...sections, ...scanned] },
+                  })
+                }
+                onName={(shopName, tagline) =>
+                  onChange({
+                    shopName: shopName || board.shopName,
+                    tagline: tagline || board.tagline,
+                  })
+                }
+              />
+
+              <MenuEditor
+                board={board}
+                slot={slot}
+                onChange={(next) => onChange({ slots: { ...board.slots, [slot]: next } })}
+              />
+
+              <Fold title={t.shop.title} summary={board.shopName} icon={Store} {...fold('shop')}>
+                <label className="shop-field">
+                  {t.shop.name}
+                  <input
+                    value={board.shopName}
+                    onChange={(event) => onChange({ shopName: event.target.value })}
+                  />
+                </label>
+                <label className="shop-field">
+                  {t.shop.tagline}
+                  <input
+                    value={board.tagline}
+                    placeholder={t.shop.taglinePlaceholder}
+                    onChange={(event) => onChange({ tagline: event.target.value })}
+                  />
+                </label>
+
+                <div className="shop-logo">
+                  {board.logo ? <img src={board.logo} alt="" /> : <span className="shop-logo-blank" />}
+                  <button type="button" className="button ghost" onClick={() => setLogoPicking(!logoPicking)}>
+                    <ImageIcon size={15} /> {board.logo ? t.shop.changeLogo : t.shop.addLogo}
                   </button>
-                ))}
-              </div>
-            )}
-          </section>
+                </div>
+                {logoPicking && (
+                  <PicturePicker
+                    value={board.logo}
+                    onPick={(logo) => onChange({ logo })}
+                    onClose={() => setLogoPicking(false)}
+                  />
+                )}
+              </Fold>
 
-          <section className="shop-panel">
-            <div className="prefs-head">
-              <h3>
-                <Star size={15} /> {t.reviews.title}
-              </h3>
-              <span className="shop-switch">
-                <input
-                  type="checkbox"
-                  aria-label={t.reviews.toggle}
-                  checked={board.reviews.on}
-                  onChange={(event) =>
-                    onChange({ reviews: { ...board.reviews, on: event.target.checked } })
-                  }
-                />
-                <span />
-              </span>
-            </div>
-            {board.reviews.on && (
-              <>
-                {board.reviews.items.map((review, index) => (
-                  <div className="review-row" key={review.id}>
+              <Fold
+                title={t.colour.title}
+                summary={isRecoloured(board) ? t.colour.yourOwn : shared.themes[board.theme].label}
+                icon={Palette}
+                {...fold('colour')}
+              >
+                <ColorPanel board={board} onChange={onChange} />
+              </Fold>
+
+              <Fold
+                title={t.lettering.title}
+                summary={faceById(board.fonts?.display).label}
+                icon={Type}
+                {...fold('fonts')}
+              >
+                <FontPanel board={board} onChange={onChange} />
+              </Fold>
+
+              <Fold
+                title={t.screen.title}
+                summary={shared.orientations[board.orientation ?? 'landscape'].label}
+                icon={Tv}
+                {...fold('screen')}
+              >
+                <div className="orient-row">
+                  {ORIENTATIONS.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      className={`orient-chip o-${option.id}${board.orientation === option.id ? ' on' : ''}`}
+                      aria-pressed={board.orientation === option.id}
+                      onClick={() => onChange({ orientation: option.id as Orientation })}
+                    >
+                      <span className="orient-mini" aria-hidden="true" />
+                      <b>{shared.orientations[option.id].label}</b>
+                      <i>{shared.orientations[option.id].note}</i>
+                    </button>
+                  ))}
+                </div>
+                {/* A Roku will not rotate video, so every film for a portrait
+                    screen is rotated in the file, and it has to be rotated the
+                    way the TV was. Asked only once the answer matters. */}
+                {board.orientation === 'portrait' && (
+                  <div className="orient-row turn-row">
+                    {TURNS.map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        className={`orient-chip t-${option.id}${(board.turn ?? 'left') === option.id ? ' on' : ''}`}
+                        aria-pressed={(board.turn ?? 'left') === option.id}
+                        onClick={() => onChange({ turn: option.id as Turn })}
+                      >
+                        <span className="orient-mini turn-mini" aria-hidden="true" />
+                        <b>{shared.turns[option.id].label}</b>
+                        <i>{shared.turns[option.id].note}</i>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {/* Turning the TV changes the shape of the grid, so a board
+                    placed by hand cannot follow it across. Said here rather
+                    than found out afterwards. */}
+                {Object.keys(board.layouts ?? {}).length > 0 && (
+                  <p className="prefs-note">{t.design.orientationWarning}</p>
+                )}
+              </Fold>
+
+              <Fold
+                title={t.reviews.title}
+                summary={board.reviews.on ? t.reviews.showing(board.reviews.items.length) : t.reviews.off}
+                icon={Star}
+                {...fold('reviews')}
+              >
+                <div className="prefs-head">
+                  <span className="prefs-hint">{t.reviews.note}</span>
+                  <span className="shop-switch">
                     <input
-                      value={review.quote}
-                      aria-label={t.reviews.review}
-                      placeholder={t.reviews.quotePlaceholder}
+                      type="checkbox"
+                      aria-label={t.reviews.toggle}
+                      checked={board.reviews.on}
                       onChange={(event) =>
-                        onChange({
-                          reviews: {
-                            ...board.reviews,
-                            items: board.reviews.items.map((item, i) =>
-                              i === index ? { ...item, quote: event.target.value } : item,
-                            ),
-                          },
-                        })
+                        onChange({ reviews: { ...board.reviews, on: event.target.checked } })
                       }
                     />
-                    <input
-                      className="review-who"
-                      value={review.author}
-                      aria-label={t.reviews.who}
-                      placeholder={t.reviews.namePlaceholder}
-                      onChange={(event) =>
-                        onChange({
-                          reviews: {
-                            ...board.reviews,
-                            items: board.reviews.items.map((item, i) =>
-                              i === index ? { ...item, author: event.target.value } : item,
-                            ),
-                          },
-                        })
-                      }
-                    />
+                    <span />
+                  </span>
+                </div>
+                {board.reviews.on && (
+                  <>
+                    {board.reviews.items.map((review, index) => (
+                      <div className="review-row" key={review.id}>
+                        <input
+                          value={review.quote}
+                          aria-label={t.reviews.review}
+                          placeholder={t.reviews.quotePlaceholder}
+                          onChange={(event) =>
+                            onChange({
+                              reviews: {
+                                ...board.reviews,
+                                items: board.reviews.items.map((item, i) =>
+                                  i === index ? { ...item, quote: event.target.value } : item,
+                                ),
+                              },
+                            })
+                          }
+                        />
+                        <input
+                          className="review-who"
+                          value={review.author}
+                          aria-label={t.reviews.who}
+                          placeholder={t.reviews.namePlaceholder}
+                          onChange={(event) =>
+                            onChange({
+                              reviews: {
+                                ...board.reviews,
+                                items: board.reviews.items.map((item, i) =>
+                                  i === index ? { ...item, author: event.target.value } : item,
+                                ),
+                              },
+                            })
+                          }
+                        />
+                        <button
+                          type="button"
+                          className="edit-drop"
+                          aria-label={t.reviews.remove}
+                          onClick={() =>
+                            onChange({
+                              reviews: {
+                                ...board.reviews,
+                                items: board.reviews.items.filter((_, i) => i !== index),
+                              },
+                            })
+                          }
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
                     <button
                       type="button"
-                      className="edit-drop"
-                      aria-label={t.reviews.remove}
+                      className="edit-add"
                       onClick={() =>
                         onChange({
                           reviews: {
                             ...board.reviews,
-                            items: board.reviews.items.filter((_, i) => i !== index),
+                            items: [
+                              ...board.reviews.items,
+                              { id: newId('r'), quote: '', author: '', stars: 5, source: 'Google' },
+                            ],
                           },
                         })
                       }
                     >
-                      <Trash2 size={14} />
+                      {t.reviews.add}
                     </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  className="edit-add"
-                  onClick={() =>
-                    onChange({
-                      reviews: {
-                        ...board.reviews,
-                        items: [
-                          ...board.reviews.items,
-                          { id: newId('r'), quote: '', author: '', stars: 5, source: 'Google' },
-                        ],
-                      },
-                    })
-                  }
-                >
-                  {t.reviews.add}
-                </button>
-                <p className="prefs-note">{t.reviews.note}</p>
-              </>
-            )}
-          </section>
+                  </>
+                )}
+              </Fold>
 
-          {/* The shop's own pictures and film. This used to be one clip kept
-              as a data URL in this browser, which meant it never reached a
-              screen at all; it is now a library that uploads, is re-encoded
-              for the TV, and mixes with the ads. */}
-          <MediaPanel />
+              {/* The shop's own pictures and film. This used to be one clip
+                  kept as a data URL in this browser, which meant it never
+                  reached a screen at all; it is now a library that uploads, is
+                  re-encoded for the TV, and mixes with the ads. */}
+              <Fold
+                title={t.media.title}
+                summary={t.media.add}
+                icon={Film}
+                {...fold('media')}
+              >
+                <MediaPanel />
+              </Fold>
 
-          <button type="button" className="edit-add section" onClick={resetBoard}>
-            <RotateCcw size={14} /> {t.reset}
-          </button>
-        </div>
+              <button type="button" className="edit-add section" onClick={resetBoard}>
+                <RotateCcw size={14} /> {t.reset}
+              </button>
+            </div>
           </>
         )}
       </div>
 
-      <div className="shop-preview">
-        <div className="preview-head">
-          <span>
-            {t.preview.onTheWall}
-            {uploaded ? '' : ` · ${shared.slots[slot].label}`}
-          </span>
-          <i>{t.preview.updates}</i>
-        </div>
-        {/* A board the shop uploads has no menu on the wall, so showing one
-            here would promise something the screen will not do. */}
-        {uploaded ? <MediaPreview board={board} /> : <BoardCanvas board={board} slot={slot} />}
+      {previewPane}
 
-        <fieldset className="place-pick">
-          <legend>{t.preview.where}</legend>
-          <div className="place-options">
-            {PLACEMENTS.map((place) => (
-              <button
-                key={place.id}
-                type="button"
-                className={board.adPlacement === place.id ? 'on' : undefined}
-                aria-pressed={board.adPlacement === place.id}
-                onClick={() => onChange({ adPlacement: place.id })}
-              >
-                <span className={`place-mini m-${place.id}`} aria-hidden="true">
-                  <i />
-                </span>
-                <b>{shared.placements[place.id].label}</b>
-                <i>{shared.placements[place.id].note}</i>
-              </button>
-            ))}
+      {/* The whole window, with the board in the middle of it and the block's
+          own controls down one side. Rendered over the editor rather than in
+          place of it so nothing unmounts: the selection, the scroll position
+          and the unsaved board are all exactly where they were on the way
+          back out. */}
+      {full && layout && (
+        <dialog open className="board-full" aria-label={t.design.title}>
+          <div className="board-full-head">
+            <b>
+              {t.design.title} · {shared.slots[slot].label}
+            </b>
+            <span>{t.design.fullscreenNote}</span>
+            <button type="button" className="button ghost" onClick={() => setFull(false)}>
+              <Minimize2 size={15} /> {t.design.leaveFullscreen}
+            </button>
           </div>
-        </fieldset>
-        <p className="preview-note">{t.preview.note}</p>
-      </div>
+          <div className="board-full-body">
+            <div className="board-full-stage">{boardView}</div>
+            <div className="board-full-side">{blockPanel}</div>
+          </div>
+        </dialog>
+      )}
     </section>
   );
 }

@@ -447,10 +447,13 @@ end function
 ' creative booked twice is stored once and a re-cut of it is a new file. The
 ' board's `src` is rewritten to the local path; AdPane never sees a URL.
 
-function assetPath(ad as Object) as String
-    sha = strOr(ad.sha256, "")
+function assetPath(item as Object) as String
+    sha = strOr(item.sha256, "")
     if sha = "" then return ""
-    ext = extensionOf(strOr(ad.src, ""))
+    ' The URL is what carries the extension, and a picture's `src` has already
+    ' been rewritten to a local path by the time a second poll gets here, so
+    ' `url` is preferred where the item has one.
+    ext = extensionOf(strOr(item.url, strOr(item.src, "")))
     return "cachefs:/a-" + Left(sha, 20) + ext
 end function
 
@@ -458,7 +461,7 @@ function extensionOf(url as String) as String
     cut = url.Instr("?")
     if cut >= 0 then url = Left(url, cut)
     lowered = LCase(url)
-    for each ext in [".mp4", ".png", ".jpg", ".jpeg", ".webp"]
+    for each ext in [".mp4", ".png", ".jpg", ".jpeg", ".webp", ".ttf", ".otf"]
         if Right(lowered, Len(ext)) = ext then return ext
     end for
     return ".bin"
@@ -472,22 +475,67 @@ function fileSize(path as String) as Integer
     return stat.size
 end function
 
+' Everything a board needs on disk before it is drawn: the spots, the
+' pictures on the menu, and the two font files the shop's lettering is set in.
+' Three lists, one rule — a file is hashed and sized by the server, verified
+' here, and its `src` rewritten to the local path. Nothing downstream of this
+' ever sees a URL.
 function ensureAssets(board as Object) as Boolean
-    if board.ads = invalid or type(board.ads) <> "roArray" then return true
     allGood = true
-    for each ad in board.ads
-        src = strOr(ad.src, "")
+
+    ' A spot that will not download leaves the board where it was: a wall
+    ' showing yesterday's advertising is better than a wall showing a gap.
+    if not ensureList(board.ads, "spot") then allGood = false
+
+    ' A picture or a face that will not download does not hold the board back.
+    ' The menu is the job; a board in the system font with no logo on it is
+    ' still every price a customer came to read, and waiting for a 400 KB TTF
+    ' before showing it would be the wrong trade.
+    hadPictures = ensureList(board.pictures, "picture")
+    hadFonts = ensureList(fontList(board), "font")
+    if not hadPictures or not hadFonts
+        print "[adbite] some pictures or faces did not land; the board goes up without them"
+    end if
+
+    return allGood
+end function
+
+' The two faces as a flat list, so the same loop downloads them. Returns the
+' same node objects the board holds, so rewriting `src` here rewrites it there.
+function fontList(board as Object) as Object
+    out = []
+    if board.fontFiles = invalid then return out
+    for each role in ["display", "body"]
+        face = board.fontFiles[role]
+        if face <> invalid
+            for each weight in ["regular", "bold"]
+                if face[weight] <> invalid then out.push(face[weight])
+            end for
+        end if
+    end for
+    return out
+end function
+
+' One list of {src, sha256, bytes}. `src` goes in as a URL and comes out as a
+' cachefs: path, or as "" for a file that could not be had — every caller
+' already treats an empty src as "draw nothing here".
+function ensureList(items as Dynamic, what as String) as Boolean
+    if items = invalid or type(items) <> "roArray" then return true
+    allGood = true
+    for each item in items
+        src = strOr(item.src, "")
         if Left(LCase(src), 4) = "http"
-            local = assetPath(ad)
-            expected = Int(numOr(ad.bytes, 0))
+            local = assetPath(item)
+            expected = Int(numOr(item.bytes, 0))
             if local = "" or expected <= 0
-                print "[adbite] spot "; strOr(ad.id, "?"); " has no hash or size; skipped"
-                ad.src = ""
+                print "[adbite] "; what; " "; strOr(item.id, src); " has no hash or size; skipped"
+                item.src = ""
             else if fileSize(local) = expected
-                ad.src = local
+                item.src = local
             else if download(src, local, expected)
-                ad.src = local
+                item.src = local
             else
+                item.src = ""
                 allGood = false
             end if
         end if
@@ -566,11 +614,15 @@ end sub
 ' one board's worth of spots.
 sub pruneAssets(board as Object)
     keep = {}
-    if board.ads <> invalid
-        for each ad in board.ads
-            keep[strOr(ad.src, "")] = true
-        end for
-    end if
+    ' Every list ensureAssets() touched, or the next poll deletes the pictures
+    ' and the fonts it just downloaded and fetches them again forever.
+    for each list in [board.ads, board.pictures, fontList(board)]
+        if list <> invalid and type(list) = "roArray"
+            for each item in list
+                keep[strOr(item.src, "")] = true
+            end for
+        end if
+    end for
     fs = CreateObject("roFileSystem")
     files = fs.Find("cachefs:/", "^a-")
     if files = invalid then return

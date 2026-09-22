@@ -30,6 +30,7 @@ sub loadSizes()
         gapTitle: 13      ' 0.7cqw
         gapSection: 35    ' 1.8cqw
 
+        sectionPic: 134  ' 7cqw, the photo above a section in the flowed layout
         headH: 118       ' name, tagline, and the rule under them
         reviewH: 62
         slotW: 260       ' the day-part label in the header
@@ -76,7 +77,25 @@ sub redraw()
     if config = invalid or config.board = invalid then return
 
     board = config.board
-    m.theme = BoardTheme(strOr(board.theme, "chalk"))
+    m.theme = BoardPalette(config)
+
+    ' The shop's own lettering, if the two files landed. Before anything asks
+    ' for a font, because SetBoardFaces() empties the size cache and a font
+    ' handed out before it would be cut from the old face.
+    SetBoardFaces(BoardFace(config, "display", true), BoardFace(config, "body", false))
+
+    ' url -> cachefs: path for every picture the board names. ConfigTask has
+    ' already downloaded and verified them; anything missing from this map is a
+    ' picture that did not land, and the board is drawn without it.
+    m.pictures = {}
+    if config.pictures <> invalid and type(config.pictures) = "roArray"
+        for each picture in config.pictures
+            local = strOr(picture.src, "")
+            if local <> "" and Left(LCase(local), 4) <> "http"
+                m.pictures[strOr(picture.url, "")] = local
+            end if
+        end for
+    end if
 
     W = m.top.paneWidth
     H = m.top.paneHeight
@@ -98,6 +117,17 @@ sub redraw()
     m.body.removeChildrenIndex(m.body.getChildCount(), 0)
 
     sections = sectionsFor(board, m.top.slotId)
+
+    ' A board the shop placed by hand is drawn from its blocks. There is no
+    ' fit pass and no column balancing: the shop said where everything goes,
+    ' and second-guessing that on the wall is how the preview stops being a
+    ' preview. Everything after this line is the automatic layout.
+    blocks = layoutFor(board, m.top.slotId)
+    if blocks.count() > 0
+        drawPlaced(board, blocks, W, H)
+        return
+    end if
+
     m.priceChars = longestPrice(sections)
     colWidth = (W - m.SZ.padX - m.SZ.padX + m.SZ.colGap) / 2 - m.SZ.colGap
     if m.columns = 1 then colWidth = W - m.SZ.padX - m.SZ.padX
@@ -128,12 +158,29 @@ end sub
 ' ---- the header -----------------------------------------------------------
 
 sub drawHeader(board as Object, W as Float)
+    ' The shop's mark, to the left of its name, at the height of the name
+    ' itself. Square because that is the box the editor draws it in; a wide
+    ' wordmark comes out letterboxed in it rather than cropped, which is the
+    ' failure a shop can see and fix by cropping the file.
+    left = m.SZ.padX
+    logo = pictureFor(strOr(board.logo, ""))
+    if logo <> ""
+        size = m.SZ.shop + 8
+        poster = m.body.createChild("Poster")
+        poster.uri = logo
+        poster.width = size
+        poster.height = size
+        poster.loadDisplayMode = "scaleToFit"
+        poster.translation = [m.SZ.padX, m.SZ.padTop]
+        left = m.SZ.padX + size + 20
+    end if
+
     name = m.body.createChild("Label")
     name.text = strOr(board.shopName, "Your shop")
     name.font = BoardFont(m.SZ.shop, true)
     name.color = m.theme.ink
-    name.translation = [m.SZ.padX, m.SZ.padTop]
-    name.width = W - m.SZ.padX - m.SZ.padX - m.SZ.slotW
+    name.translation = [left, m.SZ.padTop]
+    name.width = W - left - m.SZ.padX - m.SZ.slotW
     name.height = m.SZ.shop + 8
     name.wrap = false
     name.vertAlign = "bottom"
@@ -154,8 +201,8 @@ sub drawHeader(board as Object, W as Float)
         line.text = tagline
         line.font = BoardFont(m.SZ.tagline, false)
         line.color = m.theme.dim
-        line.translation = [m.SZ.padX, m.SZ.padTop + m.SZ.shop + 12]
-        line.width = W - m.SZ.padX - m.SZ.padX
+        line.translation = [left, m.SZ.padTop + m.SZ.shop + 12]
+        line.width = W - left - m.SZ.padX
         line.height = m.SZ.tagline + 6
         line.wrap = false
     end if
@@ -246,7 +293,25 @@ function balancePoint(heights as Object) as Integer
     return best
 end function
 
+' The height a section's photo takes in the automatic layout, scaled with
+' everything else. Zero when there is no photo, or when it did not download.
+function sectionPictureHeight(section as Object) as Float
+    if pictureFor(strOr(section.image, "")) = "" then return 0
+    return Int(m.SZ.sectionPic * m.scale) + Int(m.SZ.gapTitle * m.scale)
+end function
+
 sub drawSection(section as Object, x as Float, y as Float, colWidth as Float)
+    pictureH = sectionPictureHeight(section)
+    if pictureH > 0
+        poster = m.body.createChild("Poster")
+        poster.uri = pictureFor(strOr(section.image, ""))
+        poster.translation = [x, y]
+        poster.width = colWidth
+        poster.height = Int(m.SZ.sectionPic * m.scale)
+        poster.loadDisplayMode = "scaleToZoom"
+        y = y + pictureH
+    end if
+
     title = m.body.createChild("Label")
     title.text = UCase(strOr(section.title, ""))
     title.font = BoardFont(Int(m.SZ.section * m.scale), true)
@@ -263,8 +328,14 @@ sub drawSection(section as Object, x as Float, y as Float, colWidth as Float)
 end sub
 
 function drawItem(entry as Object, x as Float, y as Float, colWidth as Float) as Float
+    return drawItemInto(m.body, entry, x, y, colWidth)
+end function
+
+' One row of the menu, into whatever group is holding it: the pane for the
+' automatic layout, a block's own group for a placed one.
+function drawItemInto(parent as Object, entry as Object, x as Float, y as Float, colWidth as Float) as Float
     sold = strOr(entry.badge, "none") = "out"
-    row = m.body.createChild("Group")
+    row = parent.createChild("Group")
     row.translation = [x, y]
     if sold then row.opacity = 0.4
 
@@ -412,7 +483,7 @@ function priceColumnWidth() as Integer
 end function
 
 function sectionHeight(section as Object) as Float
-    h = Int(m.SZ.section * m.scale) + Int(m.SZ.gapTitle * m.scale)
+    h = sectionPictureHeight(section) + Int(m.SZ.section * m.scale) + Int(m.SZ.gapTitle * m.scale)
     for each entry in drawableItems(section)
         h = h + Int(m.SZ.lineItem * m.scale)
         if strOr(entry.note, "") <> "" then h = h + Int(m.SZ.lineNote * m.scale)
@@ -541,6 +612,7 @@ sub drawReviews(board as Object, W as Float, bottom as Float)
 
     m.stars = m.body.createChild("Group")
     m.stars.translation = [m.SZ.padX, y + 18]
+    m.starSize = 24
 
     m.quote = m.body.createChild("Label")
     m.quote.font = BoardFont(m.SZ.quote, false)
@@ -582,14 +654,21 @@ sub showReview()
     if stars < 1 then stars = 1
     if stars > 5 then stars = 5
 
+    ' The foot of an automatic board is a fixed strip, so 24px is right there.
+    ' A placed review block is whatever height the shop dragged it to, so it
+    ' sets m.starSize and the stars follow.
+    size = 24
+    if m.starSize <> invalid then size = Int(m.starSize)
+    if size < 10 then size = 10
+
     m.stars.removeChildrenIndex(m.stars.getChildCount(), 0)
     for i = 0 to stars - 1
         star = m.stars.createChild("Poster")
         star.uri = "pkg:/images/star.png"
-        star.width = 24
-        star.height = 24
+        star.width = size
+        star.height = size
         star.blendColor = m.theme.accent
-        star.translation = [i * 27, 0]
+        star.translation = [i * (size + 3), 0]
     end for
     m.quote.text = Chr(&h201C) + strOr(review.quote, "") + Chr(&h201D)
 
@@ -609,6 +688,336 @@ function reviewSeconds() as Float
         if seconds >= 3 then return seconds
     end if
     return 12
+end function
+
+' ---- a board placed by hand -----------------------------------------------
+'
+' The web editor lets a shop drag every piece of its board around a grid and
+' drop it where it wants. `board.layouts[slotId]` is what comes back: a list
+' of blocks, each a rectangle in grid cells plus whatever that kind of block
+' needs. The grid itself comes down in `config.grid` rather than being
+' repeated here, so lib/layout.ts stays the one place those numbers live.
+'
+' The cells are percentages of the menu's own box, not of the screen — the ad
+' rail is drawn by BoardScene outside this pane, so a shop that moves its ad
+' from the right rail to the bottom strip keeps its layout and the blocks just
+' get a different shaped box. That is the same thing the web preview does,
+' where .board-free is inside .board-menu's padding.
+'
+' Nothing is scaled to fit. A block that holds more menu than it has room for
+' drops the rows that fall past its bottom edge, which is what `overflow:
+' hidden` does in the preview, near enough: the preview would show half a row
+' and this shows none of it, and half a price on a wall is worse than no row.
+
+function layoutFor(board as Object, slotId as String) as Object
+    if board.layouts = invalid then return []
+    blocks = board.layouts[slotId]
+    if blocks = invalid or type(blocks) <> "roArray" then return []
+    return blocks
+end function
+
+function gridOf() as Object
+    config = m.top.config
+    cols = 24
+    rows = 14
+    if config <> invalid and config.grid <> invalid
+        cols = intOr(config.grid.cols, cols)
+        rows = intOr(config.grid.rows, rows)
+    end if
+    if cols < 1 then cols = 1
+    if rows < 1 then rows = 1
+    return { cols: cols, rows: rows }
+end function
+
+sub drawPlaced(board as Object, blocks as Object, W as Float, H as Float)
+    grid = gridOf()
+    boxX = m.SZ.padX
+    boxY = m.SZ.padTop
+    boxW = W - m.SZ.padX - m.SZ.padX
+    boxH = H - m.SZ.padTop - m.SZ.padBottom
+    if boxW < 1 or boxH < 1 then return
+
+    cellW = boxW / grid.cols
+    cellH = boxH / grid.rows
+
+    ' The scale the fit loop would have set is fixed at 1 here and each block
+    ' multiplies it by its own, which is exactly what --bk-scale does in the
+    ' preview's stylesheet.
+    m.scale = 1.0
+    m.priceChars = longestPrice(sectionsFor(board, m.top.slotId))
+
+    for each block in blocks
+        x = boxX + numOr(block.x, 0) * cellW
+        y = boxY + numOr(block.y, 0) * cellH
+        w = numOr(block.w, 1) * cellW
+        h = numOr(block.h, 1) * cellH
+        if w >= 1 and h >= 1
+            ' A block the shop turned is drawn into a group of its own that is
+            ' rotated about the middle of the rectangle, which is what
+            ' `transform: rotate()` does about the same centre in the preview.
+            ' Everything inside then draws at 0,0 in its own square frame and
+            ' knows nothing about the angle. Untouched blocks get no wrapper
+            ' at all, so a board nobody turned renders exactly as before.
+            turn = numOr(block.rotate, 0)
+            if turn <> 0
+                holder = m.body.createChild("Group")
+                holder.translation = [x, y]
+                holder.scaleRotateCenter = [w / 2, h / 2]
+                ' SceneGraph turns anticlockwise in radians; the board's
+                ' degrees are clockwise, which is the way CSS reads them.
+                holder.rotation = -turn * 3.14159265 / 180.0
+                was = m.body
+                m.body = holder
+                drawBlock(board, block, 0, 0, w, h)
+                m.body = was
+            else
+                drawBlock(board, block, x, y, w, h)
+            end if
+        end if
+    end for
+end sub
+
+sub drawBlock(board as Object, block as Object, x as Float, y as Float, w as Float, h as Float)
+    kind = strOr(block.kind, "")
+    scale = numOr(block.scale, 1.0)
+    if scale < 0.4 then scale = 0.4
+    if scale > 3.0 then scale = 3.0
+
+    if kind = "head"
+        drawPlacedHead(board, x, y, w, h, scale)
+    else if kind = "section"
+        drawPlacedSection(board, block, x, y, w, h, scale)
+    else if kind = "text"
+        drawPlacedText(block, x, y, w, h, scale)
+    else if kind = "image" or kind = "logo"
+        drawPlacedImage(board, block, x, y, w, h)
+    else if kind = "reviews"
+        drawPlacedReviews(board, x, y, w, h)
+    end if
+end sub
+
+' The name band, in its own box rather than across the top of the screen.
+sub drawPlacedHead(board as Object, x as Float, y as Float, w as Float, h as Float, scale as Float)
+    group = m.body.createChild("Group")
+    group.translation = [x, y]
+
+    left = 0
+    logo = pictureFor(strOr(board.logo, ""))
+    if logo <> ""
+        size = h * 0.6
+        if size > w * 0.25 then size = w * 0.25
+        if size > 8
+            poster = group.createChild("Poster")
+            poster.uri = logo
+            poster.width = size
+            poster.height = size
+            poster.loadDisplayMode = "scaleToFit"
+            poster.translation = [0, 0]
+            left = size + Int(18 * scale)
+        end if
+    end if
+
+    nameSize = Int(m.SZ.shop * scale)
+    slotWidth = Int(m.SZ.slotW * scale)
+    if slotWidth > w * 0.3 then slotWidth = Int(w * 0.3)
+
+    name = group.createChild("Label")
+    name.text = strOr(board.shopName, "Your shop")
+    name.font = BoardFont(nameSize, true)
+    name.color = m.theme.ink
+    name.translation = [left, 0]
+    name.width = w - left - slotWidth
+    name.height = nameSize + Int(8 * scale)
+    name.wrap = false
+
+    slot = group.createChild("Label")
+    slot.text = UCase(slotLabel())
+    slot.font = BoardFont(Int(m.SZ.slot * scale), true)
+    slot.color = m.theme.accent
+    slot.translation = [w - slotWidth, 0]
+    slot.width = slotWidth
+    slot.height = nameSize + Int(8 * scale)
+    slot.horizAlign = "right"
+    slot.vertAlign = "bottom"
+
+    tagline = strOr(board.tagline, "")
+    if tagline <> ""
+        line = group.createChild("Label")
+        line.text = tagline
+        line.font = BoardFont(Int(m.SZ.tagline * scale), false)
+        line.color = m.theme.dim
+        line.translation = [left, nameSize + Int(12 * scale)]
+        line.width = w - left
+        line.height = Int(m.SZ.tagline * scale) + 6
+        line.wrap = false
+    end if
+
+    rule = group.createChild("Rectangle")
+    rule.translation = [0, h - 2]
+    rule.width = w
+    rule.height = 2
+    rule.color = m.theme.rule
+end sub
+
+sub drawPlacedSection(board as Object, block as Object, x as Float, y as Float, w as Float, h as Float, scale as Float)
+    section = sectionById(board, strOr(block.sectionId, ""))
+    if section = invalid then return
+
+    group = m.body.createChild("Group")
+    group.translation = [x, y]
+
+    cursor = 0.0
+
+    picture = pictureFor(strOr(section.image, ""))
+    if picture <> ""
+        pictureH = h * 0.32
+        if pictureH > 8
+            poster = group.createChild("Poster")
+            poster.uri = picture
+            poster.width = w
+            poster.height = pictureH
+            poster.loadDisplayMode = "scaleToZoom"
+            poster.translation = [0, 0]
+            cursor = pictureH + Int(14 * scale)
+        end if
+    end if
+
+    titleSize = Int(m.SZ.section * scale)
+    title = group.createChild("Label")
+    title.text = UCase(strOr(section.title, ""))
+    title.font = BoardFont(titleSize, true)
+    title.color = m.theme.accent
+    title.translation = [0, cursor]
+    title.width = w
+    title.wrap = false
+    cursor = cursor + titleSize + Int(m.SZ.gapTitle * scale)
+
+    ' m.scale is what drawItem() reads for its own sizes, so the block's scale
+    ' goes through it and is put back afterwards — the next block is entitled
+    ' to a different one.
+    was = m.scale
+    m.scale = scale
+    for each entry in drawableItems(section)
+        rowHeight = itemHeight(entry)
+        ' The row that would hang out of the bottom of the box, and every row
+        ' after it, is not drawn. See the note at the top of this section.
+        if cursor + rowHeight > h then exit for
+        cursor = drawItemInto(group, entry, 0, cursor, w)
+    end for
+    m.scale = was
+end sub
+
+sub drawPlacedText(block as Object, x as Float, y as Float, w as Float, h as Float, scale as Float)
+    text = strOr(block.text, "")
+    if text = "" then return
+
+    label = m.body.createChild("Label")
+    label.text = text
+    label.color = m.theme.ink
+    tone = strOr(block.tone, "ink")
+    if tone = "dim" then label.color = m.theme.dim
+    if tone = "accent" then label.color = m.theme.accent
+    ' The accent tone is the display face in the preview, so it is here too.
+    label.font = BoardFont(Int(m.SZ.item * scale * 1.1), tone = "accent")
+    label.translation = [x, y]
+    label.width = w
+    label.height = h
+    label.wrap = true
+    label.vertAlign = "center"
+    align = strOr(block.align, "left")
+    if align = "center" then label.horizAlign = "center"
+    if align = "right" then label.horizAlign = "right"
+end sub
+
+sub drawPlacedImage(board as Object, block as Object, x as Float, y as Float, w as Float, h as Float)
+    src = strOr(block.src, "")
+    ' A logo block with no picture of its own falls back to the shop's logo,
+    ' which is what the preview does and what anyone dropping one would mean.
+    if src = "" and strOr(block.kind, "") = "logo" then src = strOr(board.logo, "")
+    local = pictureFor(src)
+    if local = "" then return
+
+    poster = m.body.createChild("Poster")
+    poster.uri = local
+    poster.translation = [x, y]
+    poster.width = w
+    poster.height = h
+    if strOr(block.fit, "") = "contain" or strOr(block.kind, "") = "logo"
+        poster.loadDisplayMode = "scaleToFit"
+    else
+        poster.loadDisplayMode = "scaleToZoom"
+    end if
+end sub
+
+sub drawPlacedReviews(board as Object, x as Float, y as Float, w as Float, h as Float)
+    m.reviews = drawableReviews(board)
+    m.reviewIndex = 0
+    if m.reviews.count() = 0 then return
+
+    group = m.body.createChild("Group")
+    group.translation = [x, y]
+
+    starSize = h * 0.42
+    if starSize > 30 then starSize = 30
+    if starSize < 12 then starSize = 12
+    starsWidth = starSize * 5.6
+    citeWidth = w * 0.26
+
+    m.stars = group.createChild("Group")
+    m.stars.translation = [0, (h - starSize) / 2]
+    m.starSize = starSize
+
+    m.quote = group.createChild("Label")
+    m.quote.font = BoardFont(Int(m.SZ.quote), false)
+    m.quote.color = m.theme.ink
+    m.quote.translation = [starsWidth, 0]
+    m.quote.width = w - starsWidth - citeWidth
+    m.quote.height = h
+    m.quote.vertAlign = "center"
+    m.quote.wrap = false
+
+    m.cite = group.createChild("Label")
+    m.cite.font = BoardFont(Int(m.SZ.cite), false)
+    m.cite.color = m.theme.dim
+    m.cite.translation = [w - citeWidth, 0]
+    m.cite.width = citeWidth
+    m.cite.height = h
+    m.cite.horizAlign = "right"
+    m.cite.vertAlign = "center"
+    m.cite.wrap = false
+
+    showReview()
+
+    m.reviewTimer.control = "stop"
+    if m.reviews.count() > 1
+        m.reviewTimer.duration = reviewSeconds()
+        m.reviewTimer.control = "start"
+    end if
+end sub
+
+function sectionById(board as Object, id as String) as Dynamic
+    if id = "" then return invalid
+    for each section in sectionsFor(board, m.top.slotId)
+        if strOr(section.id, "") = id then return section
+    end for
+    return invalid
+end function
+
+' The local file for a picture the board names, or "" when it did not land.
+function pictureFor(url as String) as String
+    if url = "" then return ""
+    if m.pictures = invalid then return ""
+    local = m.pictures[url]
+    if local = invalid then return ""
+    return local
+end function
+
+' What drawItem() will use, without drawing it. Same arithmetic as
+' sectionHeight() does per row.
+function itemHeight(entry as Object) as Float
+    h = Int(m.SZ.lineItem * m.scale)
+    if strOr(entry.note, "") <> "" then h = h + Int(m.SZ.lineNote * m.scale)
+    return h + Int(m.SZ.gapItem * m.scale)
 end function
 
 ' ---- reading the board ----------------------------------------------------
@@ -648,6 +1057,13 @@ end function
 function strOr(value as Dynamic, fallback as String) as String
     if value = invalid then return fallback
     if type(value) = "roString" or type(value) = "String" then return value
+    return fallback
+end function
+
+function numOr(value as Dynamic, fallback as Float) as Float
+    if value = invalid then return fallback
+    t = type(value)
+    if t = "Integer" or t = "Float" or t = "Double" or t = "roInt" or t = "roInteger" or t = "roFloat" or t = "roDouble" or t = "LongInteger" then return value
     return fallback
 end function
 

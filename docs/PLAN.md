@@ -243,6 +243,119 @@ using the segments' own total so the parts add back up to the time the wall
 showed. Verified end to end: ten reported minutes became ten per-campaign
 rows totalling 600.01s against a 116-second reel of ten spots.
 
+## The board builder (2026-09-22)
+
+The editor stopped being "type a menu" and became a designer: a shop sets its
+own colours, picks the lettering, puts pictures on the board, and can place
+every piece by hand on a snapping grid. Two photograph shortcuts feed it — the
+shop's own colours pulled out of a picture of the sign, and a whole menu read
+off a photograph of the one already on the wall.
+
+**Where it lives.** `lib/palette.ts` owns the colour maths and is DOM-free so
+`lib/compose.ts` can resolve the same palette on the way to a TV.
+`lib/layout.ts` owns the grid, the blocks and the freeze-the-flow step.
+`lib/fonts.ts` is the curated face list. The editor's panels are
+`components/board/{color,font,block,picture-picker,menu-scan}*.tsx`, and
+`board-designer.tsx` is a pointer-event overlay on top of the real board so
+nothing a shop drags can change how the board renders.
+
+**Decisions worth not re-litigating.**
+
+- A theme is now three colours (`THEME_COLORS`) and everything else — the
+  muted line, the hairline, the ad tint, the text on an accent — is derived.
+  Adding a fifth theme is three values and nothing else. The four stock themes
+  resolve to the exact pixels they drew before, except the text on an accent
+  badge in Warm and Enamel, which now goes black/white where the old ground
+  colour fell under 4.5:1 on it.
+- Body text is held to 4.5:1 and the accent to 3:1, because the accent carries
+  section headings and prices and those are large type. One floor for both
+  would flag Warm, a theme we ship.
+- A board has **no layout** until somebody drags something. Absent is the good
+  case: the sections flow and stay right when the menu grows. Switching freezes
+  the flow into blocks (`fromFlow`) rather than starting empty.
+- Pictures on a board are always https URLs from `shop_media`, never data URLs.
+  A board row is fetched by every TV on every poll.
+- `/api/menu-scan` reads a photograph and returns sections; it writes nothing.
+  The shop reviews and chooses add-or-replace. It needs `ANTHROPIC_API_KEY`
+  and returns a 503 with a plain sentence until that is set.
+
+**The wall draws it (2026-09-22).** The channel no longer lags the editor.
+Three things landed together:
+
+1. **The palette** is resolved on the server and sent as `config.palette` in
+   `0xRRGGBBAA`. `BoardPalette()` in `roku/components/theme.brs` reads it and
+   does no colour maths of its own; the four stock themes survive in
+   `BoardTheme()` as the fallback for a board saved before the field existed.
+2. **Pictures** — the logo, a photo beside a section, an image block — travel
+   in `config.pictures` as `{url, src, sha256, bytes}` and go down the same
+   verified-download path the ads have always used. `ensureList()` in
+   `ConfigTask.brs` is that path, now shared by all three lists, and
+   `pruneAssets()` keeps every one of them or the next poll deletes what it
+   just fetched. `MenuPane` looks a picture up by its original URL, so the
+   board's own fields are never rewritten.
+3. **The lettering.** A Font node takes a `uri`, so the faces are real TTFs in
+   the assets bucket: `scripts/board-fonts.mjs` fetches them from Google
+   Fonts, uploads them keyed by their own hash, and rewrites the table in
+   `lib/board-fonts.ts`. `SetBoardFaces()` points the component at the two
+   files the shop chose; bold is the display face and regular is the body
+   face, the same split `--bd-display` / `--bd-body` makes on the web.
+
+**Hand-placed layouts** are drawn by `drawPlaced()` in `MenuPane.brs`. The
+blocks are rectangles in grid cells against the menu's own box — not the
+screen's, so moving the ad from the right rail to the bottom strip reshapes
+the box and the layout follows, the way `.board-free` sits inside
+`.board-menu`'s padding in the preview. No fit pass and no column balancing:
+the shop said where everything goes. A section block that holds more menu than
+it has room for drops the rows past its bottom edge, which is what
+`overflow: hidden` does in the editor, near enough — the editor would show
+half a row and this shows none of it, and half a price on a wall is worse.
+
+**The board's shape moved out of the store (2026-09-22).** `lib/board.ts`
+was `'use client'` and imported Supabase, so a Vercel function could not read
+it — which meant `api/device/sync.ts` passed the raw `boards.board` column
+straight to `compose()` while the dashboard read the same column through
+`migrated()`. The two could disagree about what a half-written row meant.
+
+- `lib/board-shape.ts` now holds the `Board` type, every table, the starter
+  board and `migrated()`. No React, no Supabase, **no `@/` alias** — relative
+  `.js` imports only, because that is what a Vercel function resolves.
+- `lib/board.ts` keeps the cache, the debounce and the write-through, and does
+  `export * from '@/lib/board-shape'`, so nothing that imports `@/lib/board`
+  changed.
+- `compose()` calls `migrated()` on its own input, and its `board` field is
+  typed as `Partial<Board> | null` to say out loud that it takes a database
+  row rather than a Board. That also let the duplicated `SHARE` map in
+  compose.ts go: the real `PLACEMENTS` table is importable now.
+- `migrated()` checks **every** field, not only the ones that were added
+  recently. It fills gaps and never replaces a board. A row of `{}` comes back
+  as the starter board; a row with `slots: {}` is a board that was written and
+  is empty, so it skips the setup question, while `{}` has never been written
+  and asks. A layout that is not an array is dropped, and that board lays
+  itself out again.
+- It is exported so it can be tested against junk without a database. That is
+  the only way anyone will check it.
+
+**Things worth knowing before touching this again.**
+
+- `roku/tools/preview.py` mirrors all of it and now renders portrait boards on
+  a 1080x1920 canvas instead of pretending everything is landscape. It
+  downloads and hash-checks pictures and fonts exactly as the device does, so
+  a run of it is a real test of the manifest. Cloudflare in front of the
+  assets bucket **403s `Python-urllib`'s own user agent** — the fetch helper
+  sets one, and anything else scripted against that origin will need to too.
+- A Font node pointed at a `cachefs:` path is the one thing here that has not
+  been on a real TV. If it turns out firmware will only load a font from
+  `pkg:` or `tmp:`, the failure is safe — `BoardFont()` falls through to the
+  system font, which is what every board did before — and the fix is to copy
+  the file to `tmp:` after download rather than to change anything else.
+- Faces are 55–640 KB a weight. A shop that changes its lettering costs every
+  one of its TVs a fresh download on the next poll; a shop on the stock face
+  downloads nothing.
+- Re-running `scripts/board-fonts.mjs` is safe: the key is the file's own
+  hash, so an unchanged face uploads to the same key and a re-cut one lands
+  beside the old rather than on top of it. No TV is ever served a file whose
+  bytes changed under its hash.
+
 ## Phase 5: money (Stripe)
 
 **Status 2026-09-16: built, awaiting migration and Stripe/Vercel configuration.**

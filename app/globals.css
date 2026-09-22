@@ -5005,183 +5005,498 @@ text.vs-small {
   color: #a32c1c;
 }
 
-/* ---- Step 02: what you are buying ---------------------------------------
-   Two products in different shapes, so the hero states whichever one is
-   selected in its own units: a spot is a total invoiced once, video is
-   minutes a week with a price under it. */
+/* ---- Step 02: the space on each board -----------------------------------
+   One row per shop: its live board on the left, what can be bought on it on
+   the right. The board is the shop's own, drawn by the same component its
+   owner edits it with, so the two can never show different things. */
 
-.buy-step {
+.boards-step {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-  gap: 20px;
-  align-items: start;
+  gap: 18px;
 }
 
-.buy-hero {
-  position: relative;
+.board-row {
+  border: 2px solid var(--rule);
   border-radius: 16px;
-  background: var(--board);
-  color: var(--chalk);
-  padding: 26px 26px 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+  background: var(--chalk);
+  overflow: hidden;
 }
 
-.buy-hero .bite {
-  position: absolute;
-  right: 18px;
-  top: 18px;
-  width: 30px;
-  opacity: 0.5;
+.board-row.on {
+  border-color: var(--board);
 }
 
-.buy-eyebrow {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: var(--ash-dark);
-}
-
-.buy-figure {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  font-family: var(--font-display), sans-serif;
-  font-size: clamp(38px, 5vw, 58px);
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.05em;
-  color: var(--money-on-dark);
-}
-
-.buy-figure span {
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: 0;
-  color: var(--ash-dark);
-}
-
-.buy-under {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ash-dark);
-}
-
-.buy-under b {
-  color: var(--money-on-dark);
-}
-
-.buy-line {
-  margin: 8px 0 0;
-  font-size: 13px;
-  color: var(--ash-dark);
-}
-
-.buy-held {
+.board-row-head {
   display: flex;
   align-items: center;
-  gap: 7px;
-  margin: 12px 0 0;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 18px;
+  border-bottom: 2px solid var(--rule);
+}
+
+.board-row-head b {
+  display: block;
+  font-size: 15px;
+}
+
+.board-row-head span {
   font-size: 12.5px;
-  font-weight: 600;
-  color: var(--ash-dark);
+  color: var(--ash);
 }
 
-.buy-foot {
-  margin: 16px 0 0;
-  padding-top: 14px;
-  border-top: 1px solid var(--board-line);
+.board-row-cost {
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+}
+
+.board-row-cost i {
+  font-size: 11px;
+  font-style: normal;
+  color: var(--ash);
+}
+
+.board-row-cost b {
+  font-size: 19px;
+}
+
+.board-row-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  padding: 18px;
+}
+
+.board-row-live,
+.artwork-row-live {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.board-row-live figcaption,
+.artwork-row-live figcaption {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ash);
+}
+
+.board-row-none {
+  margin: 0;
+  padding: 18px;
+  border: 2px dashed var(--rule);
+  border-radius: 12px;
   font-size: 13px;
-  line-height: 1.5;
-  color: var(--ash-dark);
+  color: var(--ash);
 }
 
-.buy-hero .week-strip {
-  width: 100%;
-  margin-top: 16px;
-}
-
-.buy-controls {
+.board-row-pick {
   display: grid;
   gap: 14px;
   align-content: start;
 }
 
-.buy-slider {
+.space-options {
   display: grid;
-  gap: 8px;
-  padding: 4px 2px 0;
+  gap: 10px;
 }
 
-.buy-slider-head {
+.space-option {
+  display: grid;
+  gap: 3px;
+  padding: 14px 16px;
+  border: 2px solid var(--rule);
+  border-radius: 13px;
+  background: var(--paper);
+  text-align: left;
+  cursor: pointer;
+}
+
+.space-option.on {
+  border-color: var(--board);
+  background: var(--board);
+  color: var(--chalk);
+}
+
+.space-option b {
+  font-size: 14px;
+}
+
+.space-option span {
+  font-size: 12.5px;
+  opacity: 0.8;
+}
+
+.space-option i {
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.term-pick,
+.tv-pick-set {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.term-pick legend,
+.tv-pick-set legend,
+.hours-pick > span {
+  padding: 0 0 7px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ash);
+}
+
+.term-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.term-option {
+  display: grid;
+  gap: 1px;
+  padding: 9px 15px;
+  border: 2px solid var(--rule);
+  border-radius: 999px;
+  background: var(--paper);
+  cursor: pointer;
+}
+
+.term-option.on {
+  border-color: var(--board);
+  background: var(--board);
+  color: var(--chalk);
+}
+
+.term-option b {
+  font-size: 13px;
+}
+
+.term-option span {
+  font-size: 12px;
+}
+
+.hours-pick {
+  display: grid;
+  gap: 4px;
+}
+
+.hours-pick > span {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.hours-pick > span b {
+  font-size: 17px;
+  color: var(--ink);
+}
+
+.hours-pick input[type='range'] {
+  width: 100%;
+  accent-color: var(--board);
+  height: 28px;
+}
+
+/* One spot is one banner on one TV, so the screens are the quantity and they
+   are picked by name rather than counted with a stepper. */
+.tv-picks {
+  display: grid;
+  gap: 8px;
+}
+
+.tv-pick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 2px solid var(--rule);
+  border-radius: 12px;
+  background: var(--paper);
+  text-align: left;
+  cursor: pointer;
+}
+
+.tv-pick.on {
+  border-color: var(--board);
+}
+
+.tv-pick.full {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tv-pick-mark {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 8px;
+  background: var(--rule);
+  color: var(--ash);
+}
+
+.tv-pick.on .tv-pick-mark {
+  background: var(--board);
+  color: var(--chalk);
+}
+
+.tv-pick-words {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.tv-pick-words b {
+  font-size: 13.5px;
+}
+
+.tv-pick-words span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--ash);
+}
+
+/* ---- Step 03: the artwork, on the wall it is going on --------------------
+   The advertiser's own file in the space they bought, on the shop's live
+   board. `.board-ad-mine` fills whichever hole the board's own placement
+   left: the strip, the rail, or the whole screen for a turn. */
+
+.artwork-step {
+  display: grid;
+  gap: 18px;
+}
+
+.artwork-row {
+  border: 2px solid var(--rule);
+  border-radius: 16px;
+  background: var(--chalk);
+  overflow: hidden;
+}
+
+.artwork-row-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 2px solid var(--rule);
+}
+
+.artwork-row-head b {
+  font-size: 15px;
+}
+
+.artwork-row-head span {
+  font-size: 12.5px;
+  color: var(--ash);
+}
+
+.artwork-row-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  padding: 18px;
+}
+
+.artwork-row-drop {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.board-ad-mine {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.board-ad-mine.empty {
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bd-dim);
+  border: 1px dashed var(--bd-dim);
+}
+
+/* A full-screen turn is not a place on the board; it is the board, for one
+   turn of the rotation. So it covers it. */
+.board-ad-full {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: #000;
+}
+
+/* ---- Step 04: everything, and what it costs -----------------------------
+   Two totals that are never added together: a spot is invoiced once for its
+   term, video weekly on the hours that ran. */
+
+.pay-step {
+  display: grid;
+  gap: 18px;
+}
+
+.pay-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.pay-lines li {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 16px;
+  border: 2px solid var(--rule);
+  border-radius: 14px;
+  background: var(--chalk);
+}
+
+.pay-line-art {
+  display: grid;
+  place-items: center;
+  height: 54px;
+  border-radius: 9px;
+  background: var(--paper);
+  overflow: hidden;
+}
+
+.pay-line-art img,
+.pay-line-art video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pay-line-missing {
+  color: #a32c1c;
+}
+
+.pay-line-words {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pay-line-words b {
   font-size: 14px;
 }
 
-.buy-slider-head b {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-display), sans-serif;
-  letter-spacing: -0.02em;
+.pay-line-words span {
+  font-size: 12.5px;
+  color: var(--ash);
 }
 
-.buy-scale {
+.pay-line-words small {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.pay-line-tv {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: 11.5px;
+  color: var(--ash);
+}
+
+.pay-line-warn {
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+  color: #a32c1c;
+}
+
+.pay-line-cost {
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+}
+
+.pay-line-cost b {
+  font-size: 18px;
+}
+
+.pay-line-cost i {
+  font-size: 11px;
   font-style: normal;
   color: var(--ash);
 }
 
-.buy-scale i {
-  font-style: normal;
-}
-
-/* Which of the picked boards has a spot left. */
-.spot-list {
-  list-style: none;
-  margin: 12px 0 0;
-  padding: 0;
-  display: grid;
-  gap: 1px;
-  max-height: 190px;
-  overflow-y: auto;
-}
-
-.spot-list li {
+.pay-totals {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 7px 2px;
-  border-bottom: 1px solid var(--rule);
-  font-size: 13px;
+  flex-wrap: wrap;
+  gap: 28px;
+  margin: 0;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: var(--board);
+  color: var(--chalk);
 }
 
-.spot-list b {
-  font-weight: 600;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.pay-totals dt {
+  font-size: 11.5px;
+  opacity: 0.75;
 }
 
-.spot-list span {
-  flex: none;
-  font-family: var(--font-display), sans-serif;
+.pay-totals dd {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.pay-done {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  max-width: 44ch;
+  padding: 30px;
+  border-radius: 16px;
+  background: var(--chalk);
+}
+
+.pay-done h3 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.pay-done p {
+  margin: 0;
   font-size: 15px;
 }
 
 @media (max-width: 1000px) {
-  .buy-step {
+  .board-row-body,
+  .artwork-row-body {
     grid-template-columns: 1fr;
+  }
+
+  .pay-lines li {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .pay-line-cost {
+    grid-column: 2;
+    justify-items: start;
   }
 }
 
@@ -8548,20 +8863,16 @@ text.vs-small {
   margin-bottom: 4px;
 }
 
-.theme-chip.theme-chalk .theme-swatch {
-  background: linear-gradient(90deg, #14100d 60%, #ffffff 60%);
-}
-
-.theme-chip.theme-enamel .theme-swatch {
-  background: linear-gradient(90deg, #f3ead6 60%, #8a6a2f 60%);
-}
-
-.theme-chip.theme-warm .theme-swatch {
-  background: linear-gradient(90deg, #b4502f 60%, #f6efe4 60%);
-}
-
-.theme-chip.theme-garden .theme-swatch {
-  background: linear-gradient(90deg, #12372a 60%, #d9b45c 60%);
+/* The chip draws the theme's own three colours, handed down from
+   THEME_COLORS as custom properties. A fifth theme is three values in
+   lib/board.ts and nothing here. */
+.theme-chip .theme-swatch {
+  background: linear-gradient(
+    90deg,
+    var(--chip-bg, var(--board)) 0 55%,
+    var(--chip-ink, var(--chalk)) 55% 78%,
+    var(--chip-accent, var(--price)) 78% 100%
+  );
 }
 
 .theme-chip b {
@@ -8781,7 +9092,7 @@ text.vs-small {
   border: 4px solid #22201d;
   background: var(--bd-bg);
   color: var(--bd-ink);
-  font-family: var(--font-sans), sans-serif;
+  font-family: var(--bd-body, var(--font-sans)), sans-serif;
 }
 
 /* A board turned on its end. Everything inside is already sized in container
@@ -8809,40 +9120,22 @@ text.vs-small {
   border-top: 1px solid var(--bd-rule);
 }
 
-.board-canvas.theme-chalk {
+/* The four themes used to live here as classes. They are now three colours
+   each in lib/board.ts, resolved through lib/palette.ts and set on the
+   element as custom properties, because a shop can set them to anything and
+   a stylesheet cannot hold a colour nobody has chosen yet. Every rule below
+   still reads var(--bd-ink); none of them knows or cares where it came from.
+
+   The fallbacks are the Chalk theme, so a .board-canvas rendered without the
+   component — there are none today — is a dark board rather than a blank one. */
+.board-canvas {
   --bd-bg: #14100d;
   --bd-ink: #ffffff;
-  --bd-dim: rgba(255, 255, 255, 0.58);
-  --bd-rule: rgba(255, 255, 255, 0.16);
+  --bd-dim: #9c9b99;
+  --bd-rule: #3a3634;
   --bd-accent: #ffc72c;
-  --bd-ad: rgba(255, 255, 255, 0.07);
-}
-
-.board-canvas.theme-enamel {
-  --bd-bg: #f3ead6;
-  --bd-ink: #241d12;
-  --bd-dim: rgba(36, 29, 18, 0.6);
-  --bd-rule: rgba(36, 29, 18, 0.16);
-  --bd-accent: #8a6a2f;
-  --bd-ad: rgba(36, 29, 18, 0.06);
-}
-
-.board-canvas.theme-warm {
-  --bd-bg: #b4502f;
-  --bd-ink: #fdf3e7;
-  --bd-dim: rgba(253, 243, 231, 0.68);
-  --bd-rule: rgba(253, 243, 231, 0.24);
-  --bd-accent: #ffd9a0;
-  --bd-ad: rgba(253, 243, 231, 0.1);
-}
-
-.board-canvas.theme-garden {
-  --bd-bg: #12372a;
-  --bd-ink: #f4f1e4;
-  --bd-dim: rgba(244, 241, 228, 0.62);
-  --bd-rule: rgba(244, 241, 228, 0.18);
-  --bd-accent: #d9b45c;
-  --bd-ad: rgba(244, 241, 228, 0.08);
+  --bd-ad: #24211e;
+  --bd-on-accent: #14100d;
 }
 
 /* The ad sits where the shop put it, so the canvas changes axis rather than
@@ -8870,7 +9163,7 @@ text.vs-small {
 }
 
 .board-head b {
-  font-family: var(--font-display), sans-serif;
+  font-family: var(--bd-display, var(--font-display)), sans-serif;
   font-size: 3.4cqw;
   letter-spacing: -0.03em;
   line-height: 1;
@@ -8911,7 +9204,7 @@ text.vs-small {
 
 .board-cols h4 {
   margin: 0 0 0.7cqw;
-  font-family: var(--font-display), sans-serif;
+  font-family: var(--bd-display, var(--font-display)), sans-serif;
   font-size: 1.7cqw;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -8971,7 +9264,7 @@ text.vs-small {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   background: var(--bd-accent);
-  color: var(--bd-bg);
+  color: var(--bd-on-accent);
 }
 
 .board-badge.bb-out {
@@ -8981,7 +9274,7 @@ text.vs-small {
 
 .board-price {
   flex: 0 0 auto;
-  font-family: var(--font-display), sans-serif;
+  font-family: var(--bd-display, var(--font-display)), sans-serif;
   font-size: 1.6cqw;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
@@ -9057,7 +9350,7 @@ text.vs-small {
 }
 
 .board-ad-label b {
-  font-family: var(--font-display), sans-serif;
+  font-family: var(--bd-display, var(--font-display)), sans-serif;
   font-size: 1.5cqw;
   letter-spacing: -0.02em;
   color: var(--bd-ink);
@@ -10111,7 +10404,7 @@ text.vs-small {
    black, so on those surfaces it takes the lighter blue instead. This sits
    after `.money` on purpose: that rule used to win over the card's own
    colour by coming later in the file. */
-.buy-hero .money,
+.pay-totals .money,
 .spend-hero .money,
 .campaign-bar .money,
 .dash-head .money {
@@ -11538,4 +11831,1305 @@ text.vs-small {
   font-size: 12px;
   color: var(--chalk);
   background: rgba(19, 20, 22, 0.66);
+}
+
+/* ==========================================================================
+   The board builder
+   ==========================================================================
+   Everything below was added when the editor grew past "type a menu": the
+   folds that keep it from being a mile long on a phone, the pane switch that
+   lets a board and its editor share a 390px screen, the colour and lettering
+   controls, and the grid the placed layout is dragged around on.
+
+   Two rules run through all of it. Nothing on the board itself is styled from
+   here in a way the TV cannot reproduce — the board reads only its own
+   --bd-* properties. And every control is at least 40px on its shortest side,
+   because the person using this is standing behind a counter holding a phone
+   in one hand.
+   ========================================================================== */
+
+/* ---- a picture on the board ---------------------------------------------- */
+
+.board-logo {
+  flex: 0 0 auto;
+  height: 4.4cqw;
+  width: auto;
+  max-width: 14cqw;
+  object-fit: contain;
+}
+
+.board-canvas.orient-portrait .board-logo {
+  height: 7cqw;
+  max-width: 24cqw;
+}
+
+.board-head-words {
+  display: flex;
+  align-items: baseline;
+  gap: 1.4cqw;
+  min-width: 0;
+}
+
+.board-head-words span {
+  font-size: 1.35cqw;
+  color: var(--bd-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.board-section-image {
+  display: block;
+  width: 100%;
+  height: 7cqw;
+  object-fit: cover;
+  border-radius: 0.8cqw;
+  margin-bottom: 0.8cqw;
+}
+
+/* ---- the placed layout ---------------------------------------------------
+   The blocks are absolutely positioned percentages off lib/layout.ts's grid.
+   `--bk-scale` multiplies the type inside a block, which is why the sizes in
+   here are calc()s off the same cqw figures the flowed board uses: a shop
+   that scales a section up gets bigger type, not a bigger box with the same
+   type rattling around in it. */
+
+.board-free {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.board-block {
+  position: absolute;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: calc(1em * var(--bk-scale, 1));
+}
+
+.board-block > * {
+  min-width: 0;
+}
+
+.board-block .board-head {
+  flex: 1;
+  border-bottom: 1px solid var(--bd-rule);
+  padding-bottom: 0.8cqw;
+}
+
+.board-block.bk-section section {
+  margin-bottom: 0;
+}
+
+.board-block.bk-section h4 {
+  font-size: calc(1.7cqw * var(--bk-scale, 1));
+}
+
+.board-block.bk-section .board-item b {
+  font-size: calc(1.5cqw * var(--bk-scale, 1));
+}
+
+.board-block.bk-section .board-item i {
+  font-size: calc(1.15cqw * var(--bk-scale, 1));
+}
+
+.board-block.bk-section .board-price {
+  font-size: calc(1.6cqw * var(--bk-scale, 1));
+}
+
+.board-block-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.board-block-text {
+  margin: 0;
+  align-self: center;
+  width: 100%;
+  font-size: calc(1.6cqw * var(--bk-scale, 1));
+  line-height: 1.3;
+}
+
+.board-block-text.tone-dim {
+  color: var(--bd-dim);
+}
+
+.board-block-text.tone-accent {
+  color: var(--bd-accent);
+  font-family: var(--bd-display, var(--font-display)), sans-serif;
+}
+
+.board-block .board-review {
+  flex: 1;
+  border-top: 0;
+  padding-top: 0;
+  align-items: center;
+}
+
+.board-block-empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  border: 1px dashed var(--bd-rule);
+  border-radius: 0.8cqw;
+  color: var(--bd-dim);
+  font-size: 1.1cqw;
+  text-align: center;
+  padding: 0.6cqw;
+}
+
+/* ---- dragging things around ----------------------------------------------
+   An overlay on top of the board, never part of it: the board draws itself
+   exactly as the TV will and this sits over it with the handles, so nothing
+   a shop drags can change how the board renders. */
+
+.board-design {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  touch-action: none;
+}
+
+.board-design-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  transition: opacity 0.15s ease;
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      color-mix(in srgb, var(--bd-ink) 26%, transparent) 0 1px,
+      transparent 1px calc(100% / var(--grid-cols))
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--bd-ink) 26%, transparent) 0 1px,
+      transparent 1px calc(100% / var(--grid-rows))
+    );
+}
+
+.board-design.dragging .board-design-grid {
+  opacity: 0.85;
+}
+
+/* The rectangle and the turn live on the wrapper, so the grips attached to a
+   block swing with it. It passes taps through; only its children take them,
+   which is what leaves a tap on bare board meaning "deselect". */
+.board-handle-wrap {
+  position: absolute;
+  pointer-events: none;
+}
+
+.board-handle-wrap > * {
+  pointer-events: auto;
+}
+
+.board-handle {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: 1.5px dashed color-mix(in srgb, var(--bd-ink) 40%, transparent);
+  border-radius: 4px;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+  /* The board underneath is what is being judged, so the handle stays out of
+     the way until it is under a finger. */
+  opacity: 0;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+
+.board-handle:hover,
+.board-handle:focus-visible {
+  opacity: 1;
+  outline: none;
+}
+
+.board-handle.on {
+  opacity: 1;
+  border-style: solid;
+  border-color: var(--sky);
+  background: color-mix(in srgb, var(--sky) 12%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--sky) 55%, transparent);
+  cursor: move;
+}
+
+.board-design.dragging .board-handle {
+  opacity: 1;
+}
+
+.board-handle-tag {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  max-width: calc(100% - 16px);
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--sky-deep);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+/* A 22px corner rather than the usual 8: this is the one thing in the editor
+   that has to be grabbed with a fingertip. */
+.board-handle-size {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px 0 4px 0;
+  background: var(--sky-deep);
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+.board-handle-size::after {
+  content: '';
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+}
+
+/* The turn grip stands off the top edge on a short stalk, which is the one
+   place it cannot be mistaken for the block itself. Both it and the bin are
+   fingertip-sized for the same reason the resize corner is. */
+.board-handle-turn {
+  position: absolute;
+  left: 50%;
+  top: -30px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-left: -12px;
+  border-radius: 999px;
+  background: var(--sky-deep);
+  color: #fff;
+  cursor: grab;
+  touch-action: none;
+}
+
+.board-handle-turn::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 1.5px;
+  height: 8px;
+  margin-left: -0.75px;
+  background: var(--sky-deep);
+}
+
+.board-handle-drop {
+  position: absolute;
+  right: -2px;
+  top: -30px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--board);
+  color: var(--chalk);
+  cursor: pointer;
+}
+
+.board-handle-drop:hover,
+.board-handle-drop:focus-visible {
+  background: #b4231f;
+  outline: none;
+}
+
+/* Only while the grip is being swung, so a board at rest carries no numbers
+   that are not the shop's own. */
+.board-handle-angle {
+  position: absolute;
+  left: 50%;
+  bottom: -26px;
+  transform: translateX(-50%);
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--sky-deep);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ---- the editor's folds --------------------------------------------------- */
+
+.shop-fold {
+  border: 2px solid var(--rule);
+  border-radius: 13px;
+  background: var(--chalk);
+  overflow: hidden;
+}
+
+.shop-fold.open {
+  border-color: var(--board-line);
+}
+
+.shop-fold-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+
+.shop-fold-head b {
+  font-family: var(--font-display), sans-serif;
+  font-size: 14.5px;
+  letter-spacing: -0.02em;
+}
+
+.shop-fold-head i {
+  margin-left: auto;
+  font-style: normal;
+  font-size: 12px;
+  color: var(--ash);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 45%;
+}
+
+.shop-fold-chevron {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--ash);
+  transition: transform 0.15s ease;
+}
+
+.shop-fold-head i + .shop-fold-chevron {
+  margin-left: 0;
+}
+
+.shop-fold.open .shop-fold-chevron {
+  transform: rotate(180deg);
+}
+
+.shop-fold-body {
+  display: grid;
+  gap: 10px;
+  padding: 0 12px 12px;
+}
+
+/* The panels were written to stand alone and are now mostly inside a fold,
+   where a second border and a second background is one box too many. */
+.shop-fold-body > .shop-panel {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  padding: 0;
+}
+
+/* ---- the board and its editor on one phone -------------------------------
+   Above 1040px both are on screen and these two buttons are not rendered at
+   all. Below it they are the only way to see the board, so they stick. */
+
+.pane-switch {
+  display: none;
+}
+
+.preview-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ash);
+}
+
+.preview-tools span {
+  flex: 1;
+  min-width: 140px;
+  line-height: 1.45;
+}
+
+/* ---- colour --------------------------------------------------------------- */
+
+.colour-photo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.colour-photo span {
+  flex: 1;
+  min-width: 160px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--ash);
+}
+
+.colour-found {
+  display: grid;
+  gap: 5px;
+}
+
+.colour-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.colour-swatch {
+  width: 34px;
+  height: 34px;
+  border: 2px solid var(--rule);
+  border-radius: 9px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.colour-swatch:hover {
+  border-color: var(--board);
+}
+
+.colour-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.colour-field {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ash);
+}
+
+.colour-field-label {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.colour-field-label i {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ash-light);
+}
+
+.colour-field-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px 3px 3px;
+  border: 2px solid var(--rule);
+  border-radius: 10px;
+  background: var(--paper);
+}
+
+/* The native picker, sized to be a target rather than a swatch. Its own
+   chrome differs on every platform and that is the point: on a phone this is
+   the system colour picker, with the eyedropper the person already knows. */
+.colour-field-input input[type='color'] {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+}
+
+.colour-field-input input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.colour-field-input input[type='color']::-webkit-color-swatch {
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+}
+
+.colour-hex {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  text-transform: lowercase;
+}
+
+.colour-hex:focus {
+  outline: none;
+}
+
+.colour-check {
+  margin: 0;
+  padding: 7px 10px;
+  border-radius: 9px;
+  background: var(--paper-sky);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sky-deep);
+}
+
+.colour-check.warn {
+  background: #fdf0e4;
+  color: #8a4a12;
+}
+
+.colour-more {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--money);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--ash);
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* ---- lettering ------------------------------------------------------------ */
+
+.font-pairs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 7px;
+}
+
+.font-pair {
+  display: grid;
+  gap: 1px;
+  min-height: 52px;
+  padding: 7px 9px;
+  border: 2px solid var(--rule);
+  border-radius: 11px;
+  background: var(--chalk);
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.font-pair.on {
+  border-color: var(--board);
+}
+
+.font-pair b {
+  font-size: 17px;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.font-pair i {
+  font-style: normal;
+  font-size: 11.5px;
+  line-height: 1.25;
+  color: var(--ash);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.font-lists {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.font-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  /* Twelve faces is a long list next to a menu; it gets its own scroller
+     rather than pushing the fold past a screen height. */
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.font-list legend {
+  padding: 0 0 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.font-list legend i {
+  font-style: normal;
+  font-weight: 500;
+  color: var(--ash);
+}
+
+.font-option {
+  display: grid;
+  gap: 0;
+  min-height: 40px;
+  padding: 5px 9px;
+  border: 2px solid transparent;
+  border-radius: 9px;
+  background: var(--paper);
+  text-align: left;
+  cursor: pointer;
+}
+
+.font-option.on {
+  border-color: var(--board);
+  background: var(--chalk);
+}
+
+.font-option b {
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.font-option i {
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--ash);
+}
+
+/* ---- choosing a picture ---------------------------------------------------- */
+
+.picture-picker {
+  display: grid;
+  gap: 9px;
+  padding: 10px;
+  border: 2px solid var(--board-line);
+  border-radius: 12px;
+  background: var(--paper);
+}
+
+.picture-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.picture-picker-head b {
+  font-family: var(--font-display), sans-serif;
+  font-size: 14px;
+  letter-spacing: -0.02em;
+}
+
+.picture-picker-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.picture-picker-error {
+  margin: 0;
+  padding: 7px 10px;
+  border-radius: 9px;
+  background: #fdeaea;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8a1f1f;
+}
+
+.picture-picker-empty {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ash);
+}
+
+.picture-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 7px;
+}
+
+.picture-cell {
+  position: relative;
+  padding: 0;
+  border: 2px solid var(--rule);
+  border-radius: 10px;
+  background: var(--chalk);
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  cursor: pointer;
+}
+
+.picture-cell.on {
+  border-color: var(--board);
+}
+
+.picture-cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.picture-cell-on {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--board);
+  color: var(--chalk);
+}
+
+.edit-section-picture {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 8px;
+}
+
+.edit-section-picture img {
+  width: 64px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.edit-section-tools .has-picture {
+  color: var(--money);
+}
+
+.shop-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.shop-logo img,
+.shop-logo-blank {
+  width: 54px;
+  height: 54px;
+  border-radius: 11px;
+  object-fit: contain;
+  background: var(--paper);
+  border: 2px solid var(--rule);
+}
+
+/* ---- reading a menu off a photograph --------------------------------------- */
+
+.scan-panel {
+  border-color: var(--board-line);
+}
+
+.scan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.scan-result {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 11px;
+  background: var(--paper);
+}
+
+.scan-result-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.scan-preview {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 190px;
+  overflow-y: auto;
+}
+
+.scan-preview li {
+  display: grid;
+  gap: 1px;
+}
+
+.scan-preview b {
+  font-size: 12.5px;
+}
+
+.scan-preview span {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--ash);
+}
+
+.scan-choose {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ---- the block inspector ----------------------------------------------------- */
+
+.design-panel {
+  border-color: var(--board-line);
+}
+
+.design-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.design-add .edit-add {
+  width: auto;
+}
+
+.design-block {
+  display: grid;
+  gap: 9px;
+  padding: 10px;
+  border-radius: 11px;
+  background: var(--paper);
+}
+
+.design-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.design-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.design-toggle {
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 2px solid var(--rule);
+  border-radius: 999px;
+  background: var(--chalk);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.design-toggle.on {
+  border-color: var(--board);
+  background: var(--board);
+  color: var(--chalk);
+}
+
+.design-slider {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ash);
+}
+
+.design-slider input[type='range'] {
+  width: 100%;
+  accent-color: var(--sky-deep);
+  height: 28px;
+}
+
+.design-turn {
+  display: grid;
+  gap: 4px;
+}
+
+.design-turn-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- the whole window ----------------------------------------------------
+   Placing blocks on a 700px board means a cell nine pixels across. This is
+   the same editor against the viewport: the board as big as it will go in the
+   middle, and the selected block's own controls down one side. */
+
+.board-full {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  /* A <dialog> rather than a div with a role, and every one of the element's
+     own defaults undone: it is opened by state rather than by showModal, so
+     it is laid out here and not by the browser. */
+  width: auto;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: var(--paper);
+}
+
+.board-full-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 2px solid var(--rule);
+  background: var(--chalk);
+}
+
+.board-full-head b {
+  font-size: 14px;
+}
+
+.board-full-head span {
+  flex: 1;
+  min-width: 0;
+  color: var(--ash);
+  font-size: 12px;
+}
+
+.board-full-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+
+.board-full-stage {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  padding: 24px;
+  overflow: auto;
+}
+
+/* The board keeps its own aspect; this is only the box it is fitted into. */
+.board-full-stage .board-canvas {
+  width: min(100%, calc((100vh - 140px) * 16 / 9));
+  max-height: calc(100vh - 140px);
+}
+
+.board-full-stage .board-canvas.orient-portrait {
+  width: min(100%, calc((100vh - 140px) * 9 / 16));
+}
+
+.board-full-side {
+  min-height: 0;
+  padding: 16px;
+  border-left: 2px solid var(--rule);
+  background: var(--chalk);
+  overflow-y: auto;
+}
+
+@media (max-width: 900px) {
+  .board-full-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .board-full-side {
+    border-left: 0;
+    border-top: 2px solid var(--rule);
+    max-height: 45vh;
+  }
+
+  .board-full-stage {
+    padding: 12px;
+  }
+}
+
+.spin {
+  animation: adbite-spin 0.9s linear infinite;
+}
+
+@keyframes adbite-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}
+
+/* ---- the builder on a phone ------------------------------------------------
+   Everything above this line assumes the board and its editor are both on
+   screen. Under 1040px they cannot be, and the compromise the page used to
+   make — stack them, board first — meant a shop on a phone scrolled past the
+   board to reach the menu and never saw the two together anyway.
+
+   So on a narrow screen they become two panes with a switch at the top, and
+   the switch sticks. The board pane is the whole board at a readable size,
+   which is also what makes dragging blocks around possible with a finger.
+   ========================================================================== */
+
+@media (max-width: 1040px) {
+  .shop-body {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .pane-switch {
+    position: sticky;
+    top: 58px;
+    z-index: 6;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 8px 0;
+    background: var(--paper);
+  }
+
+  .pane-switch button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 42px;
+    border: 2px solid var(--rule);
+    border-radius: 11px;
+    background: var(--chalk);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .pane-switch button.on {
+    border-color: var(--board);
+    background: var(--board);
+    color: var(--chalk);
+  }
+
+  /* The pane that is not showing is taken out of the flow rather than
+     hidden with opacity: a phone should not be laying out and painting an
+     editor nobody can see, and `display: none` keeps it out of the tab
+     order too. */
+  .shop-body.pane-edit > .shop-preview,
+  .shop-body.pane-preview > .shop-edit {
+    display: none;
+  }
+
+  .shop-preview {
+    order: 0;
+    position: static;
+  }
+
+  /* A board on a phone is 90mm wide. Two columns of menu in that is four
+     words a line, so the preview takes the width it can get and the folds
+     below it do the scrolling. */
+  .shop-body.pane-preview .shop-preview {
+    gap: 12px;
+  }
+
+  .shop-body.pane-preview .board-canvas.orient-portrait {
+    width: min(100%, 260px);
+  }
+
+  /* Bigger targets everywhere the editor is touched rather than clicked. */
+  .edit-section-tools button,
+  .edit-grip,
+  .edit-drop {
+    min-width: 38px;
+    min-height: 38px;
+  }
+
+  .slot-tabs {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .slot-tabs button {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-height: 44px;
+  }
+
+  .colour-row {
+    grid-template-columns: 1fr;
+  }
+
+  .font-lists {
+    grid-template-columns: 1fr;
+  }
+
+  .board-handle {
+    /* No hover on a touchscreen, so the outlines are always faintly there:
+       otherwise the only way to discover a block is draggable is to drag it. */
+    opacity: 0.55;
+  }
+}
+
+@media (max-width: 620px) {
+  /* The item row is five controls wide on a laptop and cannot be on a phone.
+     Name and price share the first line because that is the pair a shop
+     checks against each other; the description gets the width it needs on
+     the second; the tag and the bin sit on the third. */
+  .edit-items li {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr) 72px;
+    grid-template-areas:
+      'grip name price'
+      'grip note note'
+      'grip badge drop';
+    gap: 5px;
+    align-items: center;
+  }
+
+  .edit-items .edit-grip {
+    grid-area: grip;
+    align-self: start;
+  }
+
+  .edit-items .edit-name {
+    grid-area: name;
+  }
+
+  .edit-items .edit-price {
+    grid-area: price;
+  }
+
+  .edit-items .edit-note {
+    grid-area: note;
+  }
+
+  .edit-items .edit-badge {
+    grid-area: badge;
+    min-height: 38px;
+  }
+
+  .edit-items .edit-drop {
+    grid-area: drop;
+    justify-self: end;
+  }
+
+  .edit-items input,
+  .edit-items select {
+    min-height: 38px;
+    /* 16px or iOS zooms the whole page in on focus and the board goes off
+       the side of the screen. */
+    font-size: 16px;
+  }
+
+  .shop-field input,
+  .review-row input {
+    min-height: 38px;
+    font-size: 16px;
+  }
+
+  .review-row {
+    grid-template-columns: minmax(0, 1fr) 38px;
+    grid-template-areas:
+      'quote drop'
+      'who who';
+  }
+
+  .review-row input:first-child {
+    grid-area: quote;
+  }
+
+  .review-row .review-who {
+    grid-area: who;
+  }
+
+  .review-row .edit-drop {
+    grid-area: drop;
+  }
+
+  .font-pairs {
+    grid-template-columns: repeat(auto-fill, minmax(102px, 1fr));
+  }
+
+  .picture-grid {
+    grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
+  }
+
+  .board-save {
+    /* The one control that must never scroll away: autosave is doing the
+       work, but a shop that has typed six prices wants to see it say so.
+       114px clears the dashboard bar and the pane switch above it. */
+    position: sticky;
+    top: 114px;
+    z-index: 5;
+    margin-bottom: 8px;
+    padding: 6px 0;
+    background: var(--paper);
+  }
+}
+
+/* The media library and the board designer both stand alone elsewhere, so
+   they carry their own frame; inside a fold that is one box too many. */
+.shop-fold-body > .shop-media {
+  margin: 0;
 }

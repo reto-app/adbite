@@ -158,6 +158,8 @@ const en = {
   board: {
     yourShop: 'Your shop',
     nothingYet: 'Nothing on this board yet.',
+    pictureHere: 'A picture goes here',
+    wordsHere: 'Your words here',
     adSpace: 'Ad space',
     fullTurn: 'Ads take a full turn between your boards',
     clipInRotation: 'Your clip is in the rotation',
@@ -323,6 +325,8 @@ const es: typeof en = {
   board: {
     yourShop: 'Tu negocio',
     nothingYet: 'Este tablero todavía está vacío.',
+    pictureHere: 'Aquí va una foto',
+    wordsHere: 'Tu texto aquí',
     adSpace: 'Espacio de anuncio',
     fullTurn: 'Los anuncios toman un turno completo entre tus tableros',
     clipInRotation: 'Tu video está en la rotación',

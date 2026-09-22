@@ -106,7 +106,7 @@ sub applyBoard(config as Object, source as String)
         m.pairing.visible = false
         m.menu.visible = true
         m.ads.visible = true
-        theme = BoardTheme(strOrDefault(config.board.theme, "chalk"))
+        theme = BoardPalette(config)
         m.backdrop.color = theme.bg
         layout()
         ' A screen that has just been claimed has a board on it for the first

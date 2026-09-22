@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { GripVertical, Plus, Trash2 } from 'lucide-react';
+import { GripVertical, ImagePlus, Plus, Trash2 } from 'lucide-react';
+import { PicturePicker } from '@/components/board/picture-picker';
 import {
   BADGES,
   emptyItem,
@@ -43,6 +44,9 @@ export function MenuEditor({
   const sections = board.slots[slot] ?? [];
   /* [sectionIndex, itemIndex] of the row being dragged. */
   const [held, setHeld] = useState<[number, number] | null>(null);
+  /* The section whose picture is being chosen, by id rather than index, so
+     reordering mid-choice cannot point the picker at a different section. */
+  const [picturing, setPicturing] = useState<string | null>(null);
 
   const setSection = (index: number, patch: Partial<MenuSection>) =>
     onChange(sections.map((section, i) => (i === index ? { ...section, ...patch } : section)));
@@ -69,6 +73,15 @@ export function MenuEditor({
             <div className="edit-section-tools">
               <button
                 type="button"
+                className={section.image ? 'has-picture' : undefined}
+                aria-label={section.image ? t.changePicture : t.addPicture}
+                aria-pressed={picturing === section.id}
+                onClick={() => setPicturing(picturing === section.id ? null : section.id)}
+              >
+                <ImagePlus size={14} />
+              </button>
+              <button
+                type="button"
                 aria-label={t.moveUp}
                 disabled={si === 0}
                 onClick={() => onChange(move(sections, si, si - 1))}
@@ -93,6 +106,23 @@ export function MenuEditor({
               </button>
             </div>
           </div>
+
+          {picturing === section.id && (
+            <PicturePicker
+              value={section.image ?? null}
+              onPick={(image) => setSection(si, { image })}
+              onClose={() => setPicturing(null)}
+            />
+          )}
+
+          {section.image && (
+            <div className="edit-section-picture">
+              <img src={section.image} alt="" />
+              <button type="button" className="link-button" onClick={() => setSection(si, { image: null })}>
+                {t.removePicture}
+              </button>
+            </div>
+          )}
 
           <ul className="edit-items">
             {section.items.map((entry, ii) => (

@@ -25,7 +25,7 @@ export function BoardShowcase() {
   return (
     <div className="showcase">
       <div className="showcase-screen">
-        <BoardCanvas board={{ ...board, theme }} slot={slot} />
+        <BoardCanvas board={{ ...board, theme, palette: null }} slot={slot} />
       </div>
 
       <div className="showcase-controls">
