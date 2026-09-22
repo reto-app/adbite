@@ -2102,17 +2102,18 @@ h3 {
   color: #b0b9b5;
 }
 
-/* The shop page runs two of these back to back: the two formats, then the
-   other boards. One dark band, not two paddings stacked. */
-.boards-section + .boards-section {
-  padding-top: 0;
-}
 
 .reel {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 26px 22px;
   margin-top: clamp(20px, 3vh, 46px);
+}
+
+/* The shop examples share one band. The second pair follows the first as a
+   continuation, not as a fresh section with a whole band of empty space. */
+.reel + .reel {
+  margin-top: 26px;
 }
 
 .reel-item {
