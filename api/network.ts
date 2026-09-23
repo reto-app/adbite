@@ -24,6 +24,9 @@
  */
 
 import { json, service, userFrom } from '../lib/server/db.js';
+/* lib/site.ts imports nothing, which is why the api/ functions can read it
+   without the `@/` alias the browser build resolves. */
+import { ASSETS_ORIGIN } from '../lib/site.js';
 
 export const config = { runtime: 'nodejs' };
 
@@ -63,7 +66,7 @@ export async function GET(request: Request): Promise<Response> {
 
   const shopIds = shops.map((shop) => shop.id as string);
 
-  const [{ data: boards }, { data: devices }, { data: booked }] = await Promise.all([
+  const [{ data: boards }, { data: devices }, { data: booked }, { data: stages }] = await Promise.all([
     db.from('boards').select('shop_id, board, version, updated_at').in('shop_id', shopIds),
     db.from('devices').select('id, shop_id, name, screen, last_seen').in('shop_id', shopIds),
     /* Everything already holding a place in a banner: waiting on the shop
@@ -74,9 +77,35 @@ export async function GET(request: Request): Promise<Response> {
       .select('id, venues, device_ids, spots, status')
       .eq('format', 'banner')
       .in('status', ['in_review', 'live']),
+    /* The first piece of each shop's own media.
+     *
+     * Most screens we sell are film rather than a list, and on those the
+     * board JSON holds no sections — so an advertiser choosing between
+     * boards was shown an empty menu with "nothing here yet" above the very
+     * strip they were buying. This is the still that goes where the menu
+     * would be, so the preview is the screen again. A poster frame for a
+     * clip, the image itself for a still; nothing else about the row
+     * crosses to the advertiser. */
+    db
+      .from('shop_media')
+      .select('shop_id, name, kind, storage_path, poster_path, position')
+      .in('shop_id', shopIds)
+      .eq('ready', true)
+      .order('position'),
   ]);
 
   const boardOf = new Map((boards ?? []).map((row) => [row.shop_id as string, row]));
+
+  /* Ordered by position, so the first row per shop is the first thing its
+     screen plays. */
+  const stageOf = new Map<string, { url: string; name: string }>();
+  for (const row of stages ?? []) {
+    const shopId = row.shop_id as string;
+    if (stageOf.has(shopId)) continue;
+    const path = (row.kind === 'video' ? row.poster_path : row.storage_path) as string | null;
+    if (!path) continue;
+    stageOf.set(shopId, { url: `${ASSETS_ORIGIN}/${path}`, name: (row.name as string) ?? '' });
+  }
   const devicesOf = new Map<string, DeviceRow[]>();
   for (const device of (devices ?? []) as DeviceRow[]) {
     const list = devicesOf.get(device.shop_id) ?? [];
@@ -114,6 +143,10 @@ export async function GET(request: Request): Promise<Response> {
       /* The board itself, unedited. compose() is what a TV gets; this is what
          the editor holds, which is what BoardCanvas draws. */
       board: board?.board ?? null,
+      /* What is on the screen where a menu would be, for a board that has
+         no menu. Null on a menu board, and on a screen with nothing on it
+         yet. */
+      stage: stageOf.get(shop.id as string) ?? null,
       boardVersion: board?.version ?? 0,
       updatedAt: board?.updated_at ?? null,
       devices: mine.map((device) => {

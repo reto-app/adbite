@@ -23,6 +23,10 @@
          of them the server took, handed back. -->
     <field id="plays" type="array" />
     <field id="playsAccepted" type="integer" value="0" />
+    <!-- What this screen was told about itself from its own remote, for the
+         server to write against this device rather than against the board.
+         { orientation, turn }; empty until somebody sets it. -->
+    <field id="screen" type="assocarray" />
   </interface>
 
   <script type="text/brightscript" uri="pkg:/components/ConfigTask.brs" />

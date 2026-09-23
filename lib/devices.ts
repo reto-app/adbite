@@ -20,6 +20,11 @@ export type Device = {
   createdAt: number;
   /** What the screen last said about its own disk, if its channel reports it. */
   storage: { files: number; usedMb: number; totalMb?: number; freeMb?: number } | null;
+  /* How this screen is hung. Null takes the board's, which is what a shop
+     with one TV wants and what every row written before this means. A screen
+     set from its own remote reports its answer here. */
+  orientation: 'landscape' | 'portrait' | null;
+  turn: 'left' | 'right' | null;
 };
 
 /** Minutes between polls, mirrored from api/device/sync. The copy that tells
@@ -43,7 +48,7 @@ function announce() {
 async function load() {
   const { data } = await supabase()
     .from('devices')
-    .select('id, name, screen, last_seen, channel_version, created_at, assets_state')
+    .select('id, name, screen, last_seen, channel_version, created_at, assets_state, orientation, turn')
     .order('created_at');
   cache = {
     ready: true,
@@ -58,6 +63,8 @@ async function load() {
         row.assets_state && typeof row.assets_state === 'object' && 'usedMb' in row.assets_state
           ? (row.assets_state as Device['storage'])
           : null,
+      orientation: (row.orientation as Device['orientation']) ?? null,
+      turn: (row.turn as Device['turn']) ?? null,
     })),
   };
   announce();
@@ -93,6 +100,20 @@ export async function renameDevice(id: string, name: string) {
 
 export async function setDeviceScreen(id: string, screen: Device['screen']) {
   await supabase().from('devices').update({ screen }).eq('id', id);
+  reloadDevices();
+}
+
+/* Which way one screen is hung, set from the dashboard rather than from the
+   TV's own remote. Null goes back to following the board, which is the right
+   answer for a shop whose screens are all hung the same way. */
+export async function setDeviceHang(
+  id: string,
+  hang: { orientation: Device['orientation']; turn: Device['turn'] },
+) {
+  await supabase()
+    .from('devices')
+    .update({ orientation: hang.orientation, turn: hang.orientation === 'portrait' ? (hang.turn ?? 'left') : null })
+    .eq('id', id);
   reloadDevices();
 }
 

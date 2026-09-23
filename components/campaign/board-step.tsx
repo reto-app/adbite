@@ -169,7 +169,7 @@ function BoardRow({
         <figure className="board-row-live">
           <figcaption>{t.liveNow}</figcaption>
           {live?.board ? (
-            <BoardCanvas board={live.board} slot={slotNow()} />
+            <BoardCanvas board={live.board} slot={slotNow()} stage={live.stage} />
           ) : (
             <p className="board-row-none">{t.noBoard}</p>
           )}

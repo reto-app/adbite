@@ -107,6 +107,46 @@ def star(size=64, points=5):
     return out
 
 
+def arrow(size=256):
+    """An arrow pointing up, on transparency, tinted at runtime by the board's
+    accent through Poster.blendColor.
+
+    Drawn rather than typed for the same reason the star is: U+2191 and its
+    heavier cousins are not in every Roku system font, and the one screen
+    whose whole job is to say which way is up cannot be the screen that draws
+    an empty box."""
+    scale = 8
+    canvas = size * scale
+    image = Image.new("L", (canvas, canvas), 0)
+    draw = ImageDraw.Draw(image)
+
+    mid = canvas / 2
+    head = canvas * 0.46          # half-width of the head
+    shaft = canvas * 0.17         # half-width of the shaft
+    top = canvas * 0.06
+    neck = canvas * 0.52
+    foot = canvas * 0.94
+
+    draw.polygon(
+        [
+            (mid, top),
+            (mid + head, neck),
+            (mid + shaft, neck),
+            (mid + shaft, foot),
+            (mid - shaft, foot),
+            (mid - shaft, neck),
+            (mid - head, neck),
+        ],
+        fill=255,
+    )
+
+    mask = image.resize((size, size), Image.LANCZOS)
+    out = Image.new("RGBA", (size, size), (255, 255, 255, 0))
+    out.paste((255, 255, 255), (0, 0), mask)
+    out.putalpha(mask)
+    return out
+
+
 def demo_ad(width=634, height=1080):
     """A rail advertisement for the sample board the pairing screen offers.
 
@@ -141,10 +181,11 @@ def demo_ad(width=634, height=1080):
 
 demo_ad().save("images/demo-ad-rail.png")
 star().save("images/star.png")
+arrow().save("images/arrow.png")
 # Roku Streaming Store artwork: 540x405, opaque, broadcast-safe colours.
 plate(540, 405, 335).save("images/store-poster.png")
 plate(290, 218, 210).save("images/icon_focus_hd.png")
 plate(108, 69, 78).save("images/icon_side_hd.png")
 plate(1920, 1080, 720, sub=56).save("images/splash_fhd.png")
 plate(1280, 720, 480, sub=38).save("images/splash_hd.png")
-print("wrote the star, the two icons and both splashes into images/")
+print("wrote the star, the arrow, the two icons and both splashes into images/")

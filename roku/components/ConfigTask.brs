@@ -343,6 +343,10 @@ function postSync(syncUrl as String, identity as Object) as Dynamic
         storage: storageReport()
     }
     if m.top.plays <> invalid then body.plays = m.top.plays
+    ' Only when somebody has actually said, so an ordinary poll does not
+    ' keep rewriting the row with what it already holds.
+    said = m.top.screen
+    if said <> invalid and said.orientation <> invalid then body.screen = said
     return postJson(syncUrl + "/sync", body, 30000)
 end function
 
@@ -487,6 +491,11 @@ function ensureAssets(board as Object) as Boolean
     ' showing yesterday's advertising is better than a wall showing a gap.
     if not ensureList(board.ads, "spot") then allGood = false
 
+    ' The shop's own film holds the board back for the same reason: on a
+    ' display screen the stage is most of the wall, and going up without it
+    ' would be a black rectangle over a strip of advertising.
+    if not ensureList(board.stage, "stage piece") then allGood = false
+
     ' A picture or a face that will not download does not hold the board back.
     ' The menu is the job; a board in the system font with no logo on it is
     ' still every price a customer came to read, and waiting for a 400 KB TTF
@@ -616,7 +625,7 @@ sub pruneAssets(board as Object)
     keep = {}
     ' Every list ensureAssets() touched, or the next poll deletes the pictures
     ' and the fonts it just downloaded and fetches them again forever.
-    for each list in [board.ads, board.pictures, fontList(board)]
+    for each list in [board.ads, board.stage, board.pictures, fontList(board)]
         if list <> invalid and type(list) = "roArray"
             for each item in list
                 keep[strOr(item.src, "")] = true

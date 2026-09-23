@@ -97,21 +97,27 @@ const en = {
       label: 'Nowhere this week',
       short: 'Nowhere',
       note: 'The whole screen stays yours. Nothing is booked, and nothing is paid.',
+      filmNote: 'The whole screen stays yours. Nothing is booked, and nothing is paid.',
     },
     banner: {
       label: 'A strip along the bottom',
       short: 'Bottom strip',
       note: 'A band under your menu. Everything you wrote stays readable.',
+      /* Most screens we sell are film rather than a list, and on those the
+         menu this note talks about does not exist. */
+      filmNote: 'A band under your screen. Your film keeps the rest of it and never stops.',
     },
     rail: {
       label: 'A rail down the right',
       short: 'Right rail',
       note: 'The right third, top to bottom. Your menu keeps the rest of the board.',
+      filmNote: 'The right third, top to bottom. Your film keeps the rest of the screen.',
     },
     rotation: {
       label: 'Between your boards',
       short: 'Between boards',
       note: 'The full screen for one turn of the rotation, then your menu is back.',
+      filmNote: 'The full screen for one turn of the rotation, then your film is back.',
     },
   },
   slots: {
@@ -161,6 +167,7 @@ const en = {
     pictureHere: 'A picture goes here',
     wordsHere: 'Your words here',
     adSpace: 'Ad space',
+    filmHere: 'The shop’s own film plays here',
     fullTurn: 'Ads take a full turn between your boards',
     clipInRotation: 'Your clip is in the rotation',
     clipTitle: 'Your own clip plays between boards',
@@ -264,21 +271,25 @@ const es: typeof en = {
       label: 'En ningún lado esta semana',
       short: 'Ningún lado',
       note: 'Toda la pantalla es tuya. No se reserva nada y no se paga nada.',
+      filmNote: 'Toda la pantalla es tuya. No se reserva nada y no se paga nada.',
     },
     banner: {
       label: 'Una franja abajo',
       short: 'Franja inferior',
       note: 'Una banda debajo de tu menú. Todo lo que escribiste sigue legible.',
+      filmNote: 'Una banda debajo de tu pantalla. Tu video se queda con el resto y nunca se detiene.',
     },
     rail: {
       label: 'Una columna a la derecha',
       short: 'Columna derecha',
       note: 'El tercio derecho, de arriba abajo. Tu menú se queda con el resto del tablero.',
+      filmNote: 'El tercio derecho, de arriba abajo. Tu video se queda con el resto de la pantalla.',
     },
     rotation: {
       label: 'Entre tus tableros',
       short: 'Entre tableros',
       note: 'La pantalla completa por un turno de la rotación, y luego vuelve tu menú.',
+      filmNote: 'La pantalla completa por un turno de la rotación, y luego vuelve tu video.',
     },
   },
   slots: {
@@ -328,6 +339,7 @@ const es: typeof en = {
     pictureHere: 'Aquí va una foto',
     wordsHere: 'Tu texto aquí',
     adSpace: 'Espacio de anuncio',
+    filmHere: 'Aquí se reproduce el video del negocio',
     fullTurn: 'Los anuncios toman un turno completo entre tus tableros',
     clipInRotation: 'Tu video está en la rotación',
     clipTitle: 'Tu propio video se reproduce entre tableros',

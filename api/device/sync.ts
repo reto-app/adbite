@@ -12,9 +12,10 @@
  * request is one to justify. `last_seen` is written on every call, which is
  * what the dashboard's "online" light reads. */
 
-import { compose, serialize, type Spot } from '../../lib/compose.js';
+import { compose, isStaged, serialize, stageFrame, type Spot } from '../../lib/compose.js';
 import { json, lowerKeys, service, sha256 } from '../../lib/server/db.js';
 import { turnedFiles, type Turn } from '../../lib/server/turned.js';
+import { stagedFiles } from '../../lib/server/staged.js';
 
 export const config = { runtime: 'nodejs' };
 
@@ -36,13 +37,16 @@ export async function POST(request: Request): Promise<Response> {
     channelVersion: typeof fields.channelversion === 'string' ? fields.channelversion : '',
     storage: fields.storage as Record<string, unknown> | undefined,
     plays: (Array.isArray(fields.plays) ? fields.plays : []) as Play[],
+    /* lowerKeys() flattens the casing, so the nested object's own keys are
+       lower too. */
+    screen: fields.screen as { orientation?: string; turn?: string } | undefined,
   };
   if (!body.deviceId || !body.secret) return json(401, { message: 'deviceId and secret are required' });
 
   const db = service();
   const { data: device } = await db
     .from('devices')
-    .select('id, shop_id, pair_code, secret_hash, screen')
+    .select('id, shop_id, pair_code, secret_hash, screen, orientation, turn')
     .eq('id', body.deviceId)
     .maybeSingle();
   if (!device || device.secret_hash !== sha256(body.secret)) {
@@ -59,6 +63,19 @@ export async function POST(request: Request): Promise<Response> {
      asked in person, so it tells us on every sync instead. */
   if (body.storage && typeof body.storage === 'object') {
     heartbeat.assets_state = { ...body.storage, at: now };
+  }
+
+  /* Which way this screen says it is hung, set from its own remote by
+     somebody standing in front of it. It is written to the device and not to
+     the board, so a shop with a counter board and a portrait screen beside
+     the till can have both, and so that one remote cannot turn every other
+     TV in the shop. */
+  const said = body.screen;
+  if (said && typeof said === 'object') {
+    if (said.orientation === 'landscape' || said.orientation === 'portrait') {
+      heartbeat.orientation = said.orientation;
+      heartbeat.turn = said.orientation === 'portrait' ? (said.turn === 'right' ? 'right' : 'left') : null;
+    }
   }
 
   /* Plays first, so a board that fails to compose still keeps the log.
@@ -136,10 +153,17 @@ export async function POST(request: Request): Promise<Response> {
   const origin = process.env.ASSETS_ORIGIN ?? 'https://assets.adbite.site';
   const url = (path: string) => `${origin}/${path.replace(/^\/+/, '')}`;
 
-  /* A TV hung on its end needs every film rotated in the file. The board
-     says which way it was turned; `null` is a landscape screen. */
-  const boardTurn: Turn | null =
-    boardRow.board?.orientation === 'portrait' ? ((boardRow.board.turn as Turn) ?? 'left') : null;
+  /* How this screen is hung. The device's own answer wins, because it is a
+     fact about the screen; the board's is the default a shop's first TV
+     inherits and the only answer rows written before 0021 have. */
+  const hung = {
+    orientation: (device.orientation as string | null) ?? boardRow.board?.orientation ?? 'landscape',
+    turn: (device.turn as string | null) ?? boardRow.board?.turn ?? 'left',
+  };
+
+  /* A TV hung on its end needs every film rotated in the file. `null` is a
+     landscape screen. */
+  const boardTurn: Turn | null = hung.orientation === 'portrait' ? (hung.turn as Turn) : null;
 
   const spots: Spot[] = [];
   /* Each film's source and length, keyed by its spot or piece id, for the swap. */
@@ -225,10 +249,48 @@ export async function POST(request: Request): Promise<Response> {
       };
     });
 
-  /* Portrait: every film is replaced by its turned copy, or dropped from
-     this board until the worker has made one. Stills rotate on the device. */
+  /* A display screen plays the shop's media in the pane above the strip, so
+     its films are cut to that pane rather than to the whole wall. Stills are
+     left alone: the channel's stage Poster is scaleToZoom and crops them to
+     the pane itself, which costs nothing and needs no worker.
+
+     Done before the turn below, and instead of it for these pieces: a staged
+     cut is already rotated, because the pane it was cut to is in canvas
+     space and the cut ends with the same transpose. */
   let shownSpots = spots;
   let shownMedia = media;
+
+  const boardShape = boardRow.board
+    ? ({ ...boardRow.board, ...hung } as Parameters<typeof stageFrame>[0])
+    : null;
+  if (boardShape && isStaged(boardShape)) {
+    const frame = stageFrame(boardShape);
+    const films = media.filter((piece) => piece.kind === 'video');
+    if (films.length > 0) {
+      const staged = await stagedFiles(
+        db,
+        films.map((piece) => ({
+          path: videoPaths.get(piece.id)?.path ?? '',
+          seconds: Number(piece.seconds) || 15,
+        })),
+        frame,
+      );
+      shownMedia = media
+        .map((piece) => {
+          if (piece.kind !== 'video') return piece;
+          const source = videoPaths.get(piece.id);
+          const cut = source ? staged.get(source.path) : undefined;
+          /* No cut yet: the piece waits rather than hanging bars on a wall. */
+          if (!cut) return null;
+          return { ...piece, src: url(cut.storage_path), sha256: cut.sha256, bytes: cut.bytes, seconds: cut.seconds };
+        })
+        .filter((piece): piece is (typeof media)[number] => piece !== null);
+      /* These are cut and turned already; the pass below must not turn them
+         a second time. */
+      for (const piece of films) videoPaths.delete(piece.id);
+    }
+  }
+
   if (boardTurn) {
     const turned = await turnedFiles(db, [...videoPaths.values()], boardTurn);
     const swap = <T extends { id: string; src: string; sha256: string; bytes: number }>(item: T, key: string): T | null => {
@@ -241,7 +303,7 @@ export async function POST(request: Request): Promise<Response> {
     shownSpots = spots
       .map((spot) => swap({ ...spot, id: spot.campaignId }, spot.campaignId))
       .filter((spot): spot is Spot & { id: string } => spot !== null);
-    shownMedia = media
+    shownMedia = shownMedia
       .map((piece) => swap(piece, piece.id))
       .filter((piece): piece is (typeof media)[number] => piece !== null);
   }
@@ -267,7 +329,9 @@ export async function POST(request: Request): Promise<Response> {
 
   const board = compose({
     shopId: shop.id,
-    board: boardRow.board,
+    /* The board as this screen shows it: the shop's, hung the way this one
+       is. compose() runs it through migrated() either way. */
+    board: boardRow.board ? { ...boardRow.board, ...hung } : boardRow.board,
     boardVersion: boardRow.version,
     updatedAt: boardRow.updated_at,
     spots: shownSpots,

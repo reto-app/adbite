@@ -6,6 +6,7 @@ import {
   layoutOf,
   paletteOf,
   placementById,
+  showsMenu,
   type Board,
   type MenuSection,
   type SlotId,
@@ -51,6 +52,11 @@ export function BoardCanvas({
      label. A full-screen turn covers the board, because that is what it
      does. */
   ad,
+  /* What the screen plays where a menu would be, for a board that has no
+     menu. Most screens we sell are that: the shop's own film above the strip
+     they sold. Without it this drew an empty menu with "nothing here yet"
+     over the top of the slot an advertiser was in the middle of buying. */
+  stage,
 }: {
   board: Board;
   slot: SlotId;
@@ -58,8 +64,10 @@ export function BoardCanvas({
   className?: string;
   overlay?: ReactNode;
   ad?: ReactNode;
+  stage?: { url: string; name: string } | null;
 }) {
   const t = useCopy(SHARED);
+  const film = !showsMenu(board);
   const sections = board.slots[slot] ?? [];
   const place = placementById(board.adPlacement);
   const reviews = board.reviews.on ? board.reviews.items.filter((r) => r.quote.trim()) : [];
@@ -91,7 +99,18 @@ export function BoardCanvas({
       style={style}
     >
       <div className="board-menu">
-        {layout ? (
+        {film ? (
+          /* No head, no columns, no review foot: there is nothing written on
+             this screen. The strip below is drawn exactly as it is on a menu
+             board, because that part is the same product. */
+          <div className="board-stage">
+            {stage ? (
+              <img src={stage.url} alt={stage.name} />
+            ) : (
+              <span className="board-stage-label">{t.board.filmHere}</span>
+            )}
+          </div>
+        ) : layout ? (
           <div className="board-free">
             {layout.map((block) => (
               <div
