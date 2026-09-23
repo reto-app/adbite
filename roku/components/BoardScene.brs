@@ -337,6 +337,13 @@ end sub
 ' board on screen. Exists because a Roku TV with "Control by mobile apps"
 ' switched off refuses every ECP key press, and on such a set the OPTIONS
 ' overlay -- and therefore the card behind it -- cannot be reached at all.
+sub onLaunchDiag()
+    if LCase(strOrDefault(m.top.launchDiag, "")).Trim() = "" then return
+    m.diagnostics.visible = true
+    m.ads.hold = true
+    refreshDiagnostics()
+end sub
+
 sub onLaunchHang()
     want = LCase(strOrDefault(m.top.launchHang, "")).Trim()
     if want = "" then return
@@ -908,9 +915,13 @@ end function
 ' pairing screen offers. Read on demand rather than held, because it is
 ' looked at once and then usually never again.
 function readDemoBoard() as Dynamic
-    fs = CreateObject("roFileSystem")
-    if not fs.Exists("pkg:/demo-board.json") then return invalid
+    ' No roFileSystem here. It comes back invalid in the render thread on
+    ' some sets -- a Hisense 43H4030 among them -- and a dot operator on that
+    ' takes the whole key handler down with it, which is what used to happen
+    ' to the one button a Store reviewer is told to press. ReadAsciiFile
+    ' answers "" for a file that is not there, which is all this needed.
     raw = ReadAsciiFile("pkg:/demo-board.json")
+    if raw = invalid then return invalid
     if raw = "" then return invalid
     parsed = ParseJson(raw)
     if parsed = invalid or type(parsed) <> "roAssociativeArray" then return invalid
@@ -1071,23 +1082,25 @@ end sub
 
 ' How much of the device's cache the spots are using, and what is left. On a
 ' Roku the answer to "what is left" is advisory: cachefs can be evicted.
+' What the cache holds, as the loader last measured it.
+'
+' This used to read the disk here. roFileSystem returns invalid in the render
+' thread on some sets, and the unguarded dot operator that followed threw out
+' of onKeyEvent -- so the overlay never opened, the key was never marked
+' handled, and it fell through to the television's own options panel. The
+' answer looked like "the TV keeps the * button". It was our own crash.
+'
+' The loader reads the disk from its Task thread, where it works, and hands
+' the figures over.
 function cacheDescription() as String
-    fs = CreateObject("roFileSystem")
-    used = 0
-    files = fs.Find("cachefs:/", "^a-")
-    if files <> invalid
-        for each name in files
-            stat = fs.Stat("cachefs:/" + name)
-            if stat <> invalid and stat.size <> invalid then used = used + stat.size
-        end for
-    end if
-    out = (used / 1048576).ToStr() + " MB in spots"
-    info = fs.GetVolumeInfo("cachefs:")
-    if info <> invalid and info.blocks <> invalid and info.blocksize <> invalid
-        total = info.blocks * info.blocksize / 1048576
-        free = 0
-        if info.freeblocks <> invalid then free = info.freeblocks * info.blocksize / 1048576
-        out = out + ", " + Int(free).ToStr() + " of " + Int(total).ToStr() + " MB free"
+    state = invalid
+    if m.loader <> invalid then state = m.loader.cacheState
+    if state = invalid or state.usedMb = invalid then return "not measured yet"
+
+    out = Int(state.usedMb).ToStr() + " MB in spots"
+    if state.files <> invalid then out = Int(state.files).ToStr() + " file(s), " + out
+    if state.freeMb <> invalid and state.totalMb <> invalid
+        out = out + ", " + Int(state.freeMb).ToStr() + " of " + Int(state.totalMb).ToStr() + " MB free"
     end if
     return out
 end function

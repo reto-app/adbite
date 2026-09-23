@@ -27,6 +27,10 @@
          server to write against this device rather than against the board.
          { orientation, turn }; empty until somebody sets it. -->
     <field id="screen" type="assocarray" />
+    <!-- What the cache holds: { files, usedMb, totalMb, freeMb }.
+         Published because roFileSystem is only usable from this thread on
+         some sets, so the scene cannot read the disk for itself. -->
+    <field id="cacheState" type="assocarray" />
   </interface>
 
   <script type="text/brightscript" uri="pkg:/components/ConfigTask.brs" />

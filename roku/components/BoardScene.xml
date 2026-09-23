@@ -17,6 +17,9 @@
          channel, so this is the one way to reach the card on such a set.
          "show" opens it; "landscape", "left" and "right" set it outright. -->
     <field id="launchHang" type="string" value="" onChange="onLaunchHang" />
+    <!-- The diagnostics overlay, opened from a launch for the same reason:
+         a set that refuses ECP key presses can still be launched. -->
+    <field id="launchDiag" type="string" value="" onChange="onLaunchDiag" />
   </interface>
 
   <children>
@@ -104,12 +107,14 @@
     </Group>
 
     <Group id="diagnostics" visible="false" translation="[72, 72]">
-      <!-- Twelve lines at 26px. The height is set to fit them rather than
-           left at what nine lines needed, because a Roku clips a Label to
-           its height in silence and the lines that fall off the end are the
-           ones added most recently. -->
-      <Rectangle id="diagBg" width="820" height="452" color="0x000000E6" />
-      <Label id="diagText" translation="[28, 24]" width="764" height="404" wrap="true" />
+      <!-- Twelve lines, at the ~40px a 26px face actually takes, plus room
+           for the device line to wrap. Sized by measuring rather than by
+           counting: a Roku clips a Label to its height and ellipsises the
+           last line that fits, so the lines that disappear are always the
+           ones added most recently -- which is exactly the hint somebody is
+           looking for when they open this. -->
+      <Rectangle id="diagBg" width="1000" height="620" color="0x000000E6" />
+      <Label id="diagText" translation="[28, 24]" width="944" height="572" wrap="true" />
     </Group>
   </children>
 
