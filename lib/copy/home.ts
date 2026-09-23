@@ -36,6 +36,7 @@ const en = {
       three: ['Two doors down', '214 N 400 W · open 5am to 10pm'],
     },
   },
+  more: 'More examples.',
   approval: {
     inReview: 'In review',
     queued: 'Queued today',
@@ -159,6 +160,7 @@ const es: typeof en = {
       three: ['Dos puertas más allá', '214 N 400 W · abierto de 5am a 10pm'],
     },
   },
+  more: 'Más ejemplos.',
   approval: {
     inReview: 'En revisión',
     queued: 'Llegó hoy',

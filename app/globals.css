@@ -2111,9 +2111,14 @@ h3 {
 }
 
 /* The shop examples share one band. The second pair follows the first as a
-   continuation, not as a fresh section with a whole band of empty space. */
-.reel + .reel {
-  margin-top: 26px;
+   continuation under a small heading, not as a fresh section with a whole
+   band of empty space. */
+.reel-more {
+  margin-top: clamp(40px, 6vh, 72px);
+}
+
+.reel-more h2 {
+  font-size: clamp(24px, 2.4vw, 34px);
 }
 
 .reel-item {
