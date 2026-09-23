@@ -10,7 +10,7 @@
   "rewrites": [
     {
       "source": "/q/:code/stats",
-      "destination": "/api/qr-stats?c=:code"
+      "destination": "/api/qr?c=:code&stats=1"
     },
     {
       "source": "/q/:code",
