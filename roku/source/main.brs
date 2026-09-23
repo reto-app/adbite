@@ -34,6 +34,22 @@ sub Main(args as Dynamic)
         section.Flush()
     end if
 
+    ' Which way up, from the launch:
+    '
+    '   curl -d "" "http://<roku-ip>:8060/launch/dev?hang=show"
+    '   curl -d "" "http://<roku-ip>:8060/launch/dev?hang=left"
+    '
+    ' A TV with "Control by mobile apps" switched off refuses every ECP key
+    ' press, which on a Roku TV can leave the OPTIONS overlay unreachable
+    ' altogether. Launching still works, so the card can still be opened and
+    ' the screen still set, without anybody climbing to the wall.
+    hang = ""
+    if args <> invalid
+        if args.hang <> invalid then hang = args.hang
+        if args.Hang <> invalid then hang = args.Hang
+    end if
+    if hang <> "" then scene.launchHang = LCase(hang)
+
     while true
         msg = wait(0, port)
         if type(msg) = "roSGScreenEvent"

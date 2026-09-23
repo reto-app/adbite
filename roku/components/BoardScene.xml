@@ -12,6 +12,11 @@
 <component name="BoardScene" extends="Scene">
   <interface>
     <field id="launchRemoteUrl" type="string" value="" />
+    <!-- Which way up, handed in at launch. ECP refuses key presses on a TV
+         with "Control by mobile apps" switched off, but it still launches a
+         channel, so this is the one way to reach the card on such a set.
+         "show" opens it; "landscape", "left" and "right" set it outright. -->
+    <field id="launchHang" type="string" value="" onChange="onLaunchHang" />
   </interface>
 
   <children>
@@ -99,12 +104,12 @@
     </Group>
 
     <Group id="diagnostics" visible="false" translation="[72, 72]">
-      <!-- Eleven lines at 26px. The height is set to fit them rather than
+      <!-- Twelve lines at 26px. The height is set to fit them rather than
            left at what nine lines needed, because a Roku clips a Label to
            its height in silence and the lines that fall off the end are the
            ones added most recently. -->
-      <Rectangle id="diagBg" width="820" height="420" color="0x000000E6" />
-      <Label id="diagText" translation="[28, 24]" width="764" height="372" wrap="true" />
+      <Rectangle id="diagBg" width="820" height="452" color="0x000000E6" />
+      <Label id="diagText" translation="[28, 24]" width="764" height="404" wrap="true" />
     </Group>
   </children>
 
