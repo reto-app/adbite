@@ -43,7 +43,7 @@ node --input-type=module -e '
 ' "$BOARD"
 
 rm -rf dist/stage "$OUT"
-mkdir -p dist/stage/source dist/stage/components dist/stage/images dist/stage/ads
+mkdir -p dist/stage/source dist/stage/components dist/stage/images dist/stage/ads dist/stage/media
 
 cp manifest dist/stage/
 cp source/*.brs dist/stage/source/
@@ -61,8 +61,16 @@ ADS_DIR="$(dirname "$BOARD")/ads"
 if [ -d "$ADS_DIR" ] && [ -n "$(ls -A "$ADS_DIR" 2>/dev/null)" ]; then
   cp "$ADS_DIR"/* dist/stage/ads/
 fi
+# The shop's own film, for a board whose top half is a loop rather than a
+# list. Named relative to the board like the artwork is, and copied the same
+# way, so `media/tacos-loop.mp4` resolves to pkg:/media/tacos-loop.mp4.
+MEDIA_DIR="$(dirname "$BOARD")/media"
+if [ -d "$MEDIA_DIR" ] && [ -n "$(ls -A "$MEDIA_DIR" 2>/dev/null)" ]; then
+  cp "$MEDIA_DIR"/* dist/stage/media/
+fi
 # A Roku will not unzip an empty directory, and an absent pkg:/ads is fine.
 rmdir dist/stage/ads 2>/dev/null || true
+rmdir dist/stage/media 2>/dev/null || true
 
 (cd dist/stage && zip -q -r -X "../adbite-board.zip" . -x '.*')
 rm -rf dist/stage

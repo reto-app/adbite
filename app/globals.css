@@ -9332,6 +9332,34 @@ text.vs-small {
   color: var(--bd-dim);
 }
 
+/* A screen whose top half is the shop's own film rather than a list. The
+   still fills the pane the way the clip fills it on the wall: cropped to the
+   space, never letterboxed inside a preview that is itself a preview. */
+.board-stage {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  margin: -3cqw -3cqw -2.4cqw;
+  background: #0b0b0c;
+  overflow: hidden;
+}
+
+.board-stage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.board-stage-label {
+  font-family: var(--font-display), sans-serif;
+  font-size: 2.4cqw;
+  color: var(--bd-dim);
+  text-align: center;
+  padding: 0 4cqw;
+}
+
 .board-ad {
   display: grid;
   place-items: center;

@@ -85,7 +85,15 @@ import {
   type Campaign,
 } from '@/lib/campaigns';
 import { FORMATS } from '@/lib/boards';
-import { POLL_MINUTES, isOnline, pairDevice, renameDevice, useDevices, type Device } from '@/lib/devices';
+import {
+  POLL_MINUTES,
+  isOnline,
+  pairDevice,
+  renameDevice,
+  setDeviceHang,
+  useDevices,
+  type Device,
+} from '@/lib/devices';
 import {
   removeShopMedia,
   setHoldSeconds,
@@ -380,6 +388,65 @@ function BoardTab({
     />
   );
 
+  /* Which way the TV is hung, and which way it was turned.
+
+     Built here rather than inside the menu editor because it is not a fact
+     about a menu. It used to live in the menu-only branch, which meant the
+     one board shape that most needs it — a display screen, whose film has to
+     be rotated in the file to match the panel — was the one shape that could
+     not reach it. A shop with an upside-down film had nowhere in the product
+     to say so. */
+  const screenFold = (
+    <Fold
+      title={t.screen.title}
+      summary={shared.orientations[board.orientation ?? 'landscape'].label}
+      icon={Tv}
+      {...fold('screen')}
+    >
+      <div className="orient-row">
+        {ORIENTATIONS.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            className={`orient-chip o-${option.id}${board.orientation === option.id ? ' on' : ''}`}
+            aria-pressed={board.orientation === option.id}
+            onClick={() => onChange({ orientation: option.id as Orientation })}
+          >
+            <span className="orient-mini" aria-hidden="true" />
+            <b>{shared.orientations[option.id].label}</b>
+            <i>{shared.orientations[option.id].note}</i>
+          </button>
+        ))}
+      </div>
+      {/* A Roku will not rotate video, so every film for a portrait
+          screen is rotated in the file, and it has to be rotated the
+          way the TV was. Asked only once the answer matters. */}
+      {board.orientation === 'portrait' && (
+        <div className="orient-row turn-row">
+          {TURNS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              className={`orient-chip t-${option.id}${(board.turn ?? 'left') === option.id ? ' on' : ''}`}
+              aria-pressed={(board.turn ?? 'left') === option.id}
+              onClick={() => onChange({ turn: option.id as Turn })}
+            >
+              <span className="orient-mini turn-mini" aria-hidden="true" />
+              <b>{shared.turns[option.id].label}</b>
+              <i>{shared.turns[option.id].note}</i>
+            </button>
+          ))}
+        </div>
+      )}
+      {/* Turning the TV changes the shape of the grid, so a board
+          placed by hand cannot follow it across. Said here rather
+          than found out afterwards. */}
+      {Object.keys(board.layouts ?? {}).length > 0 && (
+        <p className="prefs-note">{t.design.orientationWarning}</p>
+      )}
+    </Fold>
+  );
+
   const blockPanel = layout ? (
     <BlockPanel
       layout={layout}
@@ -445,7 +512,13 @@ function BoardTab({
                 <i />
               </span>
               <b>{shared.placements[place.id].label}</b>
-              <i>{shared.placements[place.id].note}</i>
+              {/* A screen with no menu on it is told what happens to its
+                  film, not to a list it does not have. */}
+              <i>
+                {uploaded
+                  ? shared.placements[place.id].filmNote
+                  : shared.placements[place.id].note}
+              </i>
             </button>
           ))}
         </div>
@@ -497,6 +570,7 @@ function BoardTab({
         {uploaded ? (
           <div className="shop-scroll">
             <MediaPanel />
+            <div className="prefs">{screenFold}</div>
           </div>
         ) : (
           <>
@@ -591,54 +665,7 @@ function BoardTab({
                 <FontPanel board={board} onChange={onChange} />
               </Fold>
 
-              <Fold
-                title={t.screen.title}
-                summary={shared.orientations[board.orientation ?? 'landscape'].label}
-                icon={Tv}
-                {...fold('screen')}
-              >
-                <div className="orient-row">
-                  {ORIENTATIONS.map((option) => (
-                    <button
-                      key={option.id}
-                      type="button"
-                      className={`orient-chip o-${option.id}${board.orientation === option.id ? ' on' : ''}`}
-                      aria-pressed={board.orientation === option.id}
-                      onClick={() => onChange({ orientation: option.id as Orientation })}
-                    >
-                      <span className="orient-mini" aria-hidden="true" />
-                      <b>{shared.orientations[option.id].label}</b>
-                      <i>{shared.orientations[option.id].note}</i>
-                    </button>
-                  ))}
-                </div>
-                {/* A Roku will not rotate video, so every film for a portrait
-                    screen is rotated in the file, and it has to be rotated the
-                    way the TV was. Asked only once the answer matters. */}
-                {board.orientation === 'portrait' && (
-                  <div className="orient-row turn-row">
-                    {TURNS.map((option) => (
-                      <button
-                        key={option.id}
-                        type="button"
-                        className={`orient-chip t-${option.id}${(board.turn ?? 'left') === option.id ? ' on' : ''}`}
-                        aria-pressed={(board.turn ?? 'left') === option.id}
-                        onClick={() => onChange({ turn: option.id as Turn })}
-                      >
-                        <span className="orient-mini turn-mini" aria-hidden="true" />
-                        <b>{shared.turns[option.id].label}</b>
-                        <i>{shared.turns[option.id].note}</i>
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {/* Turning the TV changes the shape of the grid, so a board
-                    placed by hand cannot follow it across. Said here rather
-                    than found out afterwards. */}
-                {Object.keys(board.layouts ?? {}).length > 0 && (
-                  <p className="prefs-note">{t.design.orientationWarning}</p>
-                )}
-              </Fold>
+              {screenFold}
 
               <Fold
                 title={t.reviews.title}
@@ -1212,6 +1239,34 @@ function TvCard({ device }: { device: Device }) {
         <div>
           <dt>{t.shows}</dt>
           <dd>{device.screen === 'reel' ? t.adsOnly : t.menuAndAds}</dd>
+        </div>
+        <div>
+          <dt>{t.hung}</dt>
+          {/* A screen may answer for itself — somebody stood in front of it
+              and pressed UP on the remote. Until one does it follows the
+              board, which is what a shop with one TV wants. */}
+          <dd>
+            <select
+              value={device.orientation === null ? 'board' : `${device.orientation}:${device.turn ?? 'left'}`}
+              onChange={(event) => {
+                const picked = event.target.value;
+                if (picked === 'board') {
+                  void setDeviceHang(device.id, { orientation: null, turn: null });
+                  return;
+                }
+                const [orientation, turn] = picked.split(':');
+                void setDeviceHang(device.id, {
+                  orientation: orientation as Device['orientation'],
+                  turn: turn as Device['turn'],
+                });
+              }}
+            >
+              <option value="board">{t.hangFollowsBoard}</option>
+              <option value="landscape:left">{t.hangLandscape}</option>
+              <option value="portrait:left">{t.hangPortraitLeft}</option>
+              <option value="portrait:right">{t.hangPortraitRight}</option>
+            </select>
+          </dd>
         </div>
         <div>
           <dt>{t.channel}</dt>

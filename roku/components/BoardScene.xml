@@ -16,6 +16,29 @@
 
   <children>
     <Rectangle id="backdrop" width="1920" height="1080" color="0x14100DFF" />
+
+    <!-- The shop's own film, where the menu would otherwise be.
+
+         A screen whose top half is a loop rather than a list still sells the
+         strip along its foot, so this is a pane in the board's layout and not
+         the full-screen takeover an ad buys. It sits under AdPane on purpose:
+         a `full` or `video` spot still covers the whole wall for its turn.
+
+         A Roku will not rotate video, so unlike MenuPane this is placed in
+         frame coordinates and the file is expected to arrive already turned.
+         See stageRect() in BoardScene.brs. -->
+    <Group id="stage" visible="false">
+      <Rectangle id="stageBg" color="0x000000FF" />
+      <!-- A still is graphics and turns with the board, like the menu does.
+           The Video below does not, because a Roku will not rotate one: its
+           file arrives already cut and turned. The two are therefore placed
+           in different spaces and cannot share a parent transform. -->
+      <Group id="stagePosterWrap">
+        <Poster id="stagePoster" loadDisplayMode="scaleToZoom" />
+      </Group>
+      <Video id="stageVideo" mute="true" enableUI="false" />
+    </Group>
+
     <MenuPane id="menu" />
     <AdPane id="ads" />
 
@@ -26,9 +49,16 @@
          turn the screensaver off in the TV's own settings, which is the
          setting's purpose and the owner's decision to make. -->
 
-    <!-- The pairing card: what a screen shows until a shop claims it. -->
+    <!-- The pairing card: what a screen shows until a shop claims it.
+
+         The scrim stays in the frame, because a flat dark rectangle looks the
+         same whichever way it is turned. Everything with words on it lives in
+         the inner group, which is rotated and scaled onto the board's canvas
+         so that a screen hung on its end shows a card the right way up. See
+         turnOverlay() in BoardScene.brs. -->
     <Group id="pairing" visible="false">
       <Rectangle width="1920" height="1080" color="0x0D0D0DFF" />
+      <Group id="pairingCard">
       <Poster uri="pkg:/images/icon_focus_hd.png" translation="[96, 84]" width="290" height="218" />
       <Label id="pairTitle" translation="[0, 300]" width="1920" horizAlign="center" color="0xFFFFFFFF" />
       <Label id="pairCode" translation="[0, 380]" width="1920" horizAlign="center" color="0x8FD0F6FF" />
@@ -36,6 +66,7 @@
       <Rectangle id="pairTipBox" translation="[400, 826]" width="1120" height="132" color="0x1B1B1BFF" />
       <Label id="pairTip" translation="[430, 848]" width="1060" height="92" wrap="true" horizAlign="center" color="0xFFCF42FF" />
       <Label id="pairFoot" translation="[0, 1000]" width="1920" horizAlign="center" color="0x6B7480FF" />
+      </Group>
     </Group>
 
     <!-- Shown once, over the board, the first time a screen is paired: the
@@ -43,15 +74,37 @@
          still armed. -->
     <Group id="tip" visible="false">
       <Rectangle width="1920" height="1080" color="0x000000C0" />
-      <Rectangle translation="[300, 290]" width="1320" height="500" color="0x14100DFF" />
-      <Label id="tipTitle" translation="[300, 340]" width="1320" horizAlign="center" color="0xFFFFFFFF" />
-      <Label id="tipBody" translation="[360, 430]" width="1200" height="260" wrap="true" horizAlign="center" color="0xC9D1D9FF" />
-      <Label id="tipFoot" translation="[300, 716]" width="1320" horizAlign="center" color="0x6B7480FF" />
+      <Group id="tipCard">
+        <Rectangle translation="[300, 290]" width="1320" height="500" color="0x14100DFF" />
+        <Label id="tipTitle" translation="[300, 340]" width="1320" horizAlign="center" color="0xFFFFFFFF" />
+        <Label id="tipBody" translation="[360, 430]" width="1200" height="260" wrap="true" horizAlign="center" color="0xC9D1D9FF" />
+        <Label id="tipFoot" translation="[300, 716]" width="1320" horizAlign="center" color="0x6B7480FF" />
+      </Group>
+    </Group>
+
+    <!-- Which way up.
+         
+         Opened from the diagnostics overlay by somebody standing in front of
+         the screen, which is the only place the question can actually be
+         answered: "top to the left" is an abstract thing to ask in a browser
+         and an obvious one to see on a wall. Drawn in canvas space and turned
+         with the board, so the arrow points at the ceiling exactly when the
+         setting is right. -->
+    <Group id="whichWayUp" visible="false">
+      <Rectangle id="wayBg" color="0x0D0D0DF2" />
+      <Poster id="wayArrow" uri="pkg:/images/arrow.png" />
+      <Label id="wayTitle" wrap="true" horizAlign="center" color="0xFFFFFFFF" />
+      <Label id="wayNow" wrap="true" horizAlign="center" color="0xFFCF42FF" />
+      <Label id="wayHelp" wrap="true" horizAlign="center" color="0xC9D1D9FF" />
     </Group>
 
     <Group id="diagnostics" visible="false" translation="[72, 72]">
-      <Rectangle id="diagBg" width="820" height="290" color="0x000000E6" />
-      <Label id="diagText" translation="[28, 24]" width="764" height="242" wrap="true" />
+      <!-- Eleven lines at 26px. The height is set to fit them rather than
+           left at what nine lines needed, because a Roku clips a Label to
+           its height in silence and the lines that fall off the end are the
+           ones added most recently. -->
+      <Rectangle id="diagBg" width="820" height="420" color="0x000000E6" />
+      <Label id="diagText" translation="[28, 24]" width="764" height="372" wrap="true" />
     </Group>
   </children>
 

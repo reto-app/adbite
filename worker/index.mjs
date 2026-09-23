@@ -13,6 +13,10 @@
  *              clips. Built whenever the shop's approved set stops matching
  *              what the current reel was built from.
  *
+ *   stage      a shop's own film cut to the pane it plays in on a display
+ *              board -- the screen less the strip it sold -- so their
+ *              footage fills it instead of sitting in it with bars. Queued
+ *              by the sync endpoint the first time such a screen asks.
  *   turn       a finished file rotated ninety degrees for a TV hung on its
  *              end. A Roku draws everything else rotated but never video, so
  *              the frames themselves are turned and the panel turns them
@@ -250,6 +254,78 @@ async function turnVideo(job, dir) {
   log(`turned ${job.source_path} ${turn}: ${(bytes / 1048576).toFixed(1)} MB`);
 }
 
+/* ---- cutting a file to the pane it plays in -------------------------------- */
+
+/* A display board gives the shop's film the screen less the strip, so the
+   file is cut to that pane: scaled up until it covers, then cropped. The
+   channel's stage Poster already draws a still this way (scaleToZoom) and
+   this is the same rule for a clip.
+
+   Cropping, where turnVideo() pads. An advertiser's spot is paid artwork and
+   losing an edge of it is not ours to do; a shop's own footage on a shop's
+   own screen is theirs, and a shop would rather lose an inch off the top of
+   their taco than hang black bars on their wall.
+
+   The pane is in canvas space, so the transpose comes last -- exactly as in
+   PORTRAIT_FIT -- and the file lands with its sides swapped, which is what
+   the panel's own rotation then undoes. */
+function stageFilter(turn, width, height) {
+  const fill = `scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height}`;
+  if (!turn || turn === 'none') return fill;
+  if (!TRANSPOSE[turn]) throw new Error(`unknown turn ${turn}`);
+  return `${fill},${TRANSPOSE[turn]}`;
+}
+
+async function stageVideo(job, dir) {
+  const turn = job.turn ?? 'none';
+  const width = Number(job.fit_width);
+  const height = Number(job.fit_height);
+  if (!(width > 0 && height > 0)) throw new Error('staged cut has no pane');
+  /* Even dimensions or libx264 will not take the frame, and the pane is
+     whatever `Int(H * share)` happened to leave. */
+  const w = width - (width % 2);
+  const h = height - (height % 2);
+
+  const { data: existing } = await db
+    .from('staged_videos')
+    .select('storage_path')
+    .eq('source_path', job.source_path)
+    .eq('turn', turn)
+    .eq('fit_width', width)
+    .eq('fit_height', height)
+    .maybeSingle();
+  if (existing) return;
+
+  const source = join(dir, 'in.mp4');
+  const output = join(dir, 'out.mp4');
+  await download(job.source_path, source);
+  const sourceSeconds = await probeSeconds(source);
+  if (sourceSeconds <= 0) throw new Error('video has no readable duration');
+  const cap = Number(job.max_seconds) > 0 ? Number(job.max_seconds) : MAX_MEDIA_SECONDS;
+  const seconds = Math.min(sourceSeconds, cap);
+
+  await run('ffmpeg', [
+    '-y', '-v', 'error', '-i', source, '-t', String(seconds),
+    '-vf', stageFilter(turn, w, h),
+    ...VIDEO_ARGS, output,
+  ]);
+
+  const sha = await hashOf(output);
+  const key = `staged/${sha}.mp4`;
+  const { bytes } = await upload(output, key, 'video/mp4');
+  await db.from('staged_videos').upsert({
+    source_path: job.source_path,
+    turn,
+    fit_width: width,
+    fit_height: height,
+    storage_path: key,
+    sha256: sha,
+    bytes,
+    seconds,
+  });
+  log(`staged ${job.source_path} ${turn} ${width}x${height}: ${(bytes / 1048576).toFixed(1)} MB`);
+}
+
 /* ---- reels ---------------------------------------------------------------- */
 
 /** The spots a shop has approved, in a stable order, with their files. */
@@ -416,6 +492,7 @@ async function workOnce() {
     else if (job.kind === 'transcode_media') await transcodeMedia(job, dir);
     else if (job.kind === 'reel') await reelFor(job.shop_id, dir);
     else if (job.kind === 'turn') await turnVideo(job, dir);
+    else if (job.kind === 'stage') await stageVideo(job, dir);
     await db.from('render_jobs').update({ status: 'done', error: null, finished_at: new Date().toISOString() }).eq('id', job.id);
   } catch (failure) {
     const message = failure instanceof Error ? failure.message : String(failure);

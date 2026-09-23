@@ -218,6 +218,42 @@ function CanvasFor(board as Object) as Object
     return { width: 1080, height: 1920, turn: turn }
 end function
 
+' ---- where a board's files live -------------------------------------------
+' Shared because two panes need them: AdPane opens a spot's artwork and its
+' video, and BoardScene opens the shop's own clip on the stage.
+
+' A board lists its artwork relative to itself. Inside a package that means
+' pkg:/; fetched over HTTP it means the directory the board was fetched from.
+function resolveSrc(src as String, config as Object) as String
+    lowered = LCase(src)
+    if Left(lowered, 5) = "http:" then return src
+    if Left(lowered, 6) = "https:" then return src
+    if Left(lowered, 4) = "pkg:" then return src
+    if Left(lowered, 9) = "cachefs:/" then return src
+    if Left(lowered, 4) = "tmp:" then return src
+
+    ' textOf rather than AdPane's strOr: this is shared code now, and an
+    ' absent baseUrl and an empty one mean the same thing here.
+    base = textOf(config.baseUrl)
+    if base = "" then return "pkg:/" + src
+
+    if Left(src, 1) = "/"
+        ' Root-relative: keep the scheme and host, drop the rest of the path.
+        slash = base.Instr(8, "/")
+        if slash >= 0 then return Left(base, slash) + src
+        return base + Mid(src, 2)
+    end if
+
+    return base + src
+end function
+
+function videoFormatFor(url as String) as String
+    lowered = LCase(url)
+    if Instr(1, lowered, ".m3u8") > 0 then return "hls"
+    if Instr(1, lowered, ".webm") > 0 then return "mp4"
+    return "mp4"
+end function
+
 function textOf(value as Dynamic) as String
     if type(value) = "String" or type(value) = "roString" then return value
     return ""

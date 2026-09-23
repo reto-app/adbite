@@ -37,6 +37,9 @@ export type LiveBoard = {
   adPlacement: string;
   /** The shop's own board, ready for BoardCanvas. Null if it never made one. */
   board: Board | null;
+  /* The still that goes where the menu would be on a screen that has no
+     menu — most of them. Null on a menu board. */
+  stage: { url: string; name: string } | null;
   boardVersion: number;
   updatedAt: string | null;
   devices: LiveDevice[];

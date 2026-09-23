@@ -1,0 +1,164 @@
+{
+  "version": 1,
+  "exportedAt": "2026-09-23T20:37:12.566Z",
+  "shopId": "test-shop",
+  "boardVersion": 1,
+  "remoteUrl": null,
+  "refreshMinutes": 15,
+  "keepAwake": false,
+  "textScale": 1,
+  "adLayout": "banner",
+  "supplemental": false,
+  "spotSeconds": 6,
+  "reviewSeconds": 12,
+  "slotWindows": [
+    {
+      "id": "morning",
+      "label": "Breakfast",
+      "startMinute": 0,
+      "endMinute": 660
+    },
+    {
+      "id": "midday",
+      "label": "Lunch",
+      "startMinute": 660,
+      "endMinute": 960
+    },
+    {
+      "id": "evening",
+      "label": "Evening",
+      "startMinute": 960,
+      "endMinute": 1440
+    }
+  ],
+  "palette": {
+    "bg": "0x14100DFF",
+    "ink": "0xFFFFFFFF",
+    "accent": "0xFFC72CFF",
+    "dim": "0xA19F9EFF",
+    "rule": "0x3E3B39FF",
+    "ad": "0x272320FF",
+    "onAccent": "0x14100DFF"
+  },
+  "grid": {
+    "cols": 14,
+    "rows": 24
+  },
+  "stage": [
+    {
+      "id": "tacos-loop",
+      "name": "Tacos",
+      "kind": "video",
+      "src": "media/tacos-loop.mp4",
+      "seconds": 48
+    }
+  ],
+  "pictures": [],
+  "fontFiles": {
+    "display": null,
+    "body": null
+  },
+  "board": {
+    "shopName": "Test Shop",
+    "tagline": "Tacos · the auxiliary board",
+    "theme": "chalk",
+    "palette": null,
+    "fonts": {
+      "display": "sans",
+      "body": "sans"
+    },
+    "logo": null,
+    "orientation": "portrait",
+    "turn": "left",
+    "kind": "display",
+    "source": "media",
+    "slots": {
+      "morning": [],
+      "midday": [],
+      "evening": []
+    },
+    "layouts": {},
+    "reviews": {
+      "on": false,
+      "items": []
+    },
+    "media": {
+      "on": false,
+      "name": null,
+      "src": null
+    },
+    "adShare": 0.18
+  },
+  "ads": [
+    {
+      "id": "house-01",
+      "name": "AdBite — Your ad, on this screen",
+      "format": "banner",
+      "src": "ads/adbite-01-teal.png",
+      "seconds": 6
+    },
+    {
+      "id": "house-02",
+      "name": "AdBite — Every face in the queue",
+      "format": "banner",
+      "src": "ads/adbite-02-clay.png",
+      "seconds": 6
+    },
+    {
+      "id": "house-03",
+      "name": "AdBite — Local shops, local ads",
+      "format": "banner",
+      "src": "ads/adbite-03-indigo.png",
+      "seconds": 6
+    },
+    {
+      "id": "house-04",
+      "name": "AdBite — Book a spot in a minute",
+      "format": "banner",
+      "src": "ads/adbite-04-olive.png",
+      "seconds": 6
+    },
+    {
+      "id": "house-05",
+      "name": "AdBite — A board that pays for itself",
+      "format": "banner",
+      "src": "ads/adbite-05-plum.png",
+      "seconds": 6
+    },
+    {
+      "id": "house-06",
+      "name": "AdBite — Reach the counter, not a feed",
+      "format": "banner",
+      "src": "ads/adbite-06-rust.png",
+      "seconds": 6
+    },
+    {
+      "id": "house-07",
+      "name": "AdBite — Fifteen seconds, every rotation",
+      "format": "banner",
+      "src": "ads/adbite-07-slate.png",
+      "seconds": 6
+    },
+    {
+      "id": "house-08",
+      "name": "AdBite — The screen they already read",
+      "format": "banner",
+      "src": "ads/adbite-08-moss.png",
+      "seconds": 6
+    },
+    {
+      "id": "house-09",
+      "name": "AdBite — Advertise where they queue",
+      "format": "banner",
+      "src": "ads/adbite-09-wine.png",
+      "seconds": 6
+    },
+    {
+      "id": "house-10",
+      "name": "AdBite — This space is for rent",
+      "format": "banner",
+      "src": "ads/adbite-10-ink.png",
+      "seconds": 6
+    }
+  ]
+}

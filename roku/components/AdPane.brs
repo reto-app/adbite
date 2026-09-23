@@ -213,6 +213,10 @@ end sub
 sub reportPlay(ad as Object, seconds as Float)
     if ad = invalid or ad.id = invalid then return
     now = CreateObject("roDateTime")
+    ' Printed as well as reported. A TV with "Control by mobile apps" switched
+    ' off cannot be asked for the OPTIONS overlay at all, so the console is
+    ' the only way to see whether the wall is counting what it shows.
+    print "[adbite] played "; ad.id; " for "; seconds; "s"
     m.top.played = { id: ad.id, at: now.ToISOString(), seconds: seconds }
 end sub
 
@@ -433,28 +437,6 @@ function playableAds(config as Object) as Object
     return kept
 end function
 
-' A board lists its artwork relative to itself. Inside a package that means
-' pkg:/; fetched over HTTP it means the directory the board was fetched from.
-function resolveSrc(src as String, config as Object) as String
-    lowered = LCase(src)
-    if Left(lowered, 5) = "http:" then return src
-    if Left(lowered, 6) = "https:" then return src
-    if Left(lowered, 4) = "pkg:" then return src
-    if Left(lowered, 9) = "cachefs:/" then return src
-    if Left(lowered, 4) = "tmp:" then return src
-
-    base = strOr(config.baseUrl, "")
-    if base = "" then return "pkg:/" + src
-
-    if Left(src, 1) = "/"
-        ' Root-relative: keep the scheme and host, drop the rest of the path.
-        slash = base.Instr(8, "/")
-        if slash >= 0 then return Left(base, slash) + src
-        return base + Mid(src, 2)
-    end if
-
-    return base + src
-end function
 
 function adSeconds(ad as Object) as Float
     if ad.seconds <> invalid
@@ -473,12 +455,6 @@ function spotSeconds() as Float
     return 15
 end function
 
-function videoFormatFor(url as String) as String
-    lowered = LCase(url)
-    if Instr(1, lowered, ".m3u8") > 0 then return "hls"
-    if Instr(1, lowered, ".webm") > 0 then return "mp4"
-    return "mp4"
-end function
 
 ' Roku composites an alpha colour against whatever is behind it, and behind the
 ' rail there is nothing. Flattening against the board's own background keeps

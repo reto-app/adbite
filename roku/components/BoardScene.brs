@@ -6,6 +6,25 @@ sub init()
     m.diagText = m.top.findNode("diagText")
     m.pairing = m.top.findNode("pairing")
     m.tip = m.top.findNode("tip")
+    m.whichWayUp = m.top.findNode("whichWayUp")
+    m.wayBg = m.top.findNode("wayBg")
+    m.wayArrow = m.top.findNode("wayArrow")
+    m.pairingCard = m.top.findNode("pairingCard")
+    m.tipCard = m.top.findNode("tipCard")
+    m.stage = m.top.findNode("stage")
+    m.stageBg = m.top.findNode("stageBg")
+    m.stagePosterWrap = m.top.findNode("stagePosterWrap")
+    m.stagePoster = m.top.findNode("stagePoster")
+    m.stageVideo = m.top.findNode("stageVideo")
+    m.stageVideo.observeField("state", "onStageVideoState")
+    m.stageItems = []
+    m.stageAt = -1
+    ' The rotation this list represents, so a revision bump that changes
+    ' nothing about the media does not rewind the wall to its first frame.
+    m.stageKey = ""
+    m.stageTimer = m.top.createChild("Timer")
+    m.stageTimer.repeat = false
+    m.stageTimer.observeField("fire", "stageAdvance")
     m.pendingPlays = []
     m.demoing = false
 
@@ -24,6 +43,10 @@ sub init()
     m.nextRefreshAt = 0
 
     m.ads.observeField("played", "onPlayed")
+    ' A Roku has one video decoder worth relying on, and a full-screen spot
+    ' covers the stage anyway. The stage stands down while a spot has it and
+    ' picks the clip up again afterwards.
+    m.ads.observeField("playingVideo", "onAdVideo")
 
     m.slotTimer = m.top.createChild("Timer")
     m.slotTimer.duration = 30
@@ -99,6 +122,17 @@ sub applyBoard(config as Object, source as String)
     m.config = config
     m.source = source
     m.slotId = currentSlotId()
+
+    ' A board arriving from the server, the cache or the package carries the
+    ' shop's answer to which way up this screen is. If somebody has stood in
+    ' front of this one and said otherwise, theirs wins until the server has
+    ' caught up — otherwise the next poll would visibly undo what they just
+    ' did, which is the fastest way to teach somebody a control is broken.
+    said = storedWayUp()
+    if said <> invalid and config.board <> invalid
+        config.board.orientation = said.orientation
+        config.board.turn = said.turn
+    end if
 
     if config.pairing = true
         showPairing(strOrDefault(config.pairCode, ""))
@@ -219,7 +253,10 @@ sub layout()
 
     ' A supplemental screen is a second TV that only runs the reel; the menu
     ' lives on another wall. The pane stays built for OPTIONS diagnostics.
-    m.menu.visible = not (m.config.supplemental = true)
+    ' A board with a stage clip hides the menu for a different reason: there
+    ' is film where the list would be, and it is still this shop's board.
+    items = stageList()
+    m.menu.visible = not (m.config.supplemental = true or items.count() > 0)
 
     ' On a TV hung on its end the board is laid out 1080 wide by 1920 tall
     ' and the menu is rotated into the frame; the ad pane does its own
@@ -266,6 +303,16 @@ sub layout()
         m.ads.slot = [W - adWidth, 0, adWidth, H]
     end if
 
+    placeStage(items, canvas, m.menu.paneWidth, m.menu.paneHeight)
+
+    ' The cards carry the only two instructions this product ever gives a
+    ' shop — the pairing code, and how to switch the screensaver off. On a
+    ' screen hung on its end they were drawn across the frame while the board
+    ' behind them was upright, so the one thing a shop had to read was the
+    ' one thing lying on its side.
+    turnOverlay(m.pairingCard, canvas)
+    turnOverlay(m.tipCard, canvas)
+
     m.menu.slotId = m.slotId
     m.menu.config = m.config
     m.ads.config = m.config
@@ -273,6 +320,398 @@ sub layout()
     m.revision = m.revision + 1
     m.menu.revision = m.revision
     m.ads.revision = m.revision
+end sub
+
+' ---- which way up ---------------------------------------------------------
+'
+' The one question about a screen that cannot sensibly be answered anywhere
+' but in front of it. The dashboard asks a shop whether the TV's top edge is
+' now on their left or their right, which is a puzzle in a browser and
+' obvious on a wall: this draws an arrow in the board's own space, so it
+' points at the ceiling exactly when the setting is right, and LEFT/RIGHT
+' cycle until it does.
+'
+' The answer is the screen's, not the shop's. It is written to the device
+' registry at once so a reboot keeps it, and handed to the sync task so the
+' server writes it against this device rather than against the board — a shop
+' with a counter board and a portrait screen beside the till has two answers,
+' and one remote must not turn both.
+
+sub showWhichWayUp()
+    m.whichWayUp.visible = true
+    m.ads.hold = true
+    layoutWhichWayUp()
+end sub
+
+sub hideWhichWayUp()
+    if not m.whichWayUp.visible then return
+    m.whichWayUp.visible = false
+    m.ads.hold = m.diagnostics.visible
+end sub
+
+' The three answers there are, in the order LEFT and RIGHT walk them.
+function wayStates() as Object
+    return [
+        { orientation: "landscape", turn: "" },
+        { orientation: "portrait", turn: "left" },
+        { orientation: "portrait", turn: "right" }
+    ]
+end function
+
+function wayIndex() as Integer
+    board = invalid
+    if m.config <> invalid then board = m.config.board
+    orientation = "landscape"
+    turn = "left"
+    if board <> invalid
+        orientation = LCase(strOrDefault(board.orientation, "landscape"))
+        turn = LCase(strOrDefault(board.turn, "left"))
+    end if
+    if orientation <> "portrait" then return 0
+    if turn = "right" then return 2
+    return 1
+end function
+
+' `step` is reserved in BrightScript, hence `by`.
+sub turnWhichWayUp(by as Integer)
+    if m.config = invalid or m.config.board = invalid then return
+    states = wayStates()
+    at = (wayIndex() + by + states.count()) mod states.count()
+    chosen = states[at]
+
+    m.config.board.orientation = chosen.orientation
+    if chosen.orientation = "portrait"
+        m.config.board.turn = chosen.turn
+    else
+        m.config.board.turn = "left"
+    end if
+
+    ' Kept on the device so a reboot before the next sync does not lose it,
+    ' and read back by applyBoard() so a freshly fetched board is hung the way
+    ' this screen actually is.
+    section = CreateObject("roRegistrySection", "adbite")
+    section.Write("orientation", chosen.orientation)
+    section.Write("turn", chosen.turn)
+    section.Flush()
+
+    ' Told to the server on the next poll, against this device.
+    m.loader.screen = { orientation: chosen.orientation, turn: chosen.turn }
+
+    layout()
+    layoutWhichWayUp()
+    refreshDiagnostics()
+end sub
+
+' What this screen has been told about itself, for a board that has just
+' arrived from the server or out of the package.
+function storedWayUp() as Object
+    section = CreateObject("roRegistrySection", "adbite")
+    if not section.Exists("orientation") then return invalid
+    orientation = section.Read("orientation")
+    turn = "left"
+    if section.Exists("turn") then turn = section.Read("turn")
+    if turn <> "right" then turn = "left"
+    if orientation <> "portrait" then orientation = "landscape"
+    return { orientation: orientation, turn: turn }
+end function
+
+sub layoutWhichWayUp()
+    if not m.whichWayUp.visible then return
+
+    board = invalid
+    if m.config <> invalid then board = m.config.board
+    canvas = CanvasFor(board)
+    W = canvas.width
+    H = canvas.height
+
+    ' The card is drawn on the canvas and turned into the frame, exactly as
+    ' the menu is. That is the whole trick: if the board is hung the way the
+    ' setting says, this reads upright.
+    if canvas.turn = ""
+        m.whichWayUp.rotation = 0
+        m.whichWayUp.translation = [0, 0]
+    else
+        placed = PortraitTransform(canvas.turn, 0, 0)
+        m.whichWayUp.rotation = placed.rotation
+        m.whichWayUp.translation = placed.translation
+    end if
+
+    m.wayBg.width = W
+    m.wayBg.height = H
+
+    theme = BoardTheme("chalk")
+    if m.config <> invalid then theme = BoardPalette(m.config)
+
+    size = Int(W * 0.26)
+    m.wayArrow.width = size
+    m.wayArrow.height = size
+    m.wayArrow.translation = [(W - size) / 2, H * 0.16]
+    m.wayArrow.blendColor = theme.accent
+
+    pad = Int(W * 0.08)
+    top = H * 0.16 + size + Int(W * 0.05)
+
+    title = m.top.findNode("wayTitle")
+    title.font = BoardFont(Int(W * 0.045), true)
+    title.width = W - pad * 2
+    title.translation = [pad, top]
+    title.text = "This arrow should point at the ceiling"
+
+    now = m.top.findNode("wayNow")
+    now.font = BoardFont(Int(W * 0.034), false)
+    now.width = W - pad * 2
+    now.translation = [pad, top + Int(W * 0.075)]
+    now.text = wayLabel()
+
+    help = m.top.findNode("wayHelp")
+    help.font = BoardFont(Int(W * 0.028), false)
+    help.width = W - pad * 2
+    help.height = Int(W * 0.22)
+    help.wrap = true
+    help.translation = [pad, top + Int(W * 0.135)]
+    help.text = "LEFT and RIGHT turn the board until it does." + Chr(10) + "OK keeps it. This screen only — your other TVs are not changed."
+end sub
+
+function wayLabel() as String
+    at = wayIndex()
+    if at = 0 then return "Landscape · hung the usual way round"
+    if at = 1 then return "Portrait · top edge to your left"
+    return "Portrait · top edge to your right"
+end function
+
+' ---- cards over a turned board --------------------------------------------
+
+' A card laid out for a 1920x1080 frame, put upright on whatever canvas the
+' board is using.
+'
+' Rather than re-laying every label against a portrait canvas, the card keeps
+' its design and is scaled to the canvas's width and turned with it: a 1920
+' wide card on a 1080 wide canvas is drawn at 0.5625 and centred. The card is
+' the same shape relative to the screen either way, which is what makes one
+' set of translations correct for both.
+'
+' The scrim behind it is left alone on purpose. It is a flat rectangle over
+' the whole frame and looks identical whichever way it is turned.
+sub turnOverlay(card as Object, canvas as Object)
+    if card = invalid then return
+
+    if canvas.turn = ""
+        card.scale = [1.0, 1.0]
+        card.rotation = 0
+        card.translation = [0, 0]
+        return
+    end if
+
+    scale = canvas.width / 1920.0
+    ' Centred down the long axis of the canvas, in canvas coordinates.
+    offsetY = (canvas.height - 1080.0 * scale) / 2.0
+    placed = PortraitTransform(canvas.turn, 0, offsetY)
+
+    ' Scale and rotation are both about the node's origin, which is what
+    ' PortraitTransform's translations were derived for.
+    card.scaleRotateCenter = [0, 0]
+    card.scale = [scale, scale]
+    card.rotation = placed.rotation
+    card.translation = placed.translation
+end sub
+
+' ---- the stage -----------------------------------------------------------
+'
+' The shop's own media, where a menu board would have its menu.
+'
+' This is the shape most screens are: no prices, the shop's film on a loop,
+' and the strip along the foot is the part that was sold. So the stage is a
+' pane in the board's layout, not the full-screen takeover an ad buys — the
+' strip keeps running underneath it the whole time.
+
+' The rotation, with every src already resolved to something the device can
+' open. Empty on a menu board.
+function stageList() as Object
+    out = []
+    if m.config = invalid then return out
+    items = m.config.stage
+    if items = invalid or type(items) <> "roArray" then return out
+    for each item in items
+        src = strOrDefault(item.src, "").Trim()
+        if src <> ""
+            entry = {}
+            entry.append(item)
+            entry.src = resolveSrc(src, m.config)
+            entry.kind = LCase(strOrDefault(item.kind, "video"))
+            out.push(entry)
+        end if
+    end for
+    return out
+end function
+
+' Where the stage sits in the frame.
+'
+' MenuPane draws in canvas coordinates and is rotated into the frame, but a
+' Roku will not rotate video, so the stage has to be given the pane's rect
+' already mapped through the turn — and a clip for a turned screen has to
+' have been rotated the same way before it was packaged. The rect is the menu
+' pane's, so the stage ends exactly where the sold strip begins.
+function stageRect(canvas as Object, paneW as Float, paneH as Float) as Object
+    if canvas.turn = "left"
+        ' (x, y) -> (1920 - y, x)
+        return { x: 1920 - paneH, y: 0, width: paneH, height: paneW }
+    else if canvas.turn = "right"
+        ' (x, y) -> (y, 1080 - x)
+        return { x: 0, y: 1080 - paneW, width: paneH, height: paneW }
+    end if
+    return { x: 0, y: 0, width: paneW, height: paneH }
+end function
+
+' What the rotation is, so that a poll which changed a price does not restart
+' the film. Ids and order both count; a reordered list is a different wall.
+function stageKeyOf(items as Object) as String
+    key = ""
+    for each item in items
+        key = key + strOrDefault(item.id, item.src) + "|"
+    end for
+    return key
+end function
+
+sub placeStage(items as Object, canvas as Object, paneW as Float, paneH as Float)
+    if items.count() = 0
+        stopStage()
+        return
+    end if
+
+    ' The plate and the video are placed in the frame, because the video
+    ' cannot be turned and the plate has no orientation to speak of.
+    rect = stageRect(canvas, paneW, paneH)
+    m.stage.translation = [0, 0]
+    m.stageBg.translation = [rect.x, rect.y]
+    m.stageBg.width = rect.width
+    m.stageBg.height = rect.height
+    m.stageVideo.translation = [rect.x, rect.y]
+    m.stageVideo.width = rect.width
+    m.stageVideo.height = rect.height
+
+    ' The still is drawn in canvas space and turned into the frame, the way
+    ' MenuPane is. The pane always starts at the canvas origin, so this is
+    ' the same transform the menu gets.
+    if canvas.turn = ""
+        m.stagePosterWrap.rotation = 0
+        m.stagePosterWrap.translation = [0, 0]
+    else
+        placed = PortraitTransform(canvas.turn, 0, 0)
+        m.stagePosterWrap.rotation = placed.rotation
+        m.stagePosterWrap.translation = placed.translation
+    end if
+    m.stagePoster.translation = [0, 0]
+    m.stagePoster.width = paneW
+    m.stagePoster.height = paneH
+
+    m.stage.visible = true
+
+    key = stageKeyOf(items)
+    m.stageItems = items
+    if key = m.stageKey then return
+
+    ' A new rotation starts at the top; the old one is not resumed, because
+    ' its index means nothing in a list that changed underneath it.
+    m.stageKey = key
+    m.stageAt = -1
+    stageAdvance()
+end sub
+
+sub stopStage()
+    if m.stageKey <> ""
+        m.stageTimer.control = "stop"
+        m.stageVideo.control = "stop"
+        m.stageVideo.content = invalid
+        m.stagePoster.uri = ""
+        m.stageItems = []
+        m.stageAt = -1
+        m.stageKey = ""
+    end if
+    m.stage.visible = false
+end sub
+
+sub stageAdvance()
+    m.stageTimer.control = "stop"
+    if m.stageItems.count() = 0 then return
+    ' A spot with the wall does not want the stage competing for the decoder,
+    ' and it is covering the stage anyway. Picked up again in onAdVideo().
+    if m.ads.playingVideo then return
+
+    m.stageAt = (m.stageAt + 1) mod m.stageItems.count()
+    item = m.stageItems[m.stageAt]
+
+    if item.kind = "image"
+        m.stageVideo.control = "stop"
+        m.stageVideo.visible = false
+        m.stagePoster.uri = item.src
+        m.stagePoster.visible = true
+        stageReport(item)
+        m.stageTimer.duration = stageSeconds(item)
+        m.stageTimer.control = "start"
+        return
+    end if
+
+    content = CreateObject("roSGNode", "ContentNode")
+    content.url = item.src
+    content.streamFormat = videoFormatFor(item.src)
+    content.title = strOrDefault(item.name, "")
+
+    ' One clip on its own is handed to the player to repeat, which rewinds
+    ' without re-opening the file; a rotation of one would otherwise show a
+    ' black frame every time it came round.
+    m.stageVideo.loop = (m.stageItems.count() = 1)
+    m.stageVideo.visible = true
+    m.stageVideo.content = content
+    m.stageVideo.control = "play"
+
+    ' The poster stays up under the video until the stream reports playing,
+    ' so the handover is the last frame of the still rather than black.
+    ' A wedged stream must not park the wall, so the clock runs behind it.
+    m.stageTimer.duration = stageSeconds(item) + 10
+    m.stageTimer.control = "start"
+end sub
+
+sub onStageVideoState()
+    state = m.stageVideo.state
+    if state = "playing"
+        m.stagePoster.visible = false
+        if m.stageAt >= 0 and m.stageAt < m.stageItems.count()
+            stageReport(m.stageItems[m.stageAt])
+        end if
+    else if state = "finished" or state = "error"
+        if state = "error" then print "[adbite] stage clip failed: "; m.stageVideo.content.url
+        ' A single looping clip never finishes; anything else hands over.
+        if m.stageItems.count() > 1 then stageAdvance()
+    end if
+end sub
+
+function stageSeconds(item as Object) as Integer
+    seconds = Int(numOrDefault(item.seconds, 8))
+    if seconds < 2 then seconds = 2
+    return seconds
+end function
+
+' The shop's own media is billed to nobody, but it is still what was on the
+' wall, and the dashboard shows a shop what its own screen played. The server
+' knows an id that is not a campaign id and does not invoice it.
+sub stageReport(item as Object)
+    id = strOrDefault(item.id, "")
+    if id = "" then return
+    now = CreateObject("roDateTime")
+    print "[adbite] stage played media-"; id
+    m.pendingPlays.Push({ id: "media-" + id, at: now.ToISOString(), seconds: stageSeconds(item) })
+end sub
+
+sub onAdVideo()
+    if m.stageKey = "" then return
+    if m.ads.playingVideo
+        m.stageTimer.control = "stop"
+        m.stageVideo.control = "stop"
+    else
+        ' Back from a takeover: pick the rotation up at the next piece rather
+        ' than resuming a clip the spot cut off part way through.
+        stageAdvance()
+    end if
 end sub
 
 ' ---- the slot clock -------------------------------------------------------
@@ -442,6 +881,31 @@ function onKeyEvent(key as String, press as Boolean) as Boolean
         return false
     end if
 
+    ' The card owns the remote while it is up.
+    if m.whichWayUp.visible
+        if key = "left"
+            turnWhichWayUp(-1)
+            return true
+        end if
+        if key = "right"
+            turnWhichWayUp(1)
+            return true
+        end if
+        if key = "OK" or key = "back" or key = "options"
+            hideWhichWayUp()
+            return true
+        end if
+        return true
+    end if
+
+    ' Reached from the overlay rather than from a bare key press, so that a
+    ' customer leaning on a remote cannot turn a shop's board over.
+    if key = "up" and m.diagnostics.visible
+        m.diagnostics.visible = false
+        showWhichWayUp()
+        return true
+    end if
+
     if key = "options" or key = "info"
         m.diagnostics.visible = not m.diagnostics.visible
         ' A spot playing over the overlay would hide it: the video plane is
@@ -510,6 +974,7 @@ sub refreshDiagnostics()
         "ip " + addresses,
         "",
         "screensaver: Settings > Screen saver > Wait time > Disabled",
+        "UP: which way is this screen hung?",
         "OPTIONS hides this  ·  PLAY syncs now"
     ]
 

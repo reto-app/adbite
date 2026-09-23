@@ -66,7 +66,7 @@ function ArtworkRow({
         <figure className="artwork-row-live">
           <figcaption>{t.liveNow}</figcaption>
           {live?.board ? (
-            <BoardCanvas board={live.board} slot={slotNow()} ad={<AdInSlot line={line} />} />
+            <BoardCanvas board={live.board} slot={slotNow()} stage={live.stage} ad={<AdInSlot line={line} />} />
           ) : (
             <p className="board-row-none">{t.noBoard}</p>
           )}

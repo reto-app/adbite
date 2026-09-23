@@ -10,7 +10,7 @@
  * Pure and dependency-free so the same function can run in a Vercel
  * function and, later, in the dashboard's "what the TV will show" preview. */
 
-import { migrated, shareOf, type Board } from './board-shape.js';
+import { migrated, shareOf, showsMenu, type Board } from './board-shape.js';
 import { filesFor, type FontFiles } from './board-fonts.js';
 import { gridFor } from './layout.js';
 import { paletteOf, toRokuColor, type Palette } from './palette.js';
@@ -41,6 +41,25 @@ export type Spot = {
 
 /** A shop's approved spots stitched into one file by the render worker. */
 export type Reel = { src: string; sha256: string; bytes: number; seconds: number };
+
+/* One piece of the shop's own media, playing where a menu board would have
+   its menu.
+
+   This is the shape most screens we sell actually are: no prices, the shop's
+   own film on a loop, and the strip along the foot is the thing being sold.
+   It is deliberately not an entry in `ads` — an ad takes the whole wall for
+   its turn and hands it back, whereas the stage *is* the wall above the
+   strip and never hands it anywhere. */
+export type StageItem = {
+  id: string;
+  name: string;
+  kind: 'image' | 'video';
+  src: string;
+  sha256: string;
+  bytes: number;
+  /** How long a still is held. A clip plays to its end and ignores this. */
+  seconds: number;
+};
 
 /** A shop's own picture or film: part of the rotation, billed to nobody. */
 export type OwnMedia = {
@@ -101,6 +120,10 @@ export type RokuBoard = {
   /* The grid a hand-placed board is laid out on. Sent rather than assumed so
      the channel does not carry a second copy of lib/layout.ts's numbers. */
   grid: { cols: number; rows: number };
+  /* The shop's own media, above the sold strip. Empty on a menu board, and
+     empty on a screen that sold the whole wall rather than a slice of it —
+     there the media is in `ads`, taking its turn like everything else. */
+  stage: StageItem[];
   /** Every picture the board refers to, for the device to fetch and verify. */
   pictures: Picture[];
   /* The two faces the shop chose, as files. Null means the system font, which
@@ -119,6 +142,48 @@ export type RokuBoard = {
     loop?: boolean;
   }[];
 };
+
+/* ---- the stage's own frame ------------------------------------------------
+
+   The shop's film fills the pane above the strip, so the file has to be cut
+   to that pane and not to the whole screen. These numbers are the ones
+   BoardScene.brs's layout() arrives at, and they have to stay the ones it
+   arrives at: `Int(H * share)` is a truncation, and rounding here instead
+   would leave a hairline of board showing along the seam.
+
+   Returned in canvas space — 1920x1080, or 1080x1920 for a screen on its end
+   — because that is the space the film is fitted in. A turned file comes out
+   with those two swapped, since the panel does the rotating. */
+
+export type StageFrame = { width: number; height: number; turn: 'none' | 'left' | 'right' };
+
+/** Whether this screen draws the shop's own media where a menu would go. */
+export function isStaged(board: Pick<Board, 'kind' | 'source' | 'adPlacement'>): boolean {
+  if (showsMenu(board)) return false;
+  return board.adPlacement === 'banner' || board.adPlacement === 'rail';
+}
+
+export function stageFrame(
+  board: Pick<Board, 'kind' | 'source' | 'adPlacement' | 'orientation' | 'turn'>,
+): StageFrame {
+  const portrait = board.orientation === 'portrait';
+  const turn = portrait ? ((board.turn ?? 'left') as 'left' | 'right') : 'none';
+  const width = portrait ? 1080 : 1920;
+  const height = portrait ? 1920 : 1080;
+
+  const placement = board.adPlacement;
+  /* The same clamp the channel applies, so a board saved with a nonsense
+     share is cut the way it is drawn. */
+  const share = Math.min(0.5, Math.max(0, placement === 'rotation' ? 0 : shareOf(placement)));
+  if (share === 0) return { width, height, turn };
+
+  /* There is no rail on a portrait board — a column down one side of a
+     screen on its end is a sliver — so the channel draws a strip there and
+     this cuts for one. */
+  const banner = portrait || placement === 'banner';
+  if (banner) return { width, height: height - Math.trunc(height * share), turn };
+  return { width: width - Math.trunc(width * share), height, turn };
+}
 
 /* The shop's own boards. Hours will come from the shop row once the
    dashboard edits them; until then these are the windows the sample board
@@ -239,6 +304,7 @@ export function compose(input: ComposeInput): RokuBoard {
       /* A reel screen draws no menu, so it needs neither the pictures nor the
          faces — and downloading a megabyte of TTF for a screen that will
          never print a word in it is a megabyte off the shop's uplink. */
+      stage: [],
       pictures: [],
       fontFiles: { display: null, body: null },
       board: { ...rest, adShare: 0, media: { ...rest.media, src: null } },
@@ -263,18 +329,21 @@ export function compose(input: ComposeInput): RokuBoard {
      should read as the shop's, with advertising in it. An id of `media-...`
      is never a campaign id, which is how the server knows not to bill the
      time it reports. */
-  const own = (input.media ?? [])
-    .filter((item) => item.src && item.sha256 && item.bytes > 0)
-    .map((item) => ({
-      id: `media-${item.id}`,
-      name: item.name,
-      format: 'video' as const,
-      src: item.src,
-      sha256: item.sha256,
-      bytes: item.bytes,
-      seconds: Math.max(2, Math.round(item.seconds)),
-      chain: true,
-    }));
+  const playable = (input.media ?? []).filter((item) => item.src && item.sha256 && item.bytes > 0);
+
+  /* Taking the whole wall for a turn. A still goes up as a `full` poster and
+     a clip as `video`: handing a JPEG to the Video node draws nothing, which
+     is what a shop whose screen is photographs used to get. */
+  const own = playable.map((item) => ({
+    id: `media-${item.id}`,
+    name: item.name,
+    format: item.kind === 'image' ? ('full' as const) : ('video' as const),
+    src: item.src,
+    sha256: item.sha256,
+    bytes: item.bytes,
+    seconds: Math.max(2, Math.round(item.seconds)),
+    chain: true,
+  }));
 
   const ads = input.spots
     .filter((spot) => spot.src && spot.sha256 && spot.bytes > 0 && allowed(spot.format))
@@ -289,9 +358,36 @@ export function compose(input: ComposeInput): RokuBoard {
     }));
 
   const { adPlacement: _placement, ...rest } = board;
-  /* A shop that uploads its board has no menu for us to lay out, so the
-     screen is all rotation, the same shape a second screen uses. */
-  const uploaded = board.source === 'media';
+
+  /* Whether this screen has a list on it at all. A display board never does,
+     whatever its source says, and a board whose owner uploaded their own
+     artwork has none either. showsMenu() is the same answer the editor uses
+     to decide whether to hand them a menu grid, so the wall and the editor
+     cannot disagree about what the screen is. */
+  const hasMenu = showsMenu(board);
+
+  /* The shape most of these screens are: the shop's own film above, the
+     strip they sold along the foot, both on the wall at once and neither
+     waiting its turn.
+   *
+   * Without this the media went into `ads` as full-screen turns, so a shop
+   * who had chosen "a strip along the bottom" in the editor — and been shown
+   * a preview with a strip along the bottom — got a wall that played their
+   * film full-screen and never drew the strip at all. The slot they sold is
+   * the product on these boards, so it is drawn, always. */
+  const staged = isStaged(board);
+
+  const stage: StageItem[] = staged
+    ? playable.map((item) => ({
+        id: item.id,
+        name: item.name,
+        kind: item.kind,
+        src: item.src,
+        sha256: item.sha256,
+        bytes: item.bytes,
+        seconds: Math.max(2, Math.round(item.seconds)),
+      }))
+    : [];
 
   return {
     version: 1,
@@ -303,17 +399,25 @@ export function compose(input: ComposeInput): RokuBoard {
     keepAwake: false,
     textScale: 1,
     adLayout: strip || placement === 'banner' ? 'banner' : 'rail',
-    supplemental: input.screen === 'reel' || uploaded,
+    /* A staged screen hides its menu because there is film where the list
+       would be, which the stage itself says. `supplemental` stays for the
+       other reason a menu is absent: a second screen that is nothing but
+       the rotation. */
+    supplemental: input.screen === 'reel' || (!hasMenu && !staged),
     spotSeconds: 15,
     reviewSeconds: 12,
     slotWindows: DEFAULT_WINDOWS,
     palette: wirePalette(board),
     grid: gridFor(board.orientation),
-    /* A board the shop uploaded is all rotation and draws no menu either. */
-    pictures: uploaded ? [] : picturesIn(board, input.pictures),
-    fontFiles: uploaded ? { display: null, body: null } : fontFilesFor(board),
+    stage,
+    /* A screen with no list on it needs neither the pictures the menu would
+       have carried nor the faces it would have been set in. */
+    pictures: hasMenu ? picturesIn(board, input.pictures) : [],
+    fontFiles: hasMenu ? fontFilesFor(board) : { display: null, body: null },
     board: { ...rest, adShare: share, media: { ...rest.media, src: null } },
-    ads: [...own, ...ads],
+    /* Media that is on the stage is not also in the rotation, or it would
+       play twice: once above the strip and once over the top of it. */
+    ads: staged ? ads : [...own, ...ads],
   };
 }
 

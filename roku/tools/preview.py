@@ -353,6 +353,26 @@ def render(config, slot_id, out_path):
         w = draw.textlength(pct, font=f)
         draw.text(((x0 + x1 - w) / 2, (y0 + y1) / 2 + 4), pct, font=f, fill=dim)
 
+    # ---- a screen that is film rather than a list ----
+    # Most boards we sell are this shape: the shop's own media where the menu
+    # would be, and the strip along the foot is what was sold. There is no
+    # text on it, so there is no fit pass to run -- but drawing the empty
+    # menu instead would report a board this tool cannot actually check as
+    # though it had checked it.
+    stage = config.get("stage") or []
+    if stage:
+        panel = Image.new("RGB", (W, H), (11, 11, 12))
+        mark = ImageDraw.Draw(panel)
+        f = font(31, True)
+        line = f"{len(stage)} piece(s) of the shop's own media"
+        mark.text(((W - mark.textlength(line, font=f)) / 2, H / 2 - 40), line, font=f, fill=dim)
+        f = font(23, False)
+        names = ", ".join(item.get("name") or item.get("id", "") for item in stage)[:70]
+        mark.text(((W - mark.textlength(names, font=f)) / 2, H / 2 + 6), names, font=f, fill=rule)
+        image.paste(panel, (0, 0))
+        image.save(out_path)
+        return 1.0, 0
+
     # ---- a board the shop placed by hand ----
     # Before the header, because the header is part of the automatic layout:
     # a placed board draws its own name band as a block. MenuPane.brs returns
@@ -771,6 +791,28 @@ def render_tip(out_path):
     return used - 260
 
 
+def turned_card(renderer, out_path, turn):
+    """The same card as the wall shows it on a screen hung on its end.
+
+    turnOverlay() in BoardScene.brs keeps the card's 1920x1080 design and
+    scales it to the canvas width, then turns it with the board. Drawn here
+    the way the person standing in front of the TV sees it, which is the only
+    view in which "does this read the right way up" is a question.
+    """
+    flat = out_path.parent / f".{out_path.stem}-flat.png"
+    spill = renderer(flat)
+    card = Image.open(flat)
+
+    scale = 1080 / 1920
+    card = card.resize((1080, round(SCREEN_H * scale)), Image.LANCZOS)
+
+    canvas = Image.new("RGB", (1080, 1920), rgb("#0A0908"))
+    canvas.paste(card, (0, (1920 - card.height) // 2))
+    canvas.save(out_path)
+    flat.unlink(missing_ok=True)
+    return spill
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("board", nargs="?", default="board.json")
@@ -792,10 +834,21 @@ def main():
                 note += f", CLIPPED by {round(overflow)}px"
             print(f"  {path}  ({note})")
 
+    # A portrait board turns its cards too, so the check has to see them
+    # turned: a card that fits across a 1920 frame is a different question
+    # from the same card scaled onto a 1080 one.
+    turn = ""
+    if not args.screens_only:
+        board = json.loads(pathlib.Path(args.board).read_text()).get("board", {})
+        if (board.get("orientation") or "landscape") == "portrait":
+            turn = board.get("turn") or "left"
+
     for name, renderer in (("pairing", render_pairing), ("screensaver-card", render_tip)):
         path = out / f"{name}.png"
-        spill = renderer(path)
+        spill = turned_card(renderer, path, turn) if turn else renderer(path)
         note = "fits" if spill <= 0 else f"CLIPPED by {round(spill)}px"
+        if turn:
+            note += f", turned {turn}"
         print(f"  {path}  ({note})")
 
 
