@@ -22,6 +22,8 @@ sub init()
     ' The rotation this list represents, so a revision bump that changes
     ' nothing about the media does not rewind the wall to its first frame.
     m.stageKey = ""
+    ' A which-way-up asked for at launch, before there was a board to ask of.
+    m.pendingHang = ""
     m.stageTimer = m.top.createChild("Timer")
     m.stageTimer.repeat = false
     m.stageTimer.observeField("fire", "stageAdvance")
@@ -147,6 +149,12 @@ sub applyBoard(config as Object, source as String)
         ' time, which is the moment the pairing code and its instructions
         ' disappear. Said once, then never again on this TV.
         maybeShowTip()
+        ' A hang= handed in at launch, now that there is a board to hang.
+        if m.pendingHang <> invalid and m.pendingHang <> ""
+            want = m.pendingHang
+            m.pendingHang = ""
+            applyHang(want)
+        end if
     end if
 
     startRefresh()
@@ -312,6 +320,7 @@ sub layout()
     ' one thing lying on its side.
     turnOverlay(m.pairingCard, canvas)
     turnOverlay(m.tipCard, canvas)
+    layoutWhichWayUp()
 
     m.menu.slotId = m.slotId
     m.menu.config = m.config
@@ -320,6 +329,50 @@ sub layout()
     m.revision = m.revision + 1
     m.menu.revision = m.revision
     m.ads.revision = m.revision
+end sub
+
+' Which way up, handed in at launch rather than pressed on a remote.
+'
+' "show" opens the card; the three answers set it outright and leave the
+' board on screen. Exists because a Roku TV with "Control by mobile apps"
+' switched off refuses every ECP key press, and on such a set the OPTIONS
+' overlay -- and therefore the card behind it -- cannot be reached at all.
+sub onLaunchHang()
+    want = LCase(strOrDefault(m.top.launchHang, "")).Trim()
+    if want = "" then return
+
+    ' The field is set from Main, which happens before ConfigTask has been
+    ' anywhere. Acting now would read the orientation off a board that is not
+    ' there yet: the card would say "Landscape" on a portrait screen, and a
+    ' hang= would be written against nothing. Held until there is a board.
+    if m.config = invalid or m.config.board = invalid
+        m.pendingHang = want
+        return
+    end if
+    applyHang(want)
+end sub
+
+sub applyHang(want as String)
+    if want = "show"
+        showWhichWayUp()
+        return
+    end if
+
+    states = wayStates()
+    at = -1
+    if want = "landscape" then at = 0
+    if want = "left" or want = "portrait-left" then at = 1
+    if want = "right" or want = "portrait-right" then at = 2
+    if at < 0
+        print "[adbite] unknown hang '"; want; "'"
+        return
+    end if
+
+    ' turnWhichWayUp() walks from where the board is, so the distance is the
+    ' difference between the two. Going through it rather than around it
+    ' keeps one place that writes the registry and tells the server.
+    turnWhichWayUp(at - wayIndex())
+    print "[adbite] hung "; wayLabel()
 end sub
 
 ' ---- which way up ---------------------------------------------------------
@@ -442,34 +495,56 @@ sub layoutWhichWayUp()
     theme = BoardTheme("chalk")
     if m.config <> invalid then theme = BoardPalette(m.config)
 
-    size = Int(W * 0.26)
-    m.wayArrow.width = size
-    m.wayArrow.height = size
-    m.wayArrow.translation = [(W - size) / 2, H * 0.16]
+    ' Everything is sized off the shorter side, because this card is drawn on
+    ' both a 1080-wide canvas and a 1080-tall one. Sizing off the width alone
+    ' fitted the portrait board and ran the help text off the bottom of a
+    ' landscape one, which is the half nobody would have thought to check.
+    unit = W
+    if H < unit then unit = H
+
+    arrow = Int(unit * 0.30)
+    titleSize = Int(unit * 0.050)
+    nowSize = Int(unit * 0.038)
+    helpSize = Int(unit * 0.030)
+    helpHeight = Int(helpSize * 2.6)
+    gap = Int(unit * 0.035)
+
+    ' Stacked, then the whole stack centred, so it sits right on a canvas of
+    ' any shape rather than at a fraction of a height that only suits one.
+    stack = arrow + gap + titleSize + Int(gap * 0.6) + nowSize + gap + helpHeight
+    top = (H - stack) / 2
+    pad = Int(W * 0.06)
+
+    m.wayArrow.width = arrow
+    m.wayArrow.height = arrow
+    m.wayArrow.translation = [(W - arrow) / 2, top]
     m.wayArrow.blendColor = theme.accent
 
-    pad = Int(W * 0.08)
-    top = H * 0.16 + size + Int(W * 0.05)
+    y = top + arrow + gap
 
     title = m.top.findNode("wayTitle")
-    title.font = BoardFont(Int(W * 0.045), true)
+    title.font = BoardFont(titleSize, true)
     title.width = W - pad * 2
-    title.translation = [pad, top]
+    title.translation = [pad, y]
     title.text = "This arrow should point at the ceiling"
 
+    y = y + titleSize + Int(gap * 0.6)
+
     now = m.top.findNode("wayNow")
-    now.font = BoardFont(Int(W * 0.034), false)
+    now.font = BoardFont(nowSize, false)
     now.width = W - pad * 2
-    now.translation = [pad, top + Int(W * 0.075)]
+    now.translation = [pad, y]
     now.text = wayLabel()
 
+    y = y + nowSize + gap
+
     help = m.top.findNode("wayHelp")
-    help.font = BoardFont(Int(W * 0.028), false)
+    help.font = BoardFont(helpSize, false)
     help.width = W - pad * 2
-    help.height = Int(W * 0.22)
+    help.height = helpHeight
     help.wrap = true
-    help.translation = [pad, top + Int(W * 0.135)]
-    help.text = "LEFT and RIGHT turn the board until it does." + Chr(10) + "OK keeps it. This screen only — your other TVs are not changed."
+    help.translation = [pad, y]
+    help.text = "LEFT and RIGHT turn the board until it does. OK keeps it." + Chr(10) + "This screen only — your other TVs are not changed."
 end sub
 
 function wayLabel() as String
@@ -856,6 +931,12 @@ end function
 function onKeyEvent(key as String, press as Boolean) as Boolean
     if not press then return false
 
+    ' Every key the channel is actually handed. A Roku TV can keep some of
+    ' them for itself -- the * button is the system's own options panel on
+    ' several models -- and the difference between "the channel ignored it"
+    ' and "the channel never saw it" is not otherwise visible from here.
+    print "[adbite] key "; key
+
     ' Anything at all puts the board back. Somebody pressing a button is
     ' somebody who has read it.
     if m.tip.visible
@@ -906,7 +987,11 @@ function onKeyEvent(key as String, press as Boolean) as Boolean
         return true
     end if
 
-    if key = "options" or key = "info"
+    ' `replay` as well as `options`, because on a Roku TV the * button is the
+    ' television's own options panel and the set may keep it -- which would
+    ' otherwise leave the overlay, and the device IP printed on it, with no
+    ' way in on exactly the hardware a shop has on the wall.
+    if key = "options" or key = "info" or key = "replay"
         m.diagnostics.visible = not m.diagnostics.visible
         ' A spot playing over the overlay would hide it: the video plane is
         ' above the graphics plane on every Roku. So the rotation pauses for
@@ -975,6 +1060,7 @@ sub refreshDiagnostics()
         "",
         "screensaver: Settings > Screen saver > Wait time > Disabled",
         "UP: which way is this screen hung?",
+        "REPLAY also opens this, if * belongs to the TV",
         "OPTIONS hides this  ·  PLAY syncs now"
     ]
 
