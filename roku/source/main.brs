@@ -50,6 +50,11 @@ sub Main(args as Dynamic)
     end if
     if hang <> "" then scene.launchHang = LCase(hang)
 
+    '   curl -d "" "http://<roku-ip>:8060/launch/dev?diag=show"
+    diag = ""
+    if args <> invalid and args.diag <> invalid then diag = args.diag
+    if diag <> "" then scene.launchDiag = LCase(diag)
+
     while true
         msg = wait(0, port)
         if type(msg) = "roSGScreenEvent"

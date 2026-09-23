@@ -108,7 +108,11 @@ function readJsonFile(path as String) as Dynamic
     ' ReadAsciiFile prints its own error when the file is absent, which is the
     ' normal case for cachefs: on a fresh install, so ask first.
     fs = CreateObject("roFileSystem")
-    if not fs.Exists(path) then return invalid
+    ' roFileSystem is not available on every thread of every set (it comes
+    ' back invalid in the render thread on a Hisense 43H4030), so nothing
+    ' here may assume it. ReadAsciiFile prints its own error and returns ""
+    ' for a file that is not there, which is the answer we want anyway.
+    if fs <> invalid and not fs.Exists(path) then return invalid
 
     raw = ReadAsciiFile(path)
     if raw = invalid or raw = "" then return invalid
@@ -360,7 +364,8 @@ function storageReport() as Object
     fs = CreateObject("roFileSystem")
     used = 0
     count = 0
-    files = fs.Find("cachefs:/", "^a-")
+    files = invalid
+    if fs <> invalid then files = fs.Find("cachefs:/", "^a-")
     if files <> invalid
         for each name in files
             stat = fs.Stat("cachefs:/" + name)
@@ -372,11 +377,14 @@ function storageReport() as Object
     end if
 
     report = { files: count, usedMb: Int(used / 1048576) }
-    info = fs.GetVolumeInfo("cachefs:")
+    info = invalid
+    if fs <> invalid then info = fs.GetVolumeInfo("cachefs:")
     if info <> invalid and info.blocks <> invalid and info.blocksize <> invalid
         report.totalMb = Int(info.blocks * info.blocksize / 1048576)
         if info.freeblocks <> invalid then report.freeMb = Int(info.freeblocks * info.blocksize / 1048576)
     end if
+    ' Handed to the scene, which cannot read the disk itself.
+    m.top.cacheState = report
     return report
 end function
 
@@ -473,6 +481,7 @@ end function
 
 function fileSize(path as String) as Integer
     fs = CreateObject("roFileSystem")
+    if fs = invalid then return -1
     if not fs.Exists(path) then return -1
     stat = fs.Stat(path)
     if stat = invalid or stat.size = invalid then return -1
@@ -597,7 +606,8 @@ sub reportCache()
     fs = CreateObject("roFileSystem")
     used = 0
     count = 0
-    files = fs.Find("cachefs:/", "^a-")
+    files = invalid
+    if fs <> invalid then files = fs.Find("cachefs:/", "^a-")
     if files <> invalid
         for each name in files
             stat = fs.Stat("cachefs:/" + name)
@@ -609,7 +619,8 @@ sub reportCache()
     end if
 
     line = "[adbite] cache: " + count.ToStr() + " file(s), " + Int(used / 1048576).ToStr() + " MB"
-    info = fs.GetVolumeInfo("cachefs:")
+    info = invalid
+    if fs <> invalid then info = fs.GetVolumeInfo("cachefs:")
     if info <> invalid and info.blocks <> invalid and info.blocksize <> invalid
         total = info.blocks * info.blocksize / 1048576
         free = 0
@@ -633,6 +644,7 @@ sub pruneAssets(board as Object)
         end if
     end for
     fs = CreateObject("roFileSystem")
+    if fs = invalid then return
     files = fs.Find("cachefs:/", "^a-")
     if files = invalid then return
     for each name in files
