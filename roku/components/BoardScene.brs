@@ -574,6 +574,23 @@ end function
 '
 ' The scrim behind it is left alone on purpose. It is a flat rectangle over
 ' the whole frame and looks identical whichever way it is turned.
+' A panel small enough to fit the canvas as drawn: turned into the frame,
+' never scaled. turnOverlay() below shrinks a full-frame card to fit; this is
+' for something that is already the right size and only in the wrong
+' direction, where scaling would cost legibility for nothing. `offset` is
+' where the panel sits in canvas space.
+sub turnPanel(node as Object, canvas as Object, offsetX as Float, offsetY as Float)
+    if node = invalid then return
+    if canvas.turn = ""
+        node.rotation = 0
+        node.translation = [offsetX, offsetY]
+        return
+    end if
+    placed = PortraitTransform(canvas.turn, offsetX, offsetY)
+    node.rotation = placed.rotation
+    node.translation = placed.translation
+end sub
+
 sub turnOverlay(card as Object, canvas as Object)
     if card = invalid then return
 
@@ -1036,6 +1053,21 @@ end function
 
 sub refreshDiagnostics()
     if not m.diagnostics.visible then return
+
+    ' The overlay carries the device IP and the channel version, which is
+    ' what somebody standing at the TV has come to read. On a screen hung on
+    ' its end it was drawn across the frame while the board behind it was
+    ' upright, so the one panel whose whole job is to be read was sideways.
+    board = invalid
+    if m.config <> invalid then board = m.config.board
+    canvas = CanvasFor(board)
+    ' 72 from the corner on a board with room for it; centred on one without,
+    ' since the panel is 1000 wide and a portrait canvas is 1080.
+    inset = 72
+    spare = (canvas.width - 1000) / 2
+    if spare < inset then inset = spare
+    if inset < 0 then inset = 0
+    turnPanel(m.diagnostics, canvas, inset, 72)
 
     app = CreateObject("roAppInfo")
     device = CreateObject("roDeviceInfo")
