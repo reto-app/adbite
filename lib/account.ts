@@ -85,11 +85,16 @@ function start() {
   });
 }
 
-/** Send the magic link. The page the link opens is /dashboard. */
-export async function signIn(email: string): Promise<{ ok: true } | { ok: false; message: string }> {
+/** Send the magic link. The page the link opens is /dashboard, or `next`
+    when the person started somewhere that already knows what they came for,
+    such as a shop's own advertising page. */
+export async function signIn(
+  email: string,
+  next = '/dashboard',
+): Promise<{ ok: true } | { ok: false; message: string }> {
   const { error } = await supabase().auth.signInWithOtp({
     email,
-    options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+    options: { emailRedirectTo: `${window.location.origin}${next}` },
   });
   if (error) return { ok: false, message: error.message };
   return { ok: true };

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -46,6 +46,8 @@ import { totalsOf } from '@/lib/delivery';
 import { usePlays } from '@/lib/plays';
 import { useAdvertiserStatements } from '@/lib/statements';
 import { localeOf, useCopy, useLang } from '@/lib/lang';
+import { useAccount } from '@/lib/account';
+import { clearBook } from '@/lib/book-intent';
 import { CAMPAIGN } from '@/lib/copy/campaign';
 
 function useDay() {
@@ -91,9 +93,14 @@ function formatName(id: FormatId) {
    inside itself, and a bar pinned to the bottom. */
 
 function NewCampaign({
+  startVenue,
   onDone,
   onCancel,
 }: {
+  /* Set when the person arrived from one shop's advertising page. The shop is
+     already chosen, so the builder opens on that shop's board instead of on
+     the list of shops. */
+  startVenue?: string | null;
   /* The id of the first booking made, so closing the builder lands on that
      campaign's reporting rather than on whatever was top of the list. */
   onDone: (campaignId?: string) => void;
@@ -102,15 +109,18 @@ function NewCampaign({
   const t = useCopy(CAMPAIGN).dash;
   const pay = useCopy(CAMPAIGN).pay;
   const day = useDay();
-  const [step, setStep] = useState(0);
-  const [placement, setPlacement] = useState<Placement>(DEFAULT_PLACEMENT);
+  const opening: Placement = startVenue ? { venues: [startVenue], ages: [] } : DEFAULT_PLACEMENT;
+  const [step, setStep] = useState(startVenue ? 1 : 0);
+  const [placement, setPlacement] = useState<Placement>(opening);
   /* Seeded from the same default the first step opens on, so stepping
      straight through lands on the boards that are already selected rather
      than on an empty step. */
   const [lines, setLines] = useState<Line[]>(() =>
-    DEFAULT_PLACEMENT.venues.map((venueId) => emptyLine(venueId, null)),
+    opening.venues.map((venueId) => emptyLine(venueId, null)),
   );
-  const [email, setEmail] = useState('');
+  /* The invoice goes to whoever signed in unless they say otherwise. */
+  const { user } = useAccount();
+  const [email, setEmail] = useState(user?.email ?? '');
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -373,11 +383,20 @@ function CampaignDetail({ campaign, onDelete }: { campaign: Campaign; onDelete: 
    door that could not open. Nothing in here needs a server or a session: the
    campaigns live in this browser. It is open, and the email is asked for at
    submit, which is also the moment intent is highest. */
-export function AdvertiserDashboard() {
+export function AdvertiserDashboard({ book = null }: { book?: string | null }) {
   const t = useCopy(CAMPAIGN).dash;
   const { ready: listReady, campaigns } = useCampaigns();
   const [creating, setCreating] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const [startVenue, setStartVenue] = useState<string | null>(null);
+
+  /* Arrived to book one shop: open the builder on it, once. */
+  useEffect(() => {
+    if (!book) return;
+    setStartVenue(book);
+    setCreating(true);
+    clearBook();
+  }, [book]);
 
   const active = useMemo(
     () => campaigns.find((campaign) => campaign.id === selected) ?? campaigns[0],
@@ -396,11 +415,16 @@ export function AdvertiserDashboard() {
       <main className="campaign-page building">
         <DashboardHeader />
         <NewCampaign
+          startVenue={startVenue}
           onDone={(campaignId) => {
             if (campaignId) setSelected(campaignId);
             setCreating(false);
+            setStartVenue(null);
           }}
-          onCancel={() => setCreating(false)}
+          onCancel={() => {
+            setCreating(false);
+            setStartVenue(null);
+          }}
         />
       </main>
     );

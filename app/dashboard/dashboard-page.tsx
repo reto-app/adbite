@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowRight, Check, Mail } from 'lucide-react';
 import { DashboardHeader } from '@/components/dashboard-header';
 import { AdvertiserDashboard } from '@/app/dashboard/advertiser-dashboard';
 import { ShopDashboard } from '@/app/dashboard/shop-dashboard';
 import { ACCOUNTS, setAccount, signIn, useAccount } from '@/lib/account';
+import { readBook } from '@/lib/book-intent';
 import { BusinessForm } from '@/components/onboarding/business-form';
 import { useOnboarding } from '@/lib/onboarding';
 import { SUPPORT_MAIL, SUPPORT_MAILTO } from '@/lib/site';
@@ -90,8 +91,20 @@ export function DashboardPage() {
      than the one the hook loaded before there was anything in it. */
   const [saved, setSaved] = useState(false);
   const t = useCopy(SHARED);
+  /* A shop's advertising page sent this person here to book that shop. Read
+     after mount, since there is no query string at build time. */
+  const [book, setBook] = useState<string | null>(null);
+  useEffect(() => setBook(readBook()), []);
 
-  if (!ready) {
+  /* They came through an advertising page, so the side is already answered:
+     asking "which side of the board are you on?" would be a question with one
+     sensible answer standing between them and the upload. */
+  const choosing = Boolean(ready && user && !kind && book);
+  useEffect(() => {
+    if (choosing) void setAccount('advertiser');
+  }, [choosing]);
+
+  if (!ready || choosing) {
     return (
       <main className="campaign-page">
         <DashboardHeader />
@@ -135,7 +148,7 @@ export function DashboardPage() {
   }
 
   if (kind === 'shop') return <ShopDashboard />;
-  if (kind === 'advertiser') return <AdvertiserDashboard />;
+  if (kind === 'advertiser') return <AdvertiserDashboard book={book} />;
 
   return (
     <main className="campaign-page choose">

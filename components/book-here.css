@@ -1,0 +1,92 @@
+/* A shop's advertising page (components/book-here.tsx). It stands on the
+   review page's .review / .review-card, and only adds what that page has no
+   use for: the shop line, the three steps and a full-width call to action. */
+
+.book-eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sky-deep);
+}
+
+.book-steps {
+  display: grid;
+  gap: 12px;
+  margin: 6px 0 2px;
+  padding: 0;
+  list-style: none;
+}
+
+.book-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.book-steps b {
+  display: block;
+  font-size: 14.5px;
+}
+
+.book-steps small {
+  display: block;
+  margin-top: 1px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ash);
+}
+
+.book-step-n {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--board);
+  color: var(--chalk);
+  font-family: var(--font-display), sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.book-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.book-form .send-field {
+  max-width: none;
+  margin-top: 4px;
+}
+
+.book-form .form-warn {
+  margin: 0;
+}
+
+.book-go {
+  width: 100%;
+}
+
+.book-go:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.book-again {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ash);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.book > .review-note a {
+  text-decoration: underline;
+}
