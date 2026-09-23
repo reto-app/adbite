@@ -136,7 +136,7 @@ export function ReviewPage() {
     <main className="review">
       <header className="review-top">
         <Link href="/" aria-label="AdBite">
-          <Wordmark />
+          <Wordmark className="review-word" />
         </Link>
         <LangSwitch />
       </header>

@@ -12,7 +12,10 @@
 
 import { supabase } from '@/lib/supabase';
 
-export const ASSETS_ORIGIN = 'https://assets.adbite.site';
+/* Re-exported so the browser's import sites do not all have to move. The
+   constant itself lives in lib/site.ts, which imports nothing and is therefore
+   safe for the api/ functions that also need it. */
+export { ASSETS_ORIGIN } from '@/lib/site';
 
 export type Uploaded = {
   creativeId: string;

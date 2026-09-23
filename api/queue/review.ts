@@ -21,7 +21,7 @@
 
 import { json, service } from '../../lib/server/db.js';
 import { openLink, settle, type OpenFailure } from '../../lib/server/approvals.js';
-import { ASSETS_ORIGIN } from '../../lib/creatives.js';
+import { ASSETS_ORIGIN } from '../../lib/site.js';
 import { shopEarningsFromSpend } from '../../lib/pricing.js';
 
 export const config = { runtime: 'nodejs' };

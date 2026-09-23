@@ -13200,6 +13200,16 @@ text.vs-small {
   max-width: 520px;
 }
 
+/* The mark carries no size of its own -- the SVG is all viewBox -- so every
+   place it appears has to give it one. The others are all white on a dark
+   header; this page is the one that stands on paper. */
+.review-word {
+  display: block;
+  width: 96px;
+  height: auto;
+  color: var(--ink);
+}
+
 .review-card {
   display: flex;
   flex-direction: column;

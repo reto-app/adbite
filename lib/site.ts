@@ -15,3 +15,16 @@ export const SUPPORT_MAILTO = `mailto:${SUPPORT_MAIL}`;
 
 /** The company page. The only place the site sends anyone off it. */
 export const LINKEDIN = 'https://linkedin.com/company/adbitelocal';
+
+/* Where artwork is served from, for a browser previewing it and for a TV
+   downloading it.
+ *
+   This lives here rather than in lib/creatives.ts, where it used to, because
+   both sides of the product need it and only one of them can load that file.
+   `creatives.ts` is 'use client' and imports the browser Supabase client
+   through the `@/` alias; an api/ function that reaches for this constant
+   there drags all of that into a Node bundle that cannot resolve the alias,
+   and the function 500s on every request before it runs a line of its own.
+   That is exactly what happened to api/queue/review.ts. This file imports
+   nothing, which is what makes it safe for either side. */
+export const ASSETS_ORIGIN = 'https://assets.adbite.site';
