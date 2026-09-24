@@ -24,9 +24,6 @@
  */
 
 import { json, service, userFrom } from '../lib/server/db.js';
-/* lib/site.ts imports nothing, which is why the api/ functions can read it
-   without the `@/` alias the browser build resolves. */
-import { ASSETS_ORIGIN } from '../lib/site.js';
 
 export const config = { runtime: 'nodejs' };
 
@@ -98,13 +95,19 @@ export async function GET(request: Request): Promise<Response> {
 
   /* Ordered by position, so the first row per shop is the first thing its
      screen plays. */
+  /* Read from the environment with the same fallback api/device/sync.ts
+     uses, rather than from lib/site.ts. One less thing this function needs
+     to exist, and the two api/ functions that build asset URLs now do it the
+     same way. */
+  const origin = process.env.ASSETS_ORIGIN ?? 'https://assets.adbite.site';
+
   const stageOf = new Map<string, { url: string; name: string }>();
   for (const row of stages ?? []) {
     const shopId = row.shop_id as string;
     if (stageOf.has(shopId)) continue;
     const path = (row.kind === 'video' ? row.poster_path : row.storage_path) as string | null;
     if (!path) continue;
-    stageOf.set(shopId, { url: `${ASSETS_ORIGIN}/${path}`, name: (row.name as string) ?? '' });
+    stageOf.set(shopId, { url: `${origin}/${path.replace(/^\/+/, '')}`, name: (row.name as string) ?? '' });
   }
   const devicesOf = new Map<string, DeviceRow[]>();
   for (const device of (devices ?? []) as DeviceRow[]) {
