@@ -265,6 +265,13 @@ sub syncWithServer(syncUrl as String, packaged as Dynamic)
         if packaged <> invalid then pairing.append(packaged)
         pairing.pairing = true
         pairing.pairCode = strOr(response.pairCode, "")
+        ' The packaged board carries a once-a-day refreshAt, which is right for
+        ' a wall in service and wrong here: startRefresh() prefers refreshAt
+        ' over refreshMinutes, so a screen waiting to be claimed would inherit
+        ' 04:00 and sit on this card until morning -- while the card itself
+        ' promises the board within a minute. A screen nobody has claimed yet
+        ' polls on the interval the server just asked for, and nothing else.
+        pairing.Delete("refreshAt")
         pairing.refreshMinutes = numOr(response.refreshMinutes, 1)
         pairing.syncUrl = syncUrl
         ' A screen that was paired and is not any more must not keep the old
