@@ -37,10 +37,57 @@ export type Spot = {
   sha256: string;
   bytes: number;
   seconds?: number | null;
+  /** Who is paying for it, for spacing the rotation. Null is its own party. */
+  advertiser?: string | null;
 };
 
 /** A shop's approved spots stitched into one file by the render worker. */
 export type Reel = { src: string; sha256: string; bytes: number; seconds: number };
+
+/* Deal the rotation out so one advertiser's spots do not run back to back.
+ *
+ * A shop that has sold three slots and carries five of ours should not show
+ * five AdBite cards in a row and then the paying advertisers -- the paid spots
+ * are the product, and burying them behind a block of house cards is how a
+ * wall starts to read as an advert for the ad company.
+ *
+ * Each round takes from the largest group that is not the one just played, so
+ * the biggest group is spread as far as it will go. With five house cards and
+ * three sold it lands H S H K H D H H: the best any order can do, because the
+ * surplus has to sit somewhere. Stable for a given input, so a board that has
+ * not changed still hashes to the same etag and no TV re-downloads anything. */
+function spaced<T>(items: T[], keyOf: (item: T) => string): T[] {
+  if (items.length < 3) return items;
+
+  const groups = new Map<string, T[]>();
+  for (const item of items) {
+    const key = keyOf(item);
+    const group = groups.get(key);
+    if (group) group.push(item);
+    else groups.set(key, [item]);
+  }
+  if (groups.size < 2) return items;
+
+  const out: T[] = [];
+  let last = '';
+  while (out.length < items.length) {
+    let pick = '';
+    let most = 0;
+    for (const [key, group] of groups) {
+      /* Skipping `last` is what does the spacing; it is only ignored below,
+         when every spot still in hand belongs to the group just played. */
+      if (group.length === 0 || key === last) continue;
+      if (group.length > most) {
+        most = group.length;
+        pick = key;
+      }
+    }
+    if (pick === '') for (const [key, group] of groups) if (group.length > 0) { pick = key; break; }
+    out.push(groups.get(pick)!.shift()!);
+    last = pick;
+  }
+  return out;
+}
 
 /* One piece of the shop's own media, playing where a menu board would have
    its menu.
@@ -345,17 +392,18 @@ export function compose(input: ComposeInput): RokuBoard {
     chain: true,
   }));
 
-  const ads = input.spots
-    .filter((spot) => spot.src && spot.sha256 && spot.bytes > 0 && allowed(spot.format))
-    .map((spot) => ({
-      id: spot.campaignId,
-      name: spot.name,
-      format: spot.format,
-      src: spot.src,
-      sha256: spot.sha256,
-      bytes: spot.bytes,
-      seconds: spot.seconds && spot.seconds >= 2 ? Math.round(spot.seconds) : 15,
-    }));
+  const ads = spaced(
+    input.spots.filter((spot) => spot.src && spot.sha256 && spot.bytes > 0 && allowed(spot.format)),
+    (spot) => spot.advertiser ?? spot.campaignId,
+  ).map((spot) => ({
+    id: spot.campaignId,
+    name: spot.name,
+    format: spot.format,
+    src: spot.src,
+    sha256: spot.sha256,
+    bytes: spot.bytes,
+    seconds: spot.seconds && spot.seconds >= 2 ? Math.round(spot.seconds) : 15,
+  }));
 
   const { adPlacement: _placement, ...rest } = board;
 

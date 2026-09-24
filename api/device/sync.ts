@@ -146,9 +146,13 @@ export async function POST(request: Request): Promise<Response> {
      finished processing. Nothing else reaches the wall. */
   const { data: approved } = await db
     .from('approvals')
-    .select('campaigns!inner(id, name, format, status, device_ids, creatives(kind, storage_path, original_path, sha256, bytes, seconds, ready))')
+    .select('campaigns!inner(id, name, format, status, advertiser_id, advertiser_name, device_ids, creatives(kind, storage_path, original_path, sha256, bytes, seconds, ready))')
     .eq('shop_id', device.shop_id)
-    .eq('status', 'approved');
+    .eq('status', 'approved')
+    /* Ordered so a board that has not changed composes identically every
+       poll: without it Postgres is free to hand these back in any order, and
+       a reshuffled rotation is a new etag and a needless re-download. */
+    .order('created_at', { referencedTable: 'campaigns', ascending: true });
 
   const origin = process.env.ASSETS_ORIGIN ?? 'https://assets.adbite.site';
   const url = (path: string) => `${origin}/${path.replace(/^\/+/, '')}`;
@@ -174,6 +178,8 @@ export async function POST(request: Request): Promise<Response> {
       name: string;
       format: Spot['format'];
       status: string;
+      advertiser_id: string | null;
+      advertiser_name: string | null;
       device_ids: string[] | null;
       creatives: { kind: string; storage_path: string | null; original_path: string | null; sha256: string | null; bytes: number | null; seconds: number | null; ready: boolean } | null;
     };
@@ -198,6 +204,10 @@ export async function POST(request: Request): Promise<Response> {
       sha256: creative.sha256,
       bytes: creative.bytes,
       seconds: creative.seconds,
+      /* Who it is for, so compose() can keep one advertiser's spots apart.
+         The account id is the fallback: two campaigns with no name on them
+         still belong to the same party and should not run back to back. */
+      advertiser: c.advertiser_name ?? c.advertiser_id ?? null,
     });
   }
 
