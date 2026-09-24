@@ -8,7 +8,6 @@ import { LangSwitch } from '@/components/lang-switch';
 import { signIn, useAccount } from '@/lib/account';
 import { bookPath, rememberBook } from '@/lib/book-intent';
 import { venueById } from '@/lib/network';
-import { SPOT_QUARTERLY, SPOT_YEARLY, money } from '@/lib/pricing';
 import { SUPPORT_MAIL, SUPPORT_MAILTO } from '@/lib/site';
 import { useCopy } from '@/lib/lang';
 import { BOOK } from '@/lib/copy/book';
@@ -33,10 +32,6 @@ export function BookHere({ venueId }: { venueId: string }) {
   const [sent, setSent] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
-  /* The figure is a tap away rather than on the card: see lib/copy/book.ts.
-     Once asked for it stays open, because somebody who wanted the number
-     wants it again when they scroll back up. */
-  const [priced, setPriced] = useState(false);
 
   if (!venue) return null;
   /* "Don Joaquín Street Tacos · Provo" is how the network lists it; the
@@ -89,19 +84,7 @@ export function BookHere({ venueId }: { venueId: string }) {
                 <dt>{t.open}</dt>
                 <dd>{venue.hours}</dd>
               </div>
-              {priced && (
-                <div className="book-price-row">
-                  <dt>{t.price}</dt>
-                  <dd className="money">{t.priceValue(money.format(SPOT_QUARTERLY), money.format(SPOT_YEARLY))}</dd>
-                </div>
-              )}
             </dl>
-
-            {!priced && (
-              <button type="button" className="book-price-ask" onClick={() => setPriced(true)}>
-                {t.priceShow}
-              </button>
-            )}
 
             <ol className="book-steps">
               {t.steps.map((step, index) => (

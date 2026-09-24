@@ -5,21 +5,18 @@
  * thing: an email. Everything else happens in the builder, which opens already
  * pointed at this shop.
  *
- * The price is behind `priceShow` rather than on the card. Leading with a
- * figure invites the one question this page cannot answer -- "is that worth
- * it?" -- before it has shown them their ad on the shop's actual screen,
- * which is the part that answers it. Anyone who wants the number first is one
- * tap away from it, and it is the same number either way. */
+ * There is no price here, deliberately. A figure with no context invites the
+ * one question this page cannot answer -- "is that worth it?" -- before it has
+ * shown them their own ad on the shop's actual screen, which is the part that
+ * answers it. The number is in the builder, a step after they can see what
+ * they are buying. */
 
 const en = {
   title: (shop: string) => `Put your business on the screen at ${shop}.`,
   lede: 'Your ad runs on the screen at the counter all day, every day they are open, in front of everyone waiting on an order. Set it up from your phone in a few minutes.',
   where: 'Where',
   open: 'Open',
-  price: 'Your spot',
-  priceShow: 'What does it cost?',
   home: 'Home',
-  priceValue: (quarter: string, year: string) => `${quarter} for 3 months, or ${year} for a year`,
   steps: [
     {
       title: 'Make your account',
@@ -53,10 +50,7 @@ const es: typeof en = {
   lede: 'Tu anuncio sale en la pantalla del mostrador todo el día, cada día que abren, frente a todos los que esperan su orden. Lo preparas desde tu teléfono en unos minutos.',
   where: 'Dónde',
   open: 'Horario',
-  price: 'Tu espacio',
-  priceShow: '¿Cuánto cuesta?',
   home: 'Inicio',
-  priceValue: (quarter: string, year: string) => `${quarter} por 3 meses, o ${year} por un año`,
   steps: [
     {
       title: 'Crea tu cuenta',
