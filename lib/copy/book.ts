@@ -1,9 +1,15 @@
 /* The page a printed QR code opens: one shop, one screen, three steps.
  *
  * Whoever reads this was standing somewhere else a minute ago looking at an
- * ad, and is on a phone. So it names the shop they can picture, says what it
- * costs before they have to ask, and asks for one thing: an email. Everything
- * else happens in the builder, which opens already pointed at this shop. */
+ * ad, and is on a phone. So it names the shop they can picture and asks for one
+ * thing: an email. Everything else happens in the builder, which opens already
+ * pointed at this shop.
+ *
+ * The price is behind `priceShow` rather than on the card. Leading with a
+ * figure invites the one question this page cannot answer -- "is that worth
+ * it?" -- before it has shown them their ad on the shop's actual screen,
+ * which is the part that answers it. Anyone who wants the number first is one
+ * tap away from it, and it is the same number either way. */
 
 const en = {
   title: (shop: string) => `Put your business on the screen at ${shop}.`,
@@ -11,6 +17,8 @@ const en = {
   where: 'Where',
   open: 'Open',
   price: 'Your spot',
+  priceShow: 'What does it cost?',
+  home: 'Home',
   priceValue: (quarter: string, year: string) => `${quarter} for 3 months, or ${year} for a year`,
   steps: [
     {
@@ -46,6 +54,8 @@ const es: typeof en = {
   where: 'Dónde',
   open: 'Horario',
   price: 'Tu espacio',
+  priceShow: '¿Cuánto cuesta?',
+  home: 'Inicio',
   priceValue: (quarter: string, year: string) => `${quarter} por 3 meses, o ${year} por un año`,
   steps: [
     {

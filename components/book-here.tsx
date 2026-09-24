@@ -33,6 +33,10 @@ export function BookHere({ venueId }: { venueId: string }) {
   const [sent, setSent] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  /* The figure is a tap away rather than on the card: see lib/copy/book.ts.
+     Once asked for it stays open, because somebody who wanted the number
+     wants it again when they scroll back up. */
+  const [priced, setPriced] = useState(false);
 
   if (!venue) return null;
   /* "Don Joaquín Street Tacos · Provo" is how the network lists it; the
@@ -45,7 +49,15 @@ export function BookHere({ venueId }: { venueId: string }) {
         <Link href="/" aria-label="AdBite">
           <Wordmark className="review-word" />
         </Link>
-        <LangSwitch className="light" />
+        <span className="book-top-end">
+          {/* The mark is a link home too, but nobody arriving from a printed
+              code knows that. This page is most people's first sight of
+              AdBite, so the way out of it is spelled. */}
+          <Link className="book-home" href="/">
+            {t.home}
+          </Link>
+          <LangSwitch className="light" />
+        </span>
       </header>
 
       <div className="review-card">
@@ -77,11 +89,19 @@ export function BookHere({ venueId }: { venueId: string }) {
                 <dt>{t.open}</dt>
                 <dd>{venue.hours}</dd>
               </div>
-              <div>
-                <dt>{t.price}</dt>
-                <dd className="money">{t.priceValue(money.format(SPOT_QUARTERLY), money.format(SPOT_YEARLY))}</dd>
-              </div>
+              {priced && (
+                <div className="book-price-row">
+                  <dt>{t.price}</dt>
+                  <dd className="money">{t.priceValue(money.format(SPOT_QUARTERLY), money.format(SPOT_YEARLY))}</dd>
+                </div>
+              )}
             </dl>
+
+            {!priced && (
+              <button type="button" className="book-price-ask" onClick={() => setPriced(true)}>
+                {t.priceShow}
+              </button>
+            )}
 
             <ol className="book-steps">
               {t.steps.map((step, index) => (

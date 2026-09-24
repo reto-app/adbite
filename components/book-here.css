@@ -90,3 +90,66 @@
 .book > .review-note a {
   text-decoration: underline;
 }
+
+/* The way back to the main site. Spelled out because this page is most
+   people's first sight of AdBite and the wordmark alone does not read as a
+   link on a phone. */
+.book-top-end {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.book-home {
+  padding: 6px 13px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ash);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.book-home:hover,
+.book-home:focus-visible {
+  border-color: var(--ash);
+  color: var(--ink);
+}
+
+/* Asks for the price rather than stating it. Sits directly under the facts
+   card so the answer appears where the eye already is. */
+.book-price-ask {
+  align-self: flex-start;
+  margin-top: -2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sky-deep);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.book-price-ask:hover,
+.book-price-ask:focus-visible {
+  color: var(--board);
+}
+
+/* The price is the one fact here long enough to wrap, and wrapping it against
+   the right edge leaves a word stranded on a line of its own. It gets the
+   full width of the card instead; the two short facts above keep the
+   label-and-value line they read well on. */
+.review-facts .book-price-row {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.review-facts .book-price-row dd {
+  text-align: left;
+}
